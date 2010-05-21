@@ -1,0 +1,13 @@
+If order to keep the code simple and clean, some technical limitations had to be decided.
+When modifying the code, you must take account of them, and change them if they prove to be insuficient.
+This file is made in order to help you know what those are and where they are located.
+
+*** Stack size ***
+-> In the x86_64 bootstrap kernel, stack is 32 KB large.
+   (in arch/x86_64/bootstrap/bs_multiboot.s)
+*** Module size ***
+-> The kernel is loaded at 16 MB. All modules must fit under this limit.
+   (in support/kernel_linker.lds)
+*** Kernel memory map ***
+-> In the x86_64 bootstrap kernel, memory map can't be more than 999 entries long.
+   (in arch/x86_64/bootstrap/gen_kernel_info.h)
