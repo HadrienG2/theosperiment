@@ -1,0 +1,7 @@
+default 0
+timeout 0
+
+title Spocky
+root (fd0)
+kernel /system/bs_kernel.bin
+module /system/kernel.bin

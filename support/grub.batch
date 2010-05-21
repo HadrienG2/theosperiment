@@ -1,0 +1,3 @@
+device (fd0) floppy.img
+install (fd0)/boot/grub/stage1 (fd0) (fd0)/boot/grub/stage2 (fd0)/boot/grub/menu.lst
+quit
