@@ -17,11 +17,10 @@ Copyright (C) 2010  Hadrien Grasland
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include <die.h>
-#include <display_kinfo.h>
 #include <enable_longmode.h>
 #include <gen_kernel_info.h>
 #include <hack_stdint.h>
-#include <kernel_information.h>
+#include <bs_kernel_information.h>
 #include <kernel_loader.h>
 #include <multiboot.h>
 #include <paging.h>
@@ -64,9 +63,8 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   main_header = read_kernel_headers(kernel_location);
   //Load the kernel in memory and add its "segments" to the memory map
   load_kernel(kinfo, kernel_location, main_header);
-  dbg_print_kinfo(kinfo);
   //Switch to longmode, run the kernel
-  if(run_kernel()==-1) die(NO_LONGMODE);
+  //if(run_kernel()==-1) die(NO_LONGMODE);
   
   return 0;
 }

@@ -20,7 +20,7 @@
 #define _ELF64_PARSER_H_
 
 #include <elf.h>
-#include <kernel_information.h>
+#include <bs_kernel_information.h>
 
 //This function reads program headers and loads all loadable program segments in memory
 void load_kernel(kernel_information* kinfo, kernel_memory_map* kernel, Elf64_Ehdr* main_header);

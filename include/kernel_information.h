@@ -30,17 +30,17 @@ struct kernel_memory_map {
                         //1 : Reserved address range
                         //2 : Bootstrap kernel component
                         //3 : Kernel and modules
-  uint64_t name; //char* to a string naming the area. For free and reserved memory it's either "Low Mem" or "High Mem".
+  char* name;   //String naming the area. For free and reserved memory it's either "Low Mem" or "High Mem".
                 //Bootstrap kernel is called "Bootstrap", its separate parts have a precise naming
                 //Kernel and modules are called by their GRUB modules names
 };
  
 typedef struct kernel_information {
-  uint64_t command_line; //char* to the kernel command line
+  char* command_line; //char* to the kernel command line
   //Memory map
   uint32_t kmmap_size; //Number of entries in kernel memory map
-  uint64_t kmmap; //Pointer to the kernel memory map
-  arch_specific_info arch_info; //Some arch-specific info
+  kernel_memory_map* kmmap; //Pointer to the kernel memory map
+  arch_specific_info arch_info; //Some arch-specific information
 } kernel_information;
 
 #endif

@@ -30,6 +30,7 @@ extern const char* MMAP_TOO_SMALL;
 
 void load_kernel(kernel_information* kinfo, kernel_memory_map* kernel, Elf64_Ehdr* main_header) {
   int i, loadable_count = 0;
+  kernel_memory_map* kmmap = (kernel_memory_map*) (uint32_t) kinfo->kmmap;
   //The program header table
   Elf64_Phdr* phdr_table = (Elf64_Phdr*) (uint32_t) (kernel->location + main_header->e_phoff);
   
@@ -52,16 +53,16 @@ void load_kernel(kernel_information* kinfo, kernel_memory_map* kernel, Elf64_Ehd
     uint32_t size = phdr_table[i].p_filesz;
     memcpy(dest, source, size);
     //...and add it to the memory map
-    ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[kinfo->kmmap_size+loadable_count].location = phdr_table[i].p_vaddr;
-    ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[kinfo->kmmap_size+loadable_count].size =
+    kmmap[kinfo->kmmap_size+loadable_count].location = phdr_table[i].p_vaddr;
+    kmmap[kinfo->kmmap_size+loadable_count].size =
       ((uint32_t) (phdr_table[i].p_filesz) / (uint32_t) (phdr_table[i].p_align) + 1) * phdr_table[i].p_align;
-    ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[kinfo->kmmap_size+loadable_count].nature = 3;
+    kmmap[kinfo->kmmap_size+loadable_count].nature = 3;
     if(phdr_table[i].p_flags == PF_R) {
-      ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[kinfo->kmmap_size+loadable_count].name = (uint32_t) "Kernel R-- segment";
+      kmmap[kinfo->kmmap_size+loadable_count].name = (uint32_t) "Kernel R-- segment";
     } else if(phdr_table[i].p_flags == (PF_R + PF_W)) {
-      ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[kinfo->kmmap_size+loadable_count].name = (uint32_t) "Kernel RW- segment";
+      kmmap[kinfo->kmmap_size+loadable_count].name = (uint32_t) "Kernel RW- segment";
     } else if(phdr_table[i].p_flags == (PF_R + PF_X)) {
-      ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[kinfo->kmmap_size+loadable_count].name = (uint32_t) "Kernel R-X segment";
+      kmmap[kinfo->kmmap_size+loadable_count].name = (uint32_t) "Kernel R-X segment";
     } else die(INVALID_KERNEL);
     if(kinfo->kmmap_size+loadable_count > MAX_KMMAP_SIZE) die(MMAP_TOO_SMALL);
     ++loadable_count;
@@ -75,9 +76,10 @@ void load_kernel(kernel_information* kinfo, kernel_memory_map* kernel, Elf64_Ehd
 
 kernel_memory_map* locate_kernel(kernel_information* kinfo) {
   unsigned int i;
+  kernel_memory_map* kmmap = (kernel_memory_map*) (uint32_t) kinfo->kmmap;
   for(i=0; i<kinfo->kmmap_size; ++i) {
-    if(!strcmp((char*) (uint32_t) ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[i].name, KERNEL_NAME)) {
-      return &(((kernel_memory_map*) (uint32_t) kinfo->kmmap)[i]);
+    if(!strcmp((char*) (uint32_t) kmmap[i].name, KERNEL_NAME)) {
+      return &(kmmap[i]);
     }
   }
   

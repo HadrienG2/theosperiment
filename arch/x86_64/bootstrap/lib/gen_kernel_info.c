@@ -320,6 +320,7 @@ kernel_memory_map* merge_memory_map(kernel_information* kinfo) {
       -> Free memory segments always begin before and end after the overlapping segments. */
   
   kernel_memory_map tmp;
+  kernel_memory_map* kmmap = (kernel_memory_map*) (uint32_t) kinfo->kmmap;
   static kernel_memory_map kmmap_buffer[MAX_KMMAP_SIZE];
   unsigned int dest_index = 0, source_index, free_index;
   
@@ -327,14 +328,12 @@ kernel_memory_map* merge_memory_map(kernel_information* kinfo) {
     main memory. The only case where this may not happen is when a used segment begins at the same
     address as a non-free one, so it does rarely happen. We'll take care of that. */
   for(source_index = 0; source_index < kinfo->kmmap_size; ++source_index) {
-    if(((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index].nature == 0 && source_index != 0) {
-      if(((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index-1].location ==
-        ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index].location)
+    if(kmmap[source_index].nature == 0 && source_index != 0) {
+      if(kmmap[source_index-1].location == kmmap[source_index].location)
       {
-        copy_memory_map_elt((kernel_memory_map*) (uint32_t) kinfo->kmmap, &tmp, source_index, 0);
-        copy_memory_map_elt((kernel_memory_map*) (uint32_t) kinfo->kmmap, (kernel_memory_map*) (uint32_t) kinfo->kmmap,
-          source_index-1, source_index);
-        copy_memory_map_elt(&tmp, (kernel_memory_map*) (uint32_t) kinfo->kmmap, 0, source_index-1);
+        copy_memory_map_elt(kmmap, &tmp, source_index, 0);
+        copy_memory_map_elt(kmmap, kmmap, source_index-1, source_index);
+        copy_memory_map_elt(&tmp, kmmap, 0, source_index-1);
       }
     }
   }
@@ -342,8 +341,8 @@ kernel_memory_map* merge_memory_map(kernel_information* kinfo) {
   // Now, let's begin the real stuff...
   for(source_index = 0; source_index<kinfo->kmmap_size; ++source_index) {
     //Is this a reserved segment ?
-    if(((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index].nature != 0) {
-      copy_memory_map_elt((kernel_memory_map*) (uint32_t) kinfo->kmmap, kmmap_buffer, source_index, dest_index++);
+    if(kmmap[source_index].nature != 0) {
+      copy_memory_map_elt(kmmap, kmmap_buffer, source_index, dest_index++);
       if(dest_index >= MAX_KMMAP_SIZE) {
         //Memory map overflow. Quitting...
         die(MMAP_TOO_SMALL);
@@ -353,25 +352,15 @@ kernel_memory_map* merge_memory_map(kernel_information* kinfo) {
       free_index = source_index;
       
       
-      while((source_index < kinfo->kmmap_size) && (((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index+1].location <
-        ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[free_index].location +
-        ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[free_index].size)) 
-      {
+      while((source_index < kinfo->kmmap_size) && (kmmap[source_index+1].location < kmmap[free_index].location + kmmap[free_index].size)) {
         ++source_index;
         //Add free space behind this new segment to memory map, if needed.
         if(source_index != free_index+1) {
-          if(((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index].location !=
-            ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index-1].location +
-            ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index-1].size)
-          {
-            kmmap_buffer[dest_index].location =
-              ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index-1].location +
-              ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index-1].size;
-            kmmap_buffer[dest_index].size = ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index].location -
-              (((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index-1].location +
-              ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index-1].size);
+          if(kmmap[source_index].location != kmmap[source_index-1].location + kmmap[source_index-1].size) {
+            kmmap_buffer[dest_index].location =  kmmap[source_index-1].location + kmmap[source_index-1].size;
+            kmmap_buffer[dest_index].size = kmmap[source_index].location - (kmmap[source_index-1].location + kmmap[source_index-1].size);
             kmmap_buffer[dest_index].nature = 0;
-            kmmap_buffer[dest_index].name = ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[free_index].name;
+            kmmap_buffer[dest_index].name = kmmap[free_index].name;
             ++dest_index;
             if(dest_index >= MAX_KMMAP_SIZE) {
               //Memory map overflow. Quitting...
@@ -379,14 +368,13 @@ kernel_memory_map* merge_memory_map(kernel_information* kinfo) {
             }
           }
         } else {
-          if(((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index].location !=
-            ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[free_index].location)
+          if(kmmap[source_index].location !=
+            kmmap[free_index].location)
           {
-            kmmap_buffer[dest_index].location = ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[free_index].location;
-            kmmap_buffer[dest_index].size = ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index].location -
-              ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[free_index].location;
+            kmmap_buffer[dest_index].location = kmmap[free_index].location;
+            kmmap_buffer[dest_index].size = kmmap[source_index].location - kmmap[free_index].location;
             kmmap_buffer[dest_index].nature = 0;
-            kmmap_buffer[dest_index].name = ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[free_index].name;
+            kmmap_buffer[dest_index].name = kmmap[free_index].name;
             ++dest_index;
             if(dest_index >= MAX_KMMAP_SIZE) {
               //Memory map overflow. Quitting...
@@ -396,7 +384,7 @@ kernel_memory_map* merge_memory_map(kernel_information* kinfo) {
         }
         
         //Then add the actual segment
-        copy_memory_map_elt((kernel_memory_map*) (uint32_t) kinfo->kmmap, kmmap_buffer, source_index, dest_index++);
+        copy_memory_map_elt(kmmap, kmmap_buffer, source_index, dest_index++);
         if(dest_index >= MAX_KMMAP_SIZE) {
           //Memory map overflow. Quitting...
           die(MMAP_TOO_SMALL);
@@ -406,20 +394,12 @@ kernel_memory_map* merge_memory_map(kernel_information* kinfo) {
       
       //Fill free space after the end of the last used segment, if needed
       if(source_index != free_index) {
-        if(((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index].location +
-          ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index].size !=
-          ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[free_index].location +
-          ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[free_index].size)
-        {
-          kmmap_buffer[dest_index].location =
-            ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index].location +
-            ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index].size;
-          kmmap_buffer[dest_index].size = ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[free_index].location +
-            ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[free_index].size -
-            (((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index].location +
-            ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[source_index].size);
+        if(kmmap[source_index].location + kmmap[source_index].size != kmmap[free_index].location + kmmap[free_index].size) {
+          kmmap_buffer[dest_index].location = kmmap[source_index].location + kmmap[source_index].size;
+          kmmap_buffer[dest_index].size = kmmap[free_index].location + kmmap[free_index].size -
+            (kmmap[source_index].location + kmmap[source_index].size);
           kmmap_buffer[dest_index].nature = 0;
-          kmmap_buffer[dest_index].name = ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[free_index].name;
+          kmmap_buffer[dest_index].name = kmmap[free_index].name;
           ++dest_index;
           if(dest_index >= MAX_KMMAP_SIZE) {
             //Memory map overflow. Quitting...
@@ -427,7 +407,7 @@ kernel_memory_map* merge_memory_map(kernel_information* kinfo) {
           }
         }
       } else {
-        copy_memory_map_elt((kernel_memory_map*) (uint32_t) kinfo->kmmap, kmmap_buffer, free_index, dest_index++);
+        copy_memory_map_elt(kmmap, kmmap_buffer, free_index, dest_index++);
         if(dest_index >= MAX_KMMAP_SIZE) {
           //Memory map overflow. Quitting...
           die(MMAP_TOO_SMALL);

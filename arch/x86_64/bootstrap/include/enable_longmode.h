@@ -19,7 +19,7 @@
 #ifndef _ENABLE_LONGMODE_H_
 #define _ENABLE_LONGMODE_H_
 
-#include <kernel_information.h>
+#include <bs_kernel_information.h>
 #include <paging.h>
 
 /* Returns kernel return value or -1 if 64-bit mode is not available */

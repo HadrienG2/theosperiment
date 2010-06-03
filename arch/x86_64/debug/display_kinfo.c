@@ -21,6 +21,7 @@
  
 void dbg_print_kinfo(kernel_information* kinfo) {
   if(kinfo) {
+    startup_drive_info* sdr_info = (startup_drive_info*) (uint32_t) kinfo->arch_info.startup_drive;
     //Display command line
     dbg_print_str("Kernel command line : ");
     if(kinfo->command_line) dbg_print_str((char*) (uint32_t) kinfo->command_line);
@@ -34,13 +35,13 @@ void dbg_print_kinfo(kernel_information* kinfo) {
     //Startup drive information
     if(kinfo->arch_info.startup_drive) {
       dbg_print_str("Startup drive is : ");
-      dbg_print_uint8(((startup_drive_info*) (uint32_t) kinfo->arch_info.startup_drive)->drive_number);
+      dbg_print_uint8(sdr_info->drive_number);
       dbg_print_chr('/');
-      dbg_print_uint8(((startup_drive_info*) (uint32_t) kinfo->arch_info.startup_drive)->partition_number);
+      dbg_print_uint8(sdr_info->partition_number);
       dbg_print_chr('/');
-      dbg_print_uint8(((startup_drive_info*) (uint32_t) kinfo->arch_info.startup_drive)->sub_partition_number);
+      dbg_print_uint8(sdr_info->sub_partition_number);
       dbg_print_chr('/');
-      dbg_print_uint8(((startup_drive_info*) (uint32_t) kinfo->arch_info.startup_drive)->subsub_partition_number);
+      dbg_print_uint8(sdr_info->subsub_partition_number);
       dbg_print_chr('\n');
     }
     
@@ -54,15 +55,16 @@ void dbg_print_kinfo(kernel_information* kinfo) {
 
 void dbg_print_kmmap(kernel_information* kinfo) {
   unsigned int i = 0;
+  kernel_memory_map* kmmap = (kernel_memory_map*) (uint32_t) kinfo->kmmap;
   dbg_print_str("Address            | Size               | Type | Name\n");
   dbg_print_str("-------------------------------------------------------------------------------\n");
   for(; i<kinfo->kmmap_size; ++i) {
-    dbg_print_hex64(((kernel_memory_map*) (uint32_t) kinfo->kmmap)[i].location);
+    dbg_print_hex64(kmmap[i].location);
     dbg_print_str(" | ");
-    dbg_print_hex64(((kernel_memory_map*) (uint32_t) kinfo->kmmap)[i].size);
+    dbg_print_hex64(kmmap[i].size);
     dbg_print_str(" | ");
     
-    switch(((kernel_memory_map*) (uint32_t) kinfo->kmmap)[i].nature) {
+    switch(kmmap[i].nature) {
       case 0:
         dbg_print_str("FREE | ");
         break;
@@ -79,10 +81,10 @@ void dbg_print_kmmap(kernel_information* kinfo) {
         dbg_print_str("UNSP | ");
     }
     
-    if(!((kernel_memory_map*) (uint32_t) kinfo->kmmap)[i].name) {
+    if(!kmmap[i].name) {
       dbg_print_str("\n");
     } else {
-      dbg_print_str((char*) (uint32_t) ((kernel_memory_map*) (uint32_t) kinfo->kmmap)[i].name);
+      dbg_print_str((char*) (uint32_t) kmmap[i].name);
       dbg_print_chr('\n');
     }
   }
