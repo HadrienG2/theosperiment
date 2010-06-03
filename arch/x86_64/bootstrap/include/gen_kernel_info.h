@@ -19,7 +19,7 @@
 #ifndef _GEN_KINFO_H_
 #define _GEN_KINFO_H_
 
-#include <kernel_information.h>
+#include <bs_kernel_information.h>
 #include <multiboot.h>
 
 //Reserved entries of kernel memory map

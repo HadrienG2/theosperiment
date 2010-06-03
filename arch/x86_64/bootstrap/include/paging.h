@@ -19,7 +19,7 @@
 #ifndef _PAGING_H_
 #define _PAGING_H_
 
-#include <kernel_information.h>
+#include <bs_kernel_information.h>
 
 /* Page-table entries bits */
 #define PBIT_PRESENT         1
