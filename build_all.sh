@@ -77,4 +77,4 @@ mcopy support/stage2 ::/boot/grub -i floppy.img
 mcopy support/menu.lst ::/boot/grub -i floppy.img
 grub --batch < support/grub.batch
 echo
-echo REMEMBER TO RUN svn commit -m "What happened" ONCE SOMETHING NEW IS ON THE WAY !
+echo \*\*\*REMEMBER TO RUN svn commit -m \"What happened\" ONCE SOMETHING NEW IS ON THE WAY !\*\*\*
