@@ -34,6 +34,8 @@ kernel_memory_map* add_bskernel(kernel_memory_map* kmmap_buffer, int *index_ptr,
 kernel_memory_map* add_mbdata(kernel_memory_map* kmmap_buffer, int *index_ptr, multiboot_info_t* mbd);
 //Add modules-related memory map information to the kernel memory map
 kernel_memory_map* add_modules(kernel_memory_map* kmmap_buffer, int *index_ptr, multiboot_info_t* mbd);
+//Duplicate part of a memory map structure in another.
+kernel_memory_map* copy_memory_map_chunk(kernel_memory_map* source, kernel_memory_map* dest, unsigned int start, unsigned int length);
 //Copy an element between two memory map structures.
 kernel_memory_map* copy_memory_map_elt(kernel_memory_map* source, kernel_memory_map* dest, unsigned int source_index, unsigned int dest_index);
 //Generate a kernel information structure (see kernel_information.h)
