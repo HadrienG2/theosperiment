@@ -25,6 +25,7 @@ Copyright (C) 2010  Hadrien Grasland
 #include <multiboot.h>
 #include <paging.h>
 #include <txt_videomem.h>
+#include <display_kinfo.h>
 
 
 const char* MULTIBOOT_MISSING = "The operating system was apparently not loaded by GRUB.\n\
@@ -49,7 +50,7 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   
   //Some silly text
   dbg_set_attr(DBG_TXT_WHITE);
-  dbg_print_str("Welcome to ToolbOS v0.02 ");
+  dbg_print_str("Welcome to ToolbOS v0.0.3 ");
   dbg_set_attr(DBG_TXT_LIGHTPURPLE);
   dbg_print_str("\"Spartan's Delight\"\n\n");
   dbg_set_attr(DBG_TXT_LIGHTGRAY);
@@ -63,6 +64,8 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   main_header = read_kernel_headers(kernel_location);
   //Load the kernel in memory and add its "segments" to the memory map
   load_kernel(kinfo, kernel_location, main_header);
+  //Generate a page table
+  if(generate_pagetable(kinfo)==0) die("Sorry, I just don't understand this one.");
   //Switch to longmode, run the kernel
   //if(run_kernel()==-1) die(NO_LONGMODE);
   

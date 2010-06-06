@@ -227,6 +227,17 @@ kernel_memory_map* add_modules(kernel_memory_map* kmmap_buffer, int* index_ptr, 
   return kmmap_buffer;
 }
 
+kernel_memory_map* copy_memory_map_chunk(kernel_memory_map* source, kernel_memory_map* dest, unsigned int start, unsigned int length) {
+  if((!source) || (!dest) || (length+start > MAX_KMMAP_SIZE)) {
+    return 0;
+  }
+  
+  unsigned int i;
+  for(i=start; i<start+length; ++i) copy_memory_map_elt(source, dest, i, i);
+  
+  return dest;  
+}
+
 kernel_memory_map* copy_memory_map_elt(kernel_memory_map* source, kernel_memory_map* dest, unsigned int source_index, unsigned int dest_index) {
   if((!source) || (!dest) || (source_index >= MAX_KMMAP_SIZE) || (dest_index >= MAX_KMMAP_SIZE)) {
     return 0;
@@ -416,7 +427,7 @@ kernel_memory_map* merge_memory_map(kernel_information* kinfo) {
     }
   }
   
-  kinfo->kmmap = (uint32_t) kmmap_buffer;
+  copy_memory_map_chunk(kmmap_buffer, kmmap, 0, dest_index);
   kinfo->kmmap_size = dest_index;
   return kmmap_buffer;
 }
@@ -439,7 +450,8 @@ kernel_memory_map* sort_memory_map(kernel_information* kinfo) {
   static kernel_memory_map sorting_buffer[MAX_KMMAP_SIZE];
   unsigned int granularity, left_pointer, right_pointer, dest_pointer = 0, current_pair;
   
-  kernel_memory_map* source = (kernel_memory_map*) (uint32_t) kinfo->kmmap;
+  kernel_memory_map* kmmap = (kernel_memory_map*) (uint32_t) kinfo->kmmap;
+  kernel_memory_map* source = kmmap;
   kernel_memory_map* dest = sorting_buffer;
   kernel_memory_map* tmp;
   
@@ -518,6 +530,8 @@ kernel_memory_map* sort_memory_map(kernel_information* kinfo) {
     dest = tmp;
   }
   
-  kinfo->kmmap = (uint32_t) source;
+  //At this point, the resulting, sorted memory map is stocked in "source"
+  //Since this function may be called multiple times, it's best to copy the result in the original buffer.
+  if(kmmap!=source) copy_memory_map_chunk(source, kmmap, 0, kinfo->kmmap_size);
   return source;
 }
