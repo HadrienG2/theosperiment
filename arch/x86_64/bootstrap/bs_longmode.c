@@ -49,9 +49,9 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   
   //Some silly text
   dbg_set_attr(DBG_TXT_WHITE);
-  dbg_print_str("Welcome to Spocky v0.02 ");
+  dbg_print_str("Welcome to ToolbOS v0.02 ");
   dbg_set_attr(DBG_TXT_LIGHTPURPLE);
-  dbg_print_str("\"Tonight we dine in hell\"\n\n");
+  dbg_print_str("\"Spartan's Delight\"\n\n");
   dbg_set_attr(DBG_TXT_LIGHTGRAY);
   
   //Generate kernel information
