@@ -330,7 +330,7 @@ kernel_memory_map* merge_memory_map(kernel_information* kinfo) {
           and the other being some kind of used memory region.
       -> Free memory segments always begin before and end after the overlapping segments. */
   
-  kernel_memory_map tmp;
+  kernel_memory_map tmp = {0,0,0,0};
   kernel_memory_map* kmmap = (kernel_memory_map*) (uint32_t) kinfo->kmmap;
   static kernel_memory_map kmmap_buffer[MAX_KMMAP_SIZE];
   unsigned int dest_index = 0, source_index, free_index;

@@ -385,7 +385,7 @@ void dbg_scroll(const int offset) {
   /* int x, y;
   int target_index, source_index; */
   
-  //WARNING : REMOVE THIS IF USING FOR NON-DEBUGGING PURPOSES !!!
+  //WARNING : REMOVE THIS AND UNCOMMENT THE REST IF USING FOR NON-DEBUGGING PURPOSES !!!
   dbg_wait(offset);
   __asm__("xchgw %bx, %bx");
   dbg_clear_screen();

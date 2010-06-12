@@ -78,103 +78,83 @@ void make_page_table(uint32_t location, kernel_information* kinfo) {
   uint32_t current_mmap_index = 0;
   kernel_memory_map* kmmap = (kernel_memory_map*) (uint32_t) kinfo->kmmap;
   uint64_t current_page, current_region_end = kmmap[0].location + kmmap[0].size;
-  pte pte_entry_buffer;
-  pte* pte_entry_target = (pte*) location;
+  pte pte_mask = PBIT_PRESENT+PBIT_NOEXECUTE+PBIT_WRITABLE; //Current "mask" being added to page table entries.
+  pte pte_entry_buffer = pte_mask;
+  pte* page_table = (pte*) location;
   
-  int mode = 0; /* Refers to the currently examined memory region.
-                      0 = In the middle of a normal mmap region
-                      1 = Non-mapped region
-                      2 = Region at the frontier between two memory map entries */
-  int current_privileges = 2; /* 0 = R-X
-                                 1 = R--
-                                 2 = RW- */
+  int mode = 0; // Refers to the currently examined memory region.
+                //    0 = In the middle of a normal mmap region
+                //    1 = Non-mapped region
+                //    2 = Region at the frontier between two memory map entries
+  int privileges = 2; // 0 = R-X
+                              // 1 = R--
+                              // 2 = RW-
   
   for(current_page = 0; current_page*0x1000<kmmap[kinfo->kmmap_size-1].location; ++current_page) {
     /* Making the page table entry */
-    pte_entry_buffer = current_page;
-    pte_entry_buffer <<= PADD_BITSHIFT;
-    pte_entry_buffer += PBIT_PRESENT;
-    switch(mode) {
-      case 0:
-        switch(current_privileges) {
-          case 0:
-            break;
-          case 1:
-            pte_entry_buffer += PBIT_NOEXECUTE;
-            break;
-          case 2:
-            pte_entry_buffer += PBIT_NOEXECUTE + PBIT_WRITABLE;
-            break;
-        }
-      case 1:
-        pte_entry_buffer += PBIT_WRITABLE + PBIT_NOEXECUTE;
-        break;
-      case 2:
-        /* In overlapping cases, we encountered a grub segment, because the rest is page aligned...
-            Privilege is hence R-- */
-        pte_entry_buffer += PBIT_NOEXECUTE;
-        break;
-    }
-    //Write page table entry in memory
-    *pte_entry_target = pte_entry_buffer;
-    ++pte_entry_target;    
+    pte_entry_buffer += 0x1000;
+    //Writing page table entry in memory
+    page_table[current_page] = pte_entry_buffer;
     
-    /* Checking if we'll still be in the same memory map entry next time.
-       Going to the next one if needed. */
+    
+    // Checking if next page still is in the same memory map entry.
     if((current_page+2)*0x1000 > current_region_end) {
-      dbg_print_str("REGION LIMIT !!!\n");
-      dbg_print_str("Current page : ");
-      dbg_print_hex64(current_page*0x1000);
-      dbg_print_str("\nCurrent mode : ");
-      switch(mode) {
-        case 0: dbg_print_str("Normal\n"); break;
-        case 1: dbg_print_str("Non-mapped\n"); break;
-        case 2: dbg_print_str("Overlap\n"); break;
-        default: dbg_print_str("???\n");
-      }
-      if(mode == 0) {
-        dbg_print_str("Current privileges : ");
-        switch(current_privileges) {
-          case 0: dbg_print_str("R-X\n"); break;
-          case 1: dbg_print_str("R--\n"); break;
-          case 2: dbg_print_str("RW-\n"); break;
-          default: dbg_print_str("???\n");
-        }
-      }
-      
-      if(((current_page+2)*0x1000 > kmmap[current_mmap_index+1].location) &&
-        ((current_page+1)*0x1000 < kmmap[current_mmap_index].location+kmmap[current_mmap_index].size))
+      //No. Check what's happening then.
+      if((((current_page+2)*0x1000 > kmmap[current_mmap_index+1].location) &&
+          ((current_page+1)*0x1000 < kmmap[current_mmap_index].location+kmmap[current_mmap_index].size) &&
+          (current_mmap_index<kinfo->kmmap_size-1))
+        || (((current_page+2)*0x1000 > kmmap[current_mmap_index+2].location) &&
+          (current_mmap_index<kinfo->kmmap_size-2)))
       {
-        //Our page overlaps with two distinct memory map entries. This requires specific care
-        mode = 2;
+        //Our page overlaps with two distinct memory map entries.
+        //This means that we're in the region where GRUB puts its stuff and requires specific care
+          while((current_page+2)*0x1000 >= kmmap[current_mmap_index].location + kmmap[current_mmap_index].size) {
+            ++current_mmap_index;
+          }
+          --current_mmap_index;
+          mode=2;
+          current_region_end = kmmap[current_mmap_index].location + kmmap[current_mmap_index].size;
       } else {
         if((current_page+2)*0x1000 < kmmap[current_mmap_index+1].location) {
           //Memory region is not mapped
           mode = 1;
+          current_region_end = kmmap[current_mmap_index+1].location;
         } else {
+          //We just reached a new region in memory
           ++current_mmap_index;
           mode=0;
-          current_privileges = find_map_region_privileges(&(kmmap[current_mmap_index]));
+          privileges = find_map_region_privileges(&(kmmap[current_mmap_index]));
           current_region_end = kmmap[current_mmap_index].location + kmmap[current_mmap_index].size;
         }
       }
       
-      dbg_print_str("New mode : ");
+      //Refreshing the page table entry mask
+      pte_mask = PBIT_PRESENT;
       switch(mode) {
-        case 0: dbg_print_str("Normal\n"); break;
-        case 1: dbg_print_str("Non-mapped\n"); break;
-        case 2: dbg_print_str("Overlap\n"); break;
-        default: dbg_print_str("???\n");
+        case 0:
+          switch(privileges) {
+            case 0:
+              break;
+            case 1:
+              pte_mask += PBIT_NOEXECUTE;
+              break;
+            case 2:
+              pte_mask += PBIT_NOEXECUTE + PBIT_WRITABLE;
+              break;
+          }
+        case 1:
+          pte_mask += PBIT_WRITABLE + PBIT_NOEXECUTE;
+          break;
+        case 2:
+          /* In overlapping cases, we encountered a grub segment or a module, because the rest is page aligned...
+              Privilege is hence R-- */
+          pte_mask += PBIT_NOEXECUTE;
+          break;
       }
-      if(mode == 0) {
-        dbg_print_str("New privileges : ");
-        switch(current_privileges) {
-          case 0: dbg_print_str("R-X\n\n"); break;
-          case 1: dbg_print_str("R--\n\n"); break;
-          case 2: dbg_print_str("RW-\n\n"); break;
-          default: dbg_print_str("???\n\n");
-        }
-      } else dbg_print_chr('\n');
+      //Refreshing the page table entry buffer
+      pte_entry_buffer = current_page;
+      pte_entry_buffer <<= PADD_BITSHIFT;
+      pte_entry_buffer += pte_mask;
     }
   }
 }
