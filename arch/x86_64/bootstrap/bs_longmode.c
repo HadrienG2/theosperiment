@@ -38,6 +38,7 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   kernel_information* kinfo;
   kernel_memory_map* kernel_location;
   Elf64_Ehdr *main_header;
+  uint64_t cr3_value;
   
   //Video memory initialization (for kernel silencing purposes)
   dbg_init_videomem();
@@ -65,12 +66,14 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   //Load the kernel in memory and add its "segments" to the memory map
   load_kernel(kinfo, kernel_location, main_header);
   //Generate a page table
-  dbg_print_str("Generating paging structures... ");
-  if(generate_paging(kinfo)==0) die("Sorry, I just don't understand this one.");
-  dbg_print_str("Done !\n");
+  cr3_value = generate_paging(kinfo);
   //Switch to longmode, run the kernel
-  //if(run_kernel()==-1) die(NO_LONGMODE);
-  dbg_print_kmmap(kinfo);
+  int ret = run_kernel(cr3_value, (uint32_t) main_header->e_entry, (uint32_t) kinfo);
+  if(ret==-1) die(NO_LONGMODE);
+  dbg_print_str("Returned value : ");
+  dbg_print_int32(ret);
+  dbg_print_str("\nExpected value : ");
+  dbg_print_int32((int) main_header->e_entry);
   
   return 0;
 }

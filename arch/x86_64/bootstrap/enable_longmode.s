@@ -10,10 +10,9 @@
   .globl run_kernel
 
 run_kernel:
-  /* C support code */
-  push  %ebp
-  mov   %esp, %ebp
-  sub   $12,  %esp /* Sets up storage space for esi, edi, and the handled variables */
+  push  %ebp       /* Save caller's stack frame and establish a new one */
+  mov   %esp, %ebp 
+  sub   $32,  %esp /* Sets up storage space for 32 bytes */
   push  %esi
   push  %edi
 
@@ -51,29 +50,29 @@ run_kernel:
   bts   $8,   %eax
   wrmsr
 
-  /* TODO : Enable paging (replace pml4_base)
-  mov   pml4_base,    %eax
+  /* Load CR3 for future paging activation */
+  mov   8(%ebp), %eax
   mov   %eax, %cr3
+
+
+  /* Prepare kernel launch */
+  mov   12(%ebp), %ebx
   mov   %cr0, %eax
   bts   $31,  %eax
+ 
+  /* Start the kernel */
   mov   %eax, %cr0
-  */
+  ljmp   *(%ebx)
 
-  /* Return 0 (This is a kernel replacement) */
-  mov   $0, %eax
-
+return:
   /* End of the function */
   pop   %edi
   pop   %esi
-  add   $12, %esp
+  mov   %ebp, %esp
   pop   %ebp
   ret
 
 no_longmode:
   /* return -1 */
-  pop   %edi
-  pop   %esi
-  add   $12, %esp
   mov   $-1, %eax
-  pop   %ebp
-  ret
+  jmp return
