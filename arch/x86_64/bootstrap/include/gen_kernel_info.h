@@ -22,8 +22,7 @@
 #include <bs_kernel_information.h>
 #include <multiboot.h>
 
-//Reserved entries of kernel memory map
-#define MAX_KMMAP_SIZE 1000
+extern const char* MMAP_TOO_SMALL;
 
 //Add BIOS memory map information to the kernel memory map
 //Returns pointer to memory map if successful, 0 otherwise
