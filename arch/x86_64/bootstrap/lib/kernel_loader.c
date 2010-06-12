@@ -16,17 +16,16 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include <die.h>
-#include <kernel_loader.h>
 #include <bs_string.h>
+#include <die.h>
 #include <gen_kernel_info.h>
+#include <kernel_loader.h>
 
 //Path to the kernel
 const char* KERNEL_NAME="/system/kernel.bin";
 //Error messages
 const char* KERNEL_NOT_FOUND="Sorry, vital file /system/kernel.bin could not be found.";
 const char* INVALID_KERNEL="Sorry, vital file /system/kernel.bin is corrupted and can't be safely used.";
-extern const char* MMAP_TOO_SMALL;
 
 void load_kernel(kernel_information* kinfo, kernel_memory_map* kernel, Elf64_Ehdr* main_header) {
   int i, loadable_count = 0;
@@ -46,6 +45,7 @@ void load_kernel(kernel_information* kinfo, kernel_memory_map* kernel, Elf64_Ehd
       default:
         continue;
     }
+    if(phdr_table[i].p_filesz == 0) continue; //Loading an empty segment is pointless.
     
     //We have encountered a loadable segment. Let's load it...
     void* source = (void*) (uint32_t) (kernel->location + phdr_table[i].p_offset);

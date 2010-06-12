@@ -56,23 +56,21 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   dbg_set_attr(DBG_TXT_LIGHTGRAY);
   
   //Generate kernel information
-  dbg_print_str("Generating kernel information...\n");
   kinfo = generate_kernel_info(mbd);
   if(!kinfo->kmmap) die(NO_MEMORYMAP);
   //Locate the kernel in memory
-  dbg_print_str("Locating kernel...\n");
   kernel_location = locate_kernel(kinfo);
   //Get kernel headers
-  dbg_print_str("Grabbing headers...\n");
   main_header = read_kernel_headers(kernel_location);
   //Load the kernel in memory and add its "segments" to the memory map
-  dbg_print_str("Loading kernel...\n");
   load_kernel(kinfo, kernel_location, main_header);
   //Generate a page table
-  dbg_print_str("Generating page table...\n");
-  if(generate_pagetable(kinfo)==0) die("Sorry, I just don't understand this one.");
+  dbg_print_str("Generating paging structures... ");
+  if(generate_paging(kinfo)==0) die("Sorry, I just don't understand this one.");
+  dbg_print_str("Done !\n");
   //Switch to longmode, run the kernel
   //if(run_kernel()==-1) die(NO_LONGMODE);
+  dbg_print_kmmap(kinfo);
   
   return 0;
 }
