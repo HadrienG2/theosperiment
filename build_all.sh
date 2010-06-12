@@ -34,9 +34,9 @@ CC32=i686-elf-gcc
 CXX=x86_64-elf-g++
 LD32=i686-elf-ld
 LD=x86_64-elf-ld
-CFLAGS="-Wall -Wextra -Werror -nostdlib -nostartfiles -nodefaultlibs -fno-builtin -std=c99 -pedantic -ffreestanding"
+CFLAGS="-Wall -Wextra -Werror -nostdlib -nostartfiles -nodefaultlibs -fno-builtin -std=c99 -pedantic -ffreestanding -O3"
 CXXFLAGS="-Wall -Wextra -Werror -nostdlib -nostartfiles -nodefaultlibs -fno-builtin -fno-exceptions -fno-rtti -fstack-protector-all \
--mno-red-zone -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow"
+-mno-red-zone -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow -O3"
 LFLAGS="-z max-page-size=0x1000" #Maximum page size usable by the kernel (4 KB at the moment). Add -s for reduced size when out of debugging
 INCLUDES="-I../../arch/x86_64/debug/ -I../../arch/x86_64/include/ -I../../include/ -I../../arch/x86_64/bootstrap/include"
 echo \* Making bootstrap kernel...

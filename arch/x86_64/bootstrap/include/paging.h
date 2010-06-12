@@ -34,7 +34,7 @@
 #define PBIT_PAGEATTRIBTABLE (1<<7)  //Only present at the PTE level
 #define PBIT_NOEXECUTE       0x8000000000000000 //Prevents execution (can't be written in bitshift form because we still handle 32b data)
 /* Some numeric data... */
-#define PADD_BITSHIFT   12      //How many bits to the left the address must go
+#define PADD_BITSHIFT   12      //How many bits to the left the page number must go
 #define PML4T_SIZE      (1<<9)  //Size of the various element of the page table
 #define PDPT_SIZE       (1<<9)
 #define PDT_SIZE        (1<<9)
