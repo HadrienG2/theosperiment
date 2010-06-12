@@ -117,7 +117,7 @@ kernel_memory_map* add_mbdata(kernel_memory_map* kmmap_buffer, int *index_ptr, m
   //Command line
   if(mbd->flags & 4) {
     kmmap_buffer[index].location = (uint32_t) mbd->cmdline;
-    kmmap_buffer[index].size = strlen(mbd->cmdline);
+    kmmap_buffer[index].size = strlen(mbd->cmdline)+1;
     kmmap_buffer[index].nature = 2;
     kmmap_buffer[index].name = (uint32_t) "Kernel command line";
     ++index;
@@ -142,7 +142,7 @@ kernel_memory_map* add_mbdata(kernel_memory_map* kmmap_buffer, int *index_ptr, m
     unsigned int current_mod = 0;
     while(current_mod < mbd->mods_count) {
       kmmap_buffer[index].location = (uint32_t) mbd->mods_addr[current_mod].string;
-      kmmap_buffer[index].size = strlen(mbd->mods_addr[current_mod].string);
+      kmmap_buffer[index].size = strlen(mbd->mods_addr[current_mod].string)+1;
       kmmap_buffer[index].nature = 2;
       kmmap_buffer[index].name = (uint32_t) "Multiboot modules string";
       
@@ -172,7 +172,7 @@ kernel_memory_map* add_mbdata(kernel_memory_map* kmmap_buffer, int *index_ptr, m
   //Bootloader name
   if(mbd->flags & 512) {
     kmmap_buffer[index].location = (uint32_t) mbd->boot_loader_name;
-    kmmap_buffer[index].size = strlen(mbd->boot_loader_name);
+    kmmap_buffer[index].size = strlen(mbd->boot_loader_name)+1;
     kmmap_buffer[index].nature = 2;
     kmmap_buffer[index].name = (uint32_t) "Boot loader name";
     ++index;

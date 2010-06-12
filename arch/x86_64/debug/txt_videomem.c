@@ -382,15 +382,17 @@ void dbg_print_uint64(const uint64_t integer) {
 }*/
 
 void dbg_scroll(const int offset) {
-  int x, y;
-  int target_index, source_index;
+  /* int x, y;
+  int target_index, source_index; */
   
   //WARNING : REMOVE THIS IF USING FOR NON-DEBUGGING PURPOSES !!!
-  dbg_wait(700);
+  dbg_wait(offset);
+  __asm__("xchgw %bx, %bx");
+  dbg_clear_screen();
   
-  if(offset>=0) {
-    /* Scrolling more lines than screen height is useless,
-       In that case clearing the screen is just as effective */
+  /*if(offset>=0) {
+    // Scrolling more lines than screen height is useless,
+    // In that case clearing the screen is just as effective
     if(offset > number_of_rows) {
       dbg_clear_screen();
     } else {
@@ -417,8 +419,8 @@ void dbg_scroll(const int offset) {
     }
   } else {
     //Same as above, but downwards
-    /* Scrolling more lines than screen height is useless,
-       In that case clearing the screen is just as effective */
+    // Scrolling more lines than screen height is useless,
+    // In that case clearing the screen is just as effective
     if(offset < -number_of_rows) {
       dbg_clear_screen();
     } else {      
@@ -436,17 +438,17 @@ void dbg_scroll(const int offset) {
       //Clear text at the top
       dbg_clear_rect(0, 0, number_of_cols-1, -offset-1);
       
-      /* Move cursor down, if it goes out of the screen make it move to
-         the bottom right corner */
+      // Move cursor down, if it goes out of the screen make it move to
+      // the bottom right corner
       if(cursor_row - offset >= 0) {
         dbg_movecur_rel(0, -offset);
       } else {
         dbg_movecur_abs(number_of_cols-1, number_of_rows-1);
       }
     }
-  }
-}
+  } */
 
+}
 void dbg_set_attr(const char new_attr) {
   attr = new_attr;
 }
