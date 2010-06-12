@@ -37,11 +37,11 @@ int find_map_region_privileges(kernel_memory_map* map_region) {
   return -1;
 }
 
-uint64_t generate_paging(kernel_information* kinfo) {
+uint32_t generate_paging(kernel_information* kinfo) {
   kernel_memory_map* kmmap = (kernel_memory_map*) (uint32_t) kinfo->kmmap;
   uint32_t kmmap_size = kinfo->kmmap_size;
   uint32_t pt_length, pd_length, pdpt_length, pml4t_length;
-  uint64_t cr3_value;
+  uint32_t cr3_value;
 
   /* We'll do the following :
   

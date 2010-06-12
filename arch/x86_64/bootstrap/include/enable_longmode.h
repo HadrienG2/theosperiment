@@ -23,6 +23,6 @@
 #include <paging.h>
 
 /* Returns kernel return value or -1 if 64-bit mode is not available */
-int run_kernel();
+uint32_t run_kernel(uint32_t cr3_value, uint32_t kernel_entry, uint32_t kernel_information);
 
 #endif

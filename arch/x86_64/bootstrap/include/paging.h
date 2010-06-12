@@ -51,8 +51,8 @@ typedef uint64_t pte;   /* Page-Table Entry */
 //    1 = R--
 //    2 = RW-
 int find_map_region_privileges(kernel_memory_map* map_region);
-// Set up paging structure for identity mapping and return CR4 value
-uint64_t generate_paging(kernel_information* kinfo);
+// Set up paging structure for identity mapping and return CR3 value
+uint32_t generate_paging(kernel_information* kinfo);
 // Locates the first blank entry of the memory map after the kernel.
 uint32_t locate_first_blank(kernel_memory_map* kmmap, uint32_t kmmap_size);
 // Make a page directory knowing the page table's position and length, return its length in bytes
