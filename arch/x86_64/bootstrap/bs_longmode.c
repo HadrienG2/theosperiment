@@ -18,6 +18,7 @@ Copyright (C) 2010  Hadrien Grasland
 
 #include <bs_kernel_information.h>
 #include <die.h>
+#include <display_kinfo.h>
 #include <display_paging.h>
 #include <enable_longmode.h>
 #include <gen_kernel_info.h>
@@ -67,11 +68,9 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   load_kernel(kinfo, kernel_location, main_header);
   //Generate a page table
   cr3_value = generate_paging(kinfo);
-  dbg_print_pml4t(cr3_value);
-  
-  //Switch to longmode, run the kernel
-  /*int ret = run_kernel(cr3_value, (uint32_t) main_header->e_entry, (uint32_t) kinfo);
-  if(ret==-1) die(NO_LONGMODE);*/
+  //Switch to longmode if possible, run the kernel
+  int ret = run_kernel(cr3_value, (uint32_t) main_header->e_entry, (uint32_t) kinfo);
+  if(ret==-1) die(NO_LONGMODE);
 
   return 0;
 }

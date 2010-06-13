@@ -20,7 +20,6 @@
 #include <die.h>
 #include <gen_kernel_info.h>
 #include <paging.h>
-#include <txt_videomem.h>
 
 int find_map_region_privileges(kernel_memory_map* map_region) {
   //Free and reserved segments are considered as RW
@@ -41,6 +40,7 @@ int find_map_region_privileges(kernel_memory_map* map_region) {
 uint32_t generate_paging(kernel_information* kinfo) {
   kernel_memory_map* kmmap = (kernel_memory_map*) (uint32_t) kinfo->kmmap;
   uint32_t kmmap_size = kinfo->kmmap_size;
+  uint32_t pt_location, pd_location, pdpt_location, pml4t_location;
   uint32_t pt_length, pd_length, pdpt_length, pml4t_length;
   uint32_t cr3_value;
 
@@ -55,29 +55,33 @@ uint32_t generate_paging(kernel_information* kinfo) {
      Step 7 : Generate and return CR3 value. */
   
   uint32_t first_blank = locate_first_blank(kmmap, kmmap_size);
+  pt_location = kmmap[first_blank].location;
 
-  pt_length = make_page_table(kmmap[first_blank].location, kinfo);
+  pt_length = make_page_table(pt_location, kinfo);
   
-  pd_length = make_page_directory(kmmap[first_blank].location, pt_length);
+  pd_length = make_page_directory(pt_location, pt_length);
+  pd_location = pt_location+pt_length;
   
-  pdpt_length = make_pdpt(kmmap[first_blank].location+pt_length, pd_length);
+  pdpt_length = make_pdpt(pd_location, pd_length);
+  pdpt_location = pd_location+pd_length;
   
-  pml4t_length = make_pml4t(kmmap[first_blank].location+pt_length+pd_length, pdpt_length);
-  
+  pml4t_length = make_pml4t(pdpt_location, pdpt_length);
+  pml4t_location = pdpt_location+pdpt_length;
+
   if(kmmap_size+3 >= MAX_KMMAP_SIZE) die(MMAP_TOO_SMALL);
-  kmmap[kmmap_size].location = kmmap[first_blank].location;
+  kmmap[kmmap_size].location = pt_location;
   kmmap[kmmap_size].size = pt_length;
   kmmap[kmmap_size].nature = 3;
   kmmap[kmmap_size].name = (uint32_t) "Kernel page tables";
-  kmmap[kmmap_size+1].location = kmmap[first_blank].location+pt_length;
+  kmmap[kmmap_size+1].location = pd_location;
   kmmap[kmmap_size+1].size = pd_length;
   kmmap[kmmap_size+1].nature = 3;
   kmmap[kmmap_size+1].name = (uint32_t) "Kernel page directories";
-  kmmap[kmmap_size+2].location = kmmap[first_blank].location+pt_length+pd_length;
+  kmmap[kmmap_size+2].location = pdpt_location;
   kmmap[kmmap_size+2].size = pdpt_length;
   kmmap[kmmap_size+2].nature = 3;
   kmmap[kmmap_size+2].name = (uint32_t) "Kernel page directory pointers";
-  kmmap[kmmap_size+3].location = kmmap[first_blank].location+pt_length+pd_length+pdpt_length;
+  kmmap[kmmap_size+3].location = pml4t_location;
   kmmap[kmmap_size+3].size = pml4t_length;
   kmmap[kmmap_size+3].nature = 3;
   kmmap[kmmap_size+3].name = (uint32_t) "Kernel PML4T";
@@ -85,7 +89,7 @@ uint32_t generate_paging(kernel_information* kinfo) {
   sort_memory_map(kinfo);
   merge_memory_map(kinfo);
   
-  cr3_value = kmmap[first_blank].location+pt_length+pd_length+pdpt_length;
+  cr3_value = pml4t_location;
   return cr3_value;
 }
 
@@ -99,7 +103,8 @@ uint32_t locate_first_blank(kernel_memory_map* kmmap, uint32_t kmmap_size) {
 }
 
 uint32_t make_page_directory(uint32_t pt_location, uint32_t pt_length) {
-  pde* page_directory = (pde*) pt_location+pt_length;
+  uint32_t pd_location = pt_location+pt_length;
+  pde* page_directory = (pde*) pd_location;
   pde pde_entry_buffer = PBIT_PRESENT+PBIT_WRITABLE+pt_location;
   uint64_t current_directory;
   
@@ -118,6 +123,12 @@ uint32_t make_page_table(uint32_t location, kernel_information* kinfo) {
   uint32_t current_mmap_index = 0;
   kernel_memory_map* kmmap = (kernel_memory_map*) (uint32_t) kinfo->kmmap;
   uint64_t current_page, current_region_end = kmmap[0].location + kmmap[0].size;
+  
+  //x86 reserves a small amount of memory around the end of the adressable space. I don't use it, and it has
+  //no use to map all of the 32-bit adressable space because of it.
+  uint64_t memory_end = kmmap[kinfo->kmmap_size-1].location+kmmap[kinfo->kmmap_size-1].size;
+  if(memory_end==0x100000000) memory_end = kmmap[kinfo->kmmap_size-2].location+kmmap[kinfo->kmmap_size-2].size;
+  
   pte pte_mask = PBIT_PRESENT+PBIT_NOEXECUTE+PBIT_WRITABLE; //"mask" being added to page table entries.
   pte pte_entry_buffer = pte_mask;
   pte* page_table = (pte*) location;
@@ -131,7 +142,7 @@ uint32_t make_page_table(uint32_t location, kernel_information* kinfo) {
                               // 2 = RW-
   
   //Paging all known memory regions
-  for(current_page = 0; current_page*PG_ALIGN<kmmap[kinfo->kmmap_size-1].location; ++current_page, pte_entry_buffer += PG_ALIGN) {
+  for(current_page = 0; current_page*PG_ALIGN<memory_end; ++current_page, pte_entry_buffer += PG_ALIGN) {
     //Writing page table entry in memory
     page_table[current_page] = pte_entry_buffer;
     
@@ -181,6 +192,7 @@ uint32_t make_page_table(uint32_t location, kernel_information* kinfo) {
               pte_mask += PBIT_NOEXECUTE + PBIT_WRITABLE;
               break;
           }
+          break;
         case 1:
           pte_mask += PBIT_WRITABLE + PBIT_NOEXECUTE;
           break;
@@ -192,7 +204,7 @@ uint32_t make_page_table(uint32_t location, kernel_information* kinfo) {
       }
       //Refreshing the page table entry buffer
       pte_entry_buffer = current_page;
-      pte_entry_buffer <<= PG_BITSHIFT;
+      pte_entry_buffer *= PG_ALIGN;
       pte_entry_buffer += pte_mask;
     }
   }
@@ -204,7 +216,8 @@ uint32_t make_page_table(uint32_t location, kernel_information* kinfo) {
 }
 
 uint32_t make_pdpt(uint32_t pd_location, uint32_t pd_length) {
-  pdpe* pdpt = (pdpe*) pd_location+pd_length;
+  uint32_t pdpt_location = pd_location+pd_length;
+  pdpe* pdpt = (pdpe*) pdpt_location;
   pdpe pdpe_entry_buffer = PBIT_PRESENT+PBIT_WRITABLE+pd_location;
   uint64_t current_dp;
   
@@ -218,7 +231,8 @@ uint32_t make_pdpt(uint32_t pd_location, uint32_t pd_length) {
 }
 
 uint32_t make_pml4t(uint32_t pdpt_location, uint32_t pdpt_length) {
-  pml4e* pml4t = (pml4e*) pdpt_location+pdpt_length;
+  uint32_t pml4t_location = pdpt_location+pdpt_length;
+  pml4e* pml4t = (pml4e*) pml4t_location;
   pml4e pml4e_entry_buffer = PBIT_PRESENT+PBIT_WRITABLE+pdpt_location;
   uint64_t current_ml4e;
   
@@ -227,6 +241,6 @@ uint32_t make_pml4t(uint32_t pdpt_location, uint32_t pdpt_length) {
   }
   
   for(; current_ml4e<(PG_ALIGN/ENTRY_SIZE); ++current_ml4e) pml4t[current_ml4e] = 0;
-  
+
   return ENTRY_SIZE*current_ml4e;
 }

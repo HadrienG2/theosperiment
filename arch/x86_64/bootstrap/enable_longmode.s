@@ -44,17 +44,18 @@ run_kernel:
   bts   $5,   %eax
   mov   %eax, %cr4
 
-  /* Step 2 : Set Long Mode Enable bit in the EFER Model Specific Register */
-  mov   $0xc0000080, %ecx
-  rdmsr
-  bts   $8,   %eax
-  wrmsr
-
-  /* Load CR3 value for future paging activation */
+  /* Step 2 : Load CR3 value for future paging activation */
   mov   8(%ebp), %eax
   mov   %eax, %cr3
 
-  /* Prepare CR0 value in EAX and jump adress in EBX */
+  /* Step 3 : Set LME and NXE bits in the EFER Model Specific Register */
+  mov   $0xc0000080, %ecx
+  rdmsr
+  bts   $8,   %eax
+  bts   $11,   %eax
+  wrmsr
+
+  /* Prepare CR0 value in EAX and entry point adress in EBX */
   mov   12(%ebp), %ebx
   mov   %cr0, %eax
   bts   $31,  %eax

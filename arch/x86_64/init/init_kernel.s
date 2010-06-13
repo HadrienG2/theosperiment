@@ -2,6 +2,8 @@
   .globl kinit
 
 kinit:
+  xchgw %bx, %bx
+
   /* Prepare stack smashing protection */
   call __stack_chk_guard_setup
 
