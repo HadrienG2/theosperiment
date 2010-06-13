@@ -30,8 +30,8 @@
 #define PBIT_ACCESSED        (1<<5)
 #define PBIT_DIRTY           (1<<6)  //Only present at the PTE level of hierarchy
 #define PBIT_LARGEPAGE       (1<<7)  //Only present at the PDE/PDPE level of hierarchy
-#define PBIT_GLOBALPAGE      (1<<8)  //Only present at PTE level, TLB entry not invalidated on context switch by MOV CRn
 #define PBIT_PAGEATTRIBTABLE (1<<7)  //Only present at the PTE level
+#define PBIT_GLOBALPAGE      (1<<8)  //Only present at PTE level, TLB entry not invalidated on context switch by MOV CRn
 #define PBIT_NOEXECUTE       0x8000000000000000 //Prevents execution (can't be written in bitshift form because we still handle 32b data)
 /* Some numeric data... */
 #define PML4T_SIZE      512     //Size of a page table/directory/...
@@ -39,8 +39,7 @@
 #define PD_SIZE         512
 #define PT_SIZE         512
 #define PG_ALIGN        0x1000
-#define PG_BITSHIFT     12
-#define ENTRY_SIZE      4
+#define ENTRY_SIZE      8
 
 typedef uint64_t pml4e; /* Page-Map Level-4 Entry */
 typedef uint64_t pdpe;  /* Page-Directory Pointer Entry */
