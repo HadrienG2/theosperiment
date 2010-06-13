@@ -20,6 +20,7 @@
 #include <die.h>
 #include <gen_kernel_info.h>
 #include <paging.h>
+#include <txt_videomem.h>
 
 int find_map_region_privileges(kernel_memory_map* map_region) {
   //Free and reserved segments are considered as RW
@@ -102,14 +103,15 @@ uint32_t make_page_directory(uint32_t pt_location, uint32_t pt_length) {
   pde pde_entry_buffer = PBIT_PRESENT+PBIT_WRITABLE+pt_location;
   uint64_t current_directory;
   
-  for(current_directory = 0; current_directory<pt_length/(4*512); ++current_directory) {
-    pde_entry_buffer += PT_SIZE*0x1000;
+  for(current_directory = 0; current_directory<pt_length/(ENTRY_SIZE*PT_SIZE);
+    ++current_directory, pde_entry_buffer += PT_SIZE*ENTRY_SIZE)
+  {
     page_directory[current_directory] = pde_entry_buffer;
   }
   
-  for(; current_directory%PD_SIZE!=0; ++current_directory) page_directory[current_directory] = 0;
+  for(; current_directory%(PG_ALIGN/ENTRY_SIZE)!=0; ++current_directory) page_directory[current_directory] = 0;
   
-  return 4*current_directory;
+  return ENTRY_SIZE*current_directory;
 }
 
 uint32_t make_page_table(uint32_t location, kernel_information* kinfo) {
@@ -129,31 +131,30 @@ uint32_t make_page_table(uint32_t location, kernel_information* kinfo) {
                               // 2 = RW-
   
   //Paging all known memory regions
-  for(current_page = 0; current_page*0x1000<kmmap[kinfo->kmmap_size-1].location; ++current_page) {
-    pte_entry_buffer += 0x1000;
+  for(current_page = 0; current_page*PG_ALIGN<kmmap[kinfo->kmmap_size-1].location; ++current_page, pte_entry_buffer += PG_ALIGN) {
     //Writing page table entry in memory
     page_table[current_page] = pte_entry_buffer;
     
     
     // Checking if next page still is in the same memory map entry.
-    if((current_page+2)*0x1000 > current_region_end) {
+    if((current_page+2)*PG_ALIGN > current_region_end) {
       //No. Check what's happening then.
-      if((((current_page+2)*0x1000 > kmmap[current_mmap_index+1].location) &&
-          ((current_page+1)*0x1000 < kmmap[current_mmap_index].location+kmmap[current_mmap_index].size) &&
+      if((((current_page+2)*PG_ALIGN > kmmap[current_mmap_index+1].location) &&
+          ((current_page+1)*PG_ALIGN < kmmap[current_mmap_index].location+kmmap[current_mmap_index].size) &&
           (current_mmap_index<kinfo->kmmap_size-1))
-        || (((current_page+2)*0x1000 > kmmap[current_mmap_index+2].location) &&
+        || (((current_page+2)*PG_ALIGN > kmmap[current_mmap_index+2].location) &&
           (current_mmap_index<kinfo->kmmap_size-2)))
       {
         //Our page overlaps with two distinct memory map entries.
         //This means that we're in the region where GRUB puts its stuff and requires specific care
-          while((current_page+2)*0x1000 >= kmmap[current_mmap_index].location + kmmap[current_mmap_index].size) {
+          while((current_page+2)*PG_ALIGN >= kmmap[current_mmap_index].location + kmmap[current_mmap_index].size) {
             ++current_mmap_index;
           }
           --current_mmap_index;
           mode=2;
           current_region_end = kmmap[current_mmap_index].location + kmmap[current_mmap_index].size;
       } else {
-        if((current_page+2)*0x1000 < kmmap[current_mmap_index+1].location) {
+        if((current_page+2)*PG_ALIGN < kmmap[current_mmap_index+1].location) {
           //Memory region is not mapped
           mode = 1;
           current_region_end = kmmap[current_mmap_index+1].location;
@@ -191,15 +192,15 @@ uint32_t make_page_table(uint32_t location, kernel_information* kinfo) {
       }
       //Refreshing the page table entry buffer
       pte_entry_buffer = current_page;
-      pte_entry_buffer <<= PADD_BITSHIFT;
+      pte_entry_buffer <<= PG_BITSHIFT;
       pte_entry_buffer += pte_mask;
     }
   }
   
   //Padding page table with zeroes till it has proper alignment
-  for(; current_page%PT_SIZE!=0; ++current_page) page_table[current_page] = 0;
+  for(; current_page%(PG_ALIGN/ENTRY_SIZE)!=0; ++current_page) page_table[current_page] = 0;
   
-  return current_page*4;
+  return current_page*ENTRY_SIZE;
 }
 
 uint32_t make_pdpt(uint32_t pd_location, uint32_t pd_length) {
@@ -207,14 +208,13 @@ uint32_t make_pdpt(uint32_t pd_location, uint32_t pd_length) {
   pdpe pdpe_entry_buffer = PBIT_PRESENT+PBIT_WRITABLE+pd_location;
   uint64_t current_dp;
   
-  for(current_dp = 0; current_dp<pd_length/(4*512); ++current_dp) {
-    pdpe_entry_buffer += PD_SIZE*0x1000;
+  for(current_dp = 0; current_dp<pd_length/(ENTRY_SIZE*PD_SIZE); ++current_dp, pdpe_entry_buffer += PD_SIZE*ENTRY_SIZE) {
     pdpt[current_dp] = pdpe_entry_buffer;
   }
 
-  for(; current_dp%PDPT_SIZE!=0; ++current_dp) pdpt[current_dp] = 0;
+  for(; current_dp%(PG_ALIGN/ENTRY_SIZE)!=0; ++current_dp) pdpt[current_dp] = 0;
 
-  return 4*current_dp;
+  return ENTRY_SIZE*current_dp;
 }
 
 uint32_t make_pml4t(uint32_t pdpt_location, uint32_t pdpt_length) {
@@ -222,12 +222,11 @@ uint32_t make_pml4t(uint32_t pdpt_location, uint32_t pdpt_length) {
   pml4e pml4e_entry_buffer = PBIT_PRESENT+PBIT_WRITABLE+pdpt_location;
   uint64_t current_ml4e;
   
-  for(current_ml4e = 0; current_ml4e<pdpt_length/(4*512); ++current_ml4e) {
-    pml4e_entry_buffer += PDPT_SIZE*0x1000;
+  for(current_ml4e = 0; current_ml4e<pdpt_length/(ENTRY_SIZE*PDPT_SIZE); ++current_ml4e, pml4e_entry_buffer += PDPT_SIZE*ENTRY_SIZE) {
     pml4t[current_ml4e] = pml4e_entry_buffer;
   }
   
-  for(; current_ml4e<PML4T_SIZE; ++current_ml4e) pml4t[current_ml4e] = 0;
+  for(; current_ml4e<(PG_ALIGN/ENTRY_SIZE); ++current_ml4e) pml4t[current_ml4e] = 0;
   
-  return 4*PML4T_SIZE;
+  return ENTRY_SIZE*current_ml4e;
 }
