@@ -16,16 +16,16 @@ Copyright (C) 2010  Hadrien Grasland
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
+#include <bs_kernel_information.h>
 #include <die.h>
+#include <display_paging.h>
 #include <enable_longmode.h>
 #include <gen_kernel_info.h>
 #include <hack_stdint.h>
-#include <bs_kernel_information.h>
 #include <kernel_loader.h>
 #include <multiboot.h>
 #include <paging.h>
 #include <txt_videomem.h>
-#include <display_kinfo.h>
 
 
 const char* MULTIBOOT_MISSING = "The operating system was apparently not loaded by GRUB.\n\
@@ -67,13 +67,11 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   load_kernel(kinfo, kernel_location, main_header);
   //Generate a page table
   cr3_value = generate_paging(kinfo);
-  //Switch to longmode, run the kernel
-  int ret = run_kernel(cr3_value, (uint32_t) main_header->e_entry, (uint32_t) kinfo);
-  if(ret==-1) die(NO_LONGMODE);
-  dbg_print_str("Returned value : ");
-  dbg_print_int32(ret);
-  dbg_print_str("\nExpected value : ");
-  dbg_print_int32((int) main_header->e_entry);
+  dbg_print_pml4t(cr3_value);
   
+  //Switch to longmode, run the kernel
+  /*int ret = run_kernel(cr3_value, (uint32_t) main_header->e_entry, (uint32_t) kinfo);
+  if(ret==-1) die(NO_LONGMODE);*/
+
   return 0;
 }
