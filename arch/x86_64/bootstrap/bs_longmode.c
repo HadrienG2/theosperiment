@@ -60,15 +60,19 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   //Generate kernel information
   kinfo = generate_kernel_info(mbd);
   if(!kinfo->kmmap) die(NO_MEMORYMAP);
+  
   //Locate the kernel in memory
   kernel_location = locate_kernel(kinfo);
   //Get kernel headers
   main_header = read_kernel_headers(kernel_location);
   //Load the kernel in memory and add its "segments" to the memory map
   load_kernel(kinfo, kernel_location, main_header);
+  
+  //TODO : Make a new GDT
   //Generate a page table
   cr3_value = generate_paging(kinfo);
-  //Switch to longmode if possible, run the kernel
+  
+  //Switch to longmode if possible, and run the kernel
   int ret = run_kernel(cr3_value, (uint32_t) main_header->e_entry, (uint32_t) kinfo);
   if(ret==-1) die(NO_LONGMODE);
 
