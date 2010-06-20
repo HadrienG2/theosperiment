@@ -21,6 +21,7 @@ Copyright (C) 2010  Hadrien Grasland
 #include <display_kinfo.h>
 #include <display_paging.h>
 #include <enable_longmode.h>
+#include <gdt_generation.h>
 #include <gen_kernel_info.h>
 #include <hack_stdint.h>
 #include <kernel_loader.h>
@@ -40,6 +41,9 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   kernel_memory_map* kernel_location;
   Elf64_Ehdr *main_header;
   uint64_t cr3_value;
+  
+  //Set up a GDT which is more secure than GRUB's one
+  replace_32b_gdt();
   
   //Video memory initialization (for kernel silencing purposes)
   dbg_init_videomem();
@@ -68,13 +72,15 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   //Load the kernel in memory and add its "segments" to the memory map
   load_kernel(kinfo, kernel_location, main_header);
   
-  //TODO : Make a new GDT
   //Generate a page table
   cr3_value = generate_paging(kinfo);
   
-  //Switch to longmode if possible, and run the kernel
-  int ret = run_kernel(cr3_value, (uint32_t) main_header->e_entry, (uint32_t) kinfo);
+  //Switch to the 32-bit subset of longmode if possible, otherwise just die.
+  int ret = enable_compatibility(cr3_value);
   if(ret==-1) die(NO_LONGMODE);
+  
+  //TODO : Generate a 64-bit GDT (C code)
+  //TODO : Load it and run the kernel (Assembly snippet)
 
   return 0;
 }
