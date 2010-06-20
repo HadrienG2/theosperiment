@@ -22,7 +22,7 @@
 #include <bs_kernel_information.h>
 #include <paging.h>
 
-/* Returns kernel return value or -1 if 64-bit mode is not available */
-uint32_t run_kernel(uint32_t cr3_value, uint32_t kernel_entry, uint32_t kernel_information);
+/* Returns 0 if success or -1 if 64-bit mode is not available */
+uint32_t enable_compatibility(uint32_t cr3_value);
 
 #endif

@@ -24,8 +24,8 @@
 int find_map_region_privileges(kernel_memory_map* map_region) {
   //Free and reserved segments are considered as RW
   if(map_region->nature <= 1) return 2;
-  //Bootstrap segments are considered as R
-  if(map_region->nature == 2) return 1;
+  //Bootstrap segments are considered as R-X
+  if(map_region->nature == 2) return 0;
   //Kernel elements are set up according to their specified permission
   if(map_region->nature == 3) {
     if(strcmp((char*) (uint32_t) map_region->name, "Kernel RW- segment")==0) return 2;

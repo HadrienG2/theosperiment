@@ -7,9 +7,9 @@
       -> Stack-related GPRs : RBP, RSP (hmmm... nan, en fait je pense qu'il faut les laisser où ils sont)
       -> Segment registers : CS, FS, GS */
   .text
-  .globl run_kernel
+  .globl enable_compatibility
 
-run_kernel:
+enable_compatibility:
   push  %ebp       /* Save caller's stack frame and establish a new one */
   mov   %esp, %ebp 
   sub   $32,  %esp /* Sets up storage space for 32 bytes */
@@ -55,14 +55,14 @@ run_kernel:
   bts   $11,   %eax
   wrmsr
 
-  /* Prepare CR0 value in EAX and entry point adress in EBX */
-  mov   12(%ebp), %ebx
+  /* Prepare CR0 value in EAX, then enable long mode (we'll be in 32-bit compatibility mode at this point)  */
   mov   %cr0, %eax
   bts   $31,  %eax
- 
-  /* Start the kernel */
   mov   %eax, %cr0
-  ljmp   *(%ebx)
+  ljmp $8, $compatibility_mode
+compatibility_mode:
+  xchg  %bx, %bx
+  jmp   return
 
 return:
   /* End of the function */
