@@ -40,7 +40,7 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   kernel_information* kinfo;
   kernel_memory_map* kernel_location;
   Elf64_Ehdr *main_header;
-  uint64_t cr3_value;
+  uint64_t cr3_value, gdtr_longmode;
   
   //Set up a GDT which is more secure than GRUB's one
   replace_32b_gdt();
@@ -79,7 +79,8 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   int ret = enable_compatibility(cr3_value);
   if(ret==-1) die(NO_LONGMODE);
   
-  //TODO : Generate a 64-bit GDT (C code)
+  //Generate a 64-bit GDT
+  gdtr_longmode = gen_64b_gdt();
   //TODO : Load it and run the kernel (Assembly snippet)
 
   return 0;

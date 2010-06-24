@@ -2,4 +2,4 @@ boot:           floppy
 floppya:        1_44="floppy.img", status=inserted 
 magic_break:    enabled=1
 megs:           256
-cpu:            count=2
+#cpu:            count=2

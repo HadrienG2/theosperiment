@@ -64,7 +64,8 @@ multiboot_entry:
   /* Now enter the C main function... */
   call    bootstrap_longmode
 
-loop:   hlt
+loop:
+  xchg %bx, %bx
   jmp     loop
 
 stack:
