@@ -1,0 +1,1 @@
+drive k:  file="floppy.img" fat_bits=12 cylinders=80 heads=2 sectors=18 mformat_only

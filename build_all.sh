@@ -59,22 +59,14 @@ cd ../..
 
 echo
 
-#Create floppy image
+#Create a system floppy image
 echo \* Creating floppy image...
-#Create empty image file
-dd if=/dev/zero of=floppy.img bs=1k count=1440
-#Format it to FAT, copy grub files, install grub
-mformat :: -f 1440 -i floppy.img
-#Copy file system files
-mmd ::/system -i floppy.img
-mcopy bin/bootstrap/bs_kernel.bin ::/system -i floppy.img
-mcopy bin/kernel/kernel.bin ::/system -i floppy.img
-#Install GRUB on floppy
-mmd ::/boot -i floppy.img
-mmd ::/boot/grub -i floppy.img
-mcopy support/stage1 ::/boot/grub -i floppy.img
-mcopy support/stage2 ::/boot/grub -i floppy.img
-mcopy support/menu.lst ::/boot/grub -i floppy.img
-grub --batch < support/grub.batch
+#Create a copy of the floppy image where GRUB is installed
+cp support/grub_floppy.img floppy.img
+#Copy system files
+export MTOOLSRC=support/mtoolsrc.txt
+mcopy bin/bootstrap/bs_kernel.bin K:/system
+mcopy bin/kernel/kernel.bin K:/system
+mcopy support/menu.lst K:/boot/grub
 echo
 echo "***REMEMBER TO RUN svn update, status, and commit FREQUENTLY !***"

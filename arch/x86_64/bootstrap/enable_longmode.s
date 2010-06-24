@@ -8,6 +8,7 @@
       -> Segment registers : CS, FS, GS */
   .text
   .globl enable_compatibility
+  .globl enable_longmode
 
 enable_compatibility:
   push  %ebp       /* Save caller's stack frame and establish a new one */
@@ -61,7 +62,7 @@ enable_compatibility:
   mov   %eax, %cr0
   ljmp $8, $compatibility_mode
 compatibility_mode:
-  xchg  %bx, %bx
+  mov   $0, %eax
   jmp   return
 
 return:
@@ -76,3 +77,17 @@ no_longmode:
   /* return -1 */
   mov   $-1, %eax
   jmp return
+
+run_kernel:
+  push  %ebp       /* Save caller's stack frame and establish a new one */
+  mov   %esp, %ebp 
+  sub   $32,  %esp /* Sets up storage space for 32 bytes */
+  push  %esi
+  push  %edi
+
+  /* TODO : Load 64-bit GDT at 8(%ebp) and long-jump to kernel at 16(%ebp), while giving it access to information at 20(%ebp) */
+
+kernel_returns:
+  hlt
+  jmp kernel_returns
+  

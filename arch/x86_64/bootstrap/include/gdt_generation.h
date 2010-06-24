@@ -22,27 +22,41 @@
 #include <bs_kernel_information.h>
 #include <hack_stdint.h>
 
-#define LIMIT_CHUNK1_SIZE   16
-#define BASE_CHUNK1_SIZE    24
-#define IS_A_TSS            0x0000090000000000 //Defines the segment as an unused 32-bit TSS
-#define DBIT_ACCESSED       0x0000010000000000 //Bit 40. For code and data segments
-#define DBIT_READABLE       0x0000020000000000 //Bit 41. For code segments
-#define DBIT_CONFORMING     0x0000040000000000 //Bit 42. For code segments. A lower-privilege task accessing this segment remains at its PL
-#define DBIT_WRITABLE       0x0000020000000000 //Bit 41. For data segments
-#define DBIT_EXPANDDOWN     0x0000040000000000 //Bit 42. For data segments
-#define DBIT_CODEDATA       0x0000080000000000 //Bit 43. 1 for code, 0 for data
-#define DBIT_SBIT           0x0000100000000000 //Bit 44. 1 for code/data, 0 for TSS
-#define DPL_BITSHIFT        45                 //How many bits to the left the DPL (Descriptor Privilege Level) must be shifted
-#define DPL_USERMODE        0x0000600000000000 //Segment is accessible from user mode
-#define DBIT_PRESENT        0x0000800000000000 //Bit 47. The segment is present in memory
-#define LIMIT_CHUNK2_SIZE   4
-#define DBIT_DEFAULT_32OPSZ 0x0040000000000000 //Bit 54. Specifies whether the default operand size is 16 or 32. 1 = 32.
-#define DBIT_GRANULARITY    0x0080000000000000 //Bit 55. Specifies if limit is in bytes or in pages. Must be 1 for identity mapping
-#define BASE_CHUNK2_SIZE    8
+#define SGT32_LIMIT_CHUNK1_SIZE   16
+#define SGT32_BASE_CHUNK1_SIZE    24
+#define SGT32_IS_A_TSS            0x0000090000000000 //Defines the segment as an unused 32-bit TSS
+#define SGT32_DBIT_ACCESSED       0x0000010000000000 //Bit 40. For code and data segments
+#define SGT32_DBIT_READABLE       0x0000020000000000 //Bit 41. For code segments
+#define SGT32_DBIT_CONFORMING     0x0000040000000000 //Bit 42. For code segments. A lower-privilege task accessing this segment remains at its PL
+#define SGT32_DBIT_WRITABLE       0x0000020000000000 //Bit 41. For data segments
+#define SGT32_DBIT_EXPANDDOWN     0x0000040000000000 //Bit 42. For data segments
+#define SGT32_DBIT_CODEDATA       0x0000080000000000 //Bit 43. 1 for code, 0 for data
+#define SGT32_DBIT_SBIT           0x0000100000000000 //Bit 44. 1 for code/data, 0 for TSS
+#define SGT32_DPL_BITSHIFT        45                 //How many bits to the left the DPL (Descriptor Privilege Level) must be shifted
+#define SGT32_DPL_USERMODE        0x0000600000000000 //Segment is accessible from user mode
+#define SGT32_DBIT_PRESENT        0x0000800000000000 //Bit 47. The segment is present in memory
+#define SGT32_LIMIT_CHUNK2_SIZE   4
+#define SGT32_DBIT_DEFAULT_32OPSZ 0x0040000000000000 //Bit 54. Specifies whether the default operand size is 16 or 32. 1 = 32.
+#define SGT32_DBIT_GRANULARITY    0x0080000000000000 //Bit 55. Specifies if limit is in bytes or in pages. Must be 1 for identity mapping
+#define SGT32_BASE_CHUNK2_SIZE    8
 
-typedef uint64_t segment_descriptor;
+#define SGT64_DBIT_CONFORMING     0x0000040000000000 //Bit 42. For code segments. A lower-privilege task accessing this segment remains at its PL
+#define SGT64_DBIT_CODEDATA       0x0000080000000000 //Bit 43. 1 for code, 0 for data
+#define SGT64_DBIT_SBIT           0x0000100000000000 //Bit 44. 1 for code/data, 0 for TSS
+#define SGT64_DPL_USERMODE        0x0000600000000000 //Segment is accessible from user mode
+#define SGT64_DBIT_PRESENT        0x0000800000000000 //Bit 47. The segment is present in memory
+#define SGT64_DBIT_LONG		        0x0020000000000000 //Bit 53. Defines the segment as a 64-bit segment
+#define SGT64_DBIT_GRANULARITY    0x0080000000000000 //Bit 55. Specifies if limit is in bytes or in pages. Must be 1 for identity mapping
 
-//Replace GRUB's GDT with a new one
+typedef uint64_t segment32_descriptor;
+typedef uint64_t segment64_descriptor;
+
+//Replace GRUB's GDT with a new one with identity mapping (no TSS at the moment, this GDT is to
+//be quickly replaced)
 void replace_32b_gdt();
+//Generate a 64-bit GDT with identity mapping and returns GDTR value
+//(no TSS again, because this GDT too is non-definitive. A definitive GDT cannot be made
+//before we know about the processor's core amount)
+uint64_t gen_64b_gdt();
 
 #endif
