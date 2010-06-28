@@ -20,26 +20,31 @@
 #include "gdt_generation.h"
 #include <gen_kernel_info.h>
 
-segment32_descriptor gdt32[3];
-segment64_descriptor gdt64[3];
+segment32_descriptor gdt[5];
 
-void replace_32b_gdt() {
+void replace_gdt() {
   uint64_t gdtr;
   
   //Fill in the GDT
   //Null segment
-  gdt32[0] = 0;
+  gdt[0] = 0;
   //Code segment : setting all base bits to 0 and all limit bits to 1, then setting appropriate bits
-  gdt32[1] = 0x000f00000000ffff;
-  gdt32[1] += SGT32_DBIT_READABLE + SGT32_DBIT_CODEDATA + SGT32_DBIT_SBIT + SGT32_DBIT_PRESENT + SGT32_DBIT_DEFAULT_32OPSZ + SGT32_DBIT_GRANULARITY;
+  gdt[1] = 0x000f00000000ffff;
+  gdt[1] += SGT32_DBIT_READABLE + SGT32_DBIT_CODEDATA + SGT32_DBIT_SBIT + SGT32_DBIT_PRESENT + SGT32_DBIT_DEFAULT_32OPSZ + SGT32_DBIT_GRANULARITY;
   //Data segment
-  gdt32[2] = 0x000f00000000ffff;
-  gdt32[2] += SGT32_DBIT_WRITABLE + SGT32_DBIT_SBIT + SGT32_DBIT_PRESENT + SGT32_DBIT_DEFAULT_32OPSZ + SGT32_DBIT_GRANULARITY;
+  gdt[2] = 0x000f00000000ffff;
+  gdt[2] += SGT32_DBIT_WRITABLE + SGT32_DBIT_SBIT + SGT32_DBIT_PRESENT + SGT32_DBIT_DEFAULT_32OPSZ + SGT32_DBIT_GRANULARITY;
+  //64-bit code segment
+  gdt[3] = 0x000f00000000ffff;
+  gdt[3] = SGT64_DBIT_CODEDATA + SGT64_DBIT_SBIT + SGT64_DBIT_PRESENT + SGT64_DBIT_LONG + SGT64_DBIT_GRANULARITY;
+  //64-bit data segment
+  gdt[4] = 0x000f00000000ffff;
+  gdt[4] = SGT32_DBIT_WRITABLE + SGT64_DBIT_SBIT + SGT64_DBIT_PRESENT + SGT64_DBIT_LONG + SGT64_DBIT_GRANULARITY;
   
   //Now that the GDT is complete, setup GDTR value and load it
-  gdtr = (uint32_t) gdt32;
+  gdtr = (uint32_t) gdt;
   gdtr <<= 16;
-  gdtr += 24;
+  gdtr += 40;
   //Code descriptor is 8, data descriptor is 16
   __asm__ volatile ("lgdt %0;\
                      mov $16, %%ax;\
@@ -55,22 +60,4 @@ void replace_32b_gdt() {
              : "%ax"
              );
 
-}
-
-uint64_t gen_64b_gdt() {
-  uint64_t gdtr;
-  
-  //Fill in the GDT
-  //Null segment
-  gdt64[0] = 0;
-  //Code segment
-  gdt64[1] = SGT64_DBIT_CODEDATA + SGT64_DBIT_SBIT + SGT64_DBIT_PRESENT + SGT64_DBIT_LONG + SGT64_DBIT_GRANULARITY;
-  //Data segment
-  gdt64[2] = SGT64_DBIT_SBIT + SGT64_DBIT_PRESENT + SGT64_DBIT_LONG + SGT64_DBIT_GRANULARITY;
-  
-  //Now that the GDT is complete, setup GDTR value and return it
-  gdtr = (uint32_t) gdt64;
-  gdtr <<= 16;
-  gdtr += 24;
-  return gdtr;
 }

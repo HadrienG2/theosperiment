@@ -40,10 +40,10 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   kernel_information* kinfo;
   kernel_memory_map* kernel_location;
   Elf64_Ehdr *main_header;
-  uint64_t cr3_value, gdtr_longmode;
+  uint64_t cr3_value;
   
   //Set up a GDT which is more secure than GRUB's one
-  replace_32b_gdt();
+  replace_gdt();
   
   //Video memory initialization (for kernel silencing purposes)
   dbg_init_videomem();
@@ -56,10 +56,11 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   
   //Some silly text
   dbg_set_attr(DBG_TXT_WHITE);
-  dbg_print_str("Welcome to ToolbOS v0.0.3 ");
+  dbg_print_str("Welcome to the OS-periment's kernel v0.0.4 ");
   dbg_set_attr(DBG_TXT_LIGHTPURPLE);
-  dbg_print_str("\"Spartan's Delight\"\n\n");
+  dbg_print_str("\"Who is this superman ?\"");
   dbg_set_attr(DBG_TXT_LIGHTGRAY);
+  dbg_print_str("\n\n");
   
   //Generate kernel information
   kinfo = generate_kernel_info(mbd);
@@ -79,9 +80,8 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   int ret = enable_compatibility(cr3_value);
   if(ret==-1) die(NO_LONGMODE);
   
-  //Generate a 64-bit GDT
-  gdtr_longmode = gen_64b_gdt();
-  //TODO : Load it and run the kernel (Assembly snippet)
+  //Switch to long mode, run the kernel
+  run_kernel(main_header->e_entry, kinfo);
 
   return 0;
 }

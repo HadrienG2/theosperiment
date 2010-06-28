@@ -51,12 +51,8 @@
 typedef uint64_t segment32_descriptor;
 typedef uint64_t segment64_descriptor;
 
-//Replace GRUB's GDT with a new one with identity mapping (no TSS at the moment, this GDT is to
+//Replace GRUB's GDT with a nice one with identity mapping (no TSS at the moment, this GDT is to
 //be quickly replaced)
-void replace_32b_gdt();
-//Generate a 64-bit GDT with identity mapping and returns GDTR value
-//(no TSS again, because this GDT too is non-definitive. A definitive GDT cannot be made
-//before we know about the processor's core amount)
-uint64_t gen_64b_gdt();
+void replace_gdt();
 
 #endif
