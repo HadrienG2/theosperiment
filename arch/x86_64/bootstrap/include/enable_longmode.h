@@ -23,8 +23,8 @@
 #include <paging.h>
 
 /* Returns 0 if success or -1 if 64-bit mode is not available */
-uint32_t enable_compatibility(uint32_t cr3_value);
-/* Load 64-bit GDT and run the kernel */
-uint32_t enable_longmode(uint64_t gdtr, uint32_t kernel_entry, uint32_t kernel_information);
+int enable_compatibility(uint32_t cr3_value);
+/* Run the kernel */
+uint32_t run_kernel(uint32_t kernel_entry, kernel_information* kinfo);
 
 #endif

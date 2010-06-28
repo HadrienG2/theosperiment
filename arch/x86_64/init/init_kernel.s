@@ -1,34 +1,54 @@
+  .data
+  .lcomm tmp_rbp, 8
+  .lcomm tmp_rsi, 8
+  .lcomm tmp_rdi, 8
+  .lcomm tmp_rbx, 8
+  .lcomm tmp_rcx, 8
+  .lcomm tmp_rdx, 8
+
   .text
   .globl kinit
 
 kinit:
-  xchgw %bx, %bx
-
-  /* Prepare stack smashing protection */
-  call __stack_chk_guard_setup
-
+  mov   %rbp, tmp_rbp       /* Save caller's registers */
+  mov   %rsi, tmp_rsi
+  mov   %rdi, tmp_rdi
+  mov   %rbx, tmp_rbx
+  mov   %rcx, tmp_rcx
+  mov   %rdx, tmp_rdx
+  mov   %rsp, %rbp
+  
   /* Run constructors */
-  mov  $start_ctors, %ebx
-  jmp  2f
-1:
-  call *(%ebx)
-  add  $4, %ebx
-2:
-  cmp  $end_ctors, %ebx
-  jb   1b
+  mov  $start_ctors, %rbx
+  jmp  ctors_check
+ctors_run:
+  call *(%rbx)
+  add  $8, %rbx
+ctors_check:
+  cmp  $end_ctors, %rbx
+  jb   ctors_run
 
   /* call kernel */
+  push %rcx
   call kmain
 
   /* Run destructors */
-  mov  $start_dtors, %ebx
-  jmp  4f
-3:
-  call *(%ebx)
-  add  $4, %ebx
-4:
-  cmp  $end_dtors, %ebx
-  jb   3b
+  mov  $start_dtors, %rbx
+  jmp  dtors_check
+dtors_run:
+  call *(%rbx)
+  add  $8, %rbx
+dtors_check:
+  cmp  $end_dtors, %rbx
+  jb   dtors_run
 
+return:
   /* Go back to bootstrap kernel, let it decide what to do */
+  mov   %rbp, %rsp
+  mov   tmp_rdx, %rdx
+  mov   tmp_rcx, %rcx
+  mov   tmp_rbx, %rbx
+  mov   tmp_rdi, %rdi
+  mov   tmp_rsi, %rsi
+  mov   tmp_rbp, %rbp
   ret

@@ -1,21 +1,23 @@
-/* TODO :
-    In current 32-bit code, switch to 64-bit mode and run kernel...
-      -> Create a 64-bit page table and use it
-      -> Long jump to 64-bit code.
-    In kernel startup code, make sure that everything is ready for 64-bit, including...
-      -> Descriptor table hell : GDT, LDT, TSS
-      -> Stack-related GPRs : RBP, RSP (hmmm... nan, en fait je pense qu'il faut les laisser où ils sont)
-      -> Segment registers : CS, FS, GS */
+  .data
+  .lcomm tmp_ebp, 4
+  .lcomm tmp_esi, 4
+  .lcomm tmp_edi, 4
+  .lcomm tmp_ebx, 4
+  .lcomm tmp_ecx, 4
+  .lcomm tmp_edx, 4
+  
   .text
   .globl enable_compatibility
-  .globl enable_longmode
+  .globl run_kernel
 
 enable_compatibility:
-  push  %ebp       /* Save caller's stack frame and establish a new one */
-  mov   %esp, %ebp 
-  sub   $32,  %esp /* Sets up storage space for 32 bytes */
-  push  %esi
-  push  %edi
+  mov   %ebp, tmp_ebp       /* Save caller's registers */
+  mov   %esi, tmp_esi
+  mov   %edi, tmp_edi
+  mov   %ebx, tmp_ebx
+  mov   %ecx, tmp_ecx
+  mov   %edx, tmp_edx
+  mov   %esp, %ebp
 
   /* Check if the CPU is CPUID-compatible by trying to toggle ID bit in EFLAGS */
   pushfl                  /* Copy EFLAGS to EAX */
@@ -28,7 +30,7 @@ enable_compatibility:
   pop   %eax
   cmp   %ebx, %eax
   jz no_longmode          /* It bit 21 did not change, CPUID is not available, and longmode isn't either */ 
-
+  
   /* Check long-mode support through CPUID (code from the AMD manual) */
   mov   $0x80000000, %eax
   cpuid
@@ -37,7 +39,7 @@ enable_compatibility:
   mov   $0x80000001, %eax
   cpuid
   bt    $29, %edx
-  jnc   no_longmode
+  jnc   no_longmode 
 
   /* At this point, we know that long-mode support is available
      Step 1 : Enable PAE */
@@ -46,7 +48,7 @@ enable_compatibility:
   mov   %eax, %cr4
 
   /* Step 2 : Load CR3 value for future paging activation */
-  mov   8(%ebp), %eax
+  mov   4(%ebp), %eax
   mov   %eax, %cr3
 
   /* Step 3 : Set LME and NXE bits in the EFER Model Specific Register */
@@ -67,10 +69,13 @@ compatibility_mode:
 
 return:
   /* End of the function */
-  pop   %edi
-  pop   %esi
   mov   %ebp, %esp
-  pop   %ebp
+  mov   tmp_edx, %edx
+  mov   tmp_ecx, %ecx
+  mov   tmp_ebx, %ebx
+  mov   tmp_edi, %edi
+  mov   tmp_esi, %esi
+  mov   tmp_ebp, %ebp
   ret
 
 no_longmode:
@@ -79,15 +84,31 @@ no_longmode:
   jmp return
 
 run_kernel:
-  push  %ebp       /* Save caller's stack frame and establish a new one */
-  mov   %esp, %ebp 
-  sub   $32,  %esp /* Sets up storage space for 32 bytes */
-  push  %esi
-  push  %edi
+  mov   %ebp, tmp_ebp       /* Save caller's registers */
+  mov   %esi, tmp_esi
+  mov   %edi, tmp_edi
+  mov   %ebx, tmp_ebx
+  mov   %ecx, tmp_ecx
+  mov   %edx, tmp_edx
+  mov   %esp, %ebp
 
-  /* TODO : Load 64-bit GDT at 8(%ebp) and long-jump to kernel at 16(%ebp), while giving it access to information at 20(%ebp) */
+  /* Long-jump to kernel at 4(%ebp),
+     while giving it access to information at 8(%ebp) */
+  mov 8(%ebp), %ecx
+  mov 4(%ebp), %ebx
 
+  ljmp $24, $trampoline
+.code64
+trampoline:
+  mov $32, %dx
+  mov %dx, %ds
+  mov %dx, %es
+  mov %dx, %fs
+  mov %dx, %gs
+  mov %dx, %ss
+  call *%rbx
+  
 kernel_returns:
-  hlt
-  jmp kernel_returns
+  xchg %bx, %bx
+  jmp  kernel_returns
   

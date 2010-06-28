@@ -33,6 +33,7 @@ int _purecall() {
 
 /* This code allows use of stack smashing protection */
 void * __stack_chk_guard = 0;
+
 extern "C" void __stack_chk_guard_setup() {
     unsigned char * p;
     p = (unsigned char *) &__stack_chk_guard;
