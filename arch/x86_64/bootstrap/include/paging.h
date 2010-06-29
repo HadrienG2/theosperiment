@@ -20,6 +20,7 @@
 #define _PAGING_H_
 
 #include <bs_kernel_information.h>
+#include <stdint.h>
 
 /* Page-table entries bits */
 #define PBIT_PRESENT         1
@@ -54,13 +55,13 @@ int find_map_region_privileges(kernel_memory_map* map_region);
 // Set up paging structure for identity mapping and return CR3 value
 uint32_t generate_paging(kernel_information* kinfo);
 // Locates the first blank entry of the memory map after the kernel.
-uint32_t locate_first_blank(kernel_memory_map* kmmap, uint32_t kmmap_size);
+unsigned int locate_first_blank(kernel_memory_map* kmmap, unsigned int kmmap_size);
 // Make a page directory knowing the page table's position and length, return its length in bytes
-uint32_t make_page_directory(uint32_t pt_location, uint32_t pt_length);
+unsigned int make_page_directory(unsigned int pt_location, unsigned int pt_length);
 // Make a page stable from a kernel_information structure and return its length in bytes
-uint32_t make_page_table(uint32_t location, kernel_information* kinfo);
+unsigned int make_page_table(unsigned int location, kernel_information* kinfo);
 // Same for PDPT and PML4T
-uint32_t make_pdpt(uint32_t pd_location, uint32_t pd_length);
-uint32_t make_pml4t(uint32_t pdpt_location, uint32_t pdpt_length);
+unsigned int make_pdpt(unsigned int pd_location, unsigned int pd_length);
+unsigned int make_pml4t(unsigned int pdpt_location, unsigned int pdpt_length);
 
 #endif

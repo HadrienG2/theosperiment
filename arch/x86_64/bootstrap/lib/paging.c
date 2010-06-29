@@ -39,9 +39,9 @@ int find_map_region_privileges(kernel_memory_map* map_region) {
 
 uint32_t generate_paging(kernel_information* kinfo) {
   kernel_memory_map* kmmap = (kernel_memory_map*) (uint32_t) kinfo->kmmap;
-  uint32_t kmmap_size = kinfo->kmmap_size;
-  uint32_t pt_location, pd_location, pdpt_location, pml4t_location;
-  uint32_t pt_length, pd_length, pdpt_length, pml4t_length;
+  unsigned int kmmap_size = kinfo->kmmap_size;
+  unsigned int pt_location, pd_location, pdpt_location, pml4t_location;
+  unsigned int pt_length, pd_length, pdpt_length, pml4t_length;
   uint32_t cr3_value;
 
   /* We'll do the following :
@@ -54,7 +54,7 @@ uint32_t generate_paging(kernel_information* kinfo) {
      Step 6 : Mark used memory as such on the memory map, sort and merge.
      Step 7 : Generate and return CR3 value. */
   
-  uint32_t first_blank = locate_first_blank(kmmap, kmmap_size);
+  unsigned int first_blank = locate_first_blank(kmmap, kmmap_size);
   pt_location = kmmap[first_blank].location;
 
   pt_length = make_page_table(pt_location, kinfo);
@@ -93,8 +93,8 @@ uint32_t generate_paging(kernel_information* kinfo) {
   return cr3_value;
 }
 
-uint32_t locate_first_blank(kernel_memory_map* kmmap, uint32_t kmmap_size) {
-  uint32_t first_blank;
+unsigned int locate_first_blank(kernel_memory_map* kmmap, unsigned int kmmap_size) {
+  unsigned int first_blank;
   
   for(first_blank=0; first_blank<kmmap_size; ++first_blank) {
     if(strcmp((char*) (uint32_t) kmmap[first_blank].name, "Kernel RW- segment")==0) return first_blank+1;
@@ -102,8 +102,8 @@ uint32_t locate_first_blank(kernel_memory_map* kmmap, uint32_t kmmap_size) {
   return 0;
 }
 
-uint32_t make_page_directory(uint32_t pt_location, uint32_t pt_length) {
-  uint32_t pd_location = pt_location+pt_length;
+unsigned int make_page_directory(unsigned int pt_location, unsigned int pt_length) {
+  unsigned int pd_location = pt_location+pt_length;
   pde* page_directory = (pde*) pd_location;
   pde pde_entry_buffer = PBIT_PRESENT+PBIT_WRITABLE+pt_location;
   uint64_t current_directory;
@@ -119,8 +119,8 @@ uint32_t make_page_directory(uint32_t pt_location, uint32_t pt_length) {
   return ENTRY_SIZE*current_directory;
 }
 
-uint32_t make_page_table(uint32_t location, kernel_information* kinfo) {
-  uint32_t current_mmap_index = 0;
+unsigned int make_page_table(unsigned int location, kernel_information* kinfo) {
+  unsigned int current_mmap_index = 0;
   kernel_memory_map* kmmap = (kernel_memory_map*) (uint32_t) kinfo->kmmap;
   uint64_t current_page, current_region_end = kmmap[0].location + kmmap[0].size;
   
@@ -215,8 +215,8 @@ uint32_t make_page_table(uint32_t location, kernel_information* kinfo) {
   return current_page*ENTRY_SIZE;
 }
 
-uint32_t make_pdpt(uint32_t pd_location, uint32_t pd_length) {
-  uint32_t pdpt_location = pd_location+pd_length;
+unsigned int make_pdpt(unsigned int pd_location, unsigned int pd_length) {
+  unsigned int pdpt_location = pd_location+pd_length;
   pdpe* pdpt = (pdpe*) pdpt_location;
   pdpe pdpe_entry_buffer = PBIT_PRESENT+PBIT_WRITABLE+pd_location;
   uint64_t current_dp;
@@ -230,8 +230,8 @@ uint32_t make_pdpt(uint32_t pd_location, uint32_t pd_length) {
   return ENTRY_SIZE*current_dp;
 }
 
-uint32_t make_pml4t(uint32_t pdpt_location, uint32_t pdpt_length) {
-  uint32_t pml4t_location = pdpt_location+pdpt_length;
+unsigned int make_pml4t(unsigned int pdpt_location, unsigned int pdpt_length) {
+  unsigned int pml4t_location = pdpt_location+pdpt_length;
   pml4e* pml4t = (pml4e*) pml4t_location;
   pml4e pml4e_entry_buffer = PBIT_PRESENT+PBIT_WRITABLE+pdpt_location;
   uint64_t current_ml4e;

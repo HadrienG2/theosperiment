@@ -18,7 +18,7 @@
 
 #include <display_mbdata.h>
 #include "txt_videomem.h"
-#include <hack_stdint.h>
+#include <stdint.h>
 
 void dbg_print_mbflags(multiboot_info_t* mbd) {
     dbg_print_str("Here's what GRUB tells us :\n");

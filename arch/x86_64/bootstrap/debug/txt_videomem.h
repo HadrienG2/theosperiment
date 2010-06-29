@@ -19,7 +19,7 @@
 #ifndef _VIDEOMEM_H_
 #define _VIDEOMEM_H_
 
-#include <hack_stdint.h>
+#include <stdint.h>
 
 //Text attributes
 #define DBG_TXT_BLACK 0x00

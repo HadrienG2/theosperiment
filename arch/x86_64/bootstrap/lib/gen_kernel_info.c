@@ -23,11 +23,11 @@
 const char* MMAP_TOO_SMALL = "A core element of the system (memory map) is too small.\n\
 This is a design mistake from our part.\nPlease tell us about this problem, so that we may fix it.";
 
-kernel_memory_map* add_bios_mmap(kernel_memory_map* kmmap_buffer, int *index_ptr, multiboot_info_t* mbd) {
+kernel_memory_map* add_bios_mmap(kernel_memory_map* kmmap_buffer, unsigned int *index_ptr, multiboot_info_t* mbd) {
   if((index_ptr == 0) || (mbd == 0) || (kmmap_buffer == 0)) return 0; //Parameter checking
-  if((*index_ptr < 0) || (*index_ptr>=MAX_KMMAP_SIZE)) return 0; //Parameter checking, round 2
+  if(*index_ptr>=MAX_KMMAP_SIZE) return 0; //Parameter checking, round 2
 
-  int index = *index_ptr;
+  unsigned int index = *index_ptr;
   if(!(mbd->flags & 64)) return 0; //No memory map without multiboot's help
   //Variables for hacking through the memory map
   int remaining_mmap;
@@ -74,11 +74,11 @@ kernel_memory_map* add_bios_mmap(kernel_memory_map* kmmap_buffer, int *index_ptr
   return kmmap_buffer;
 }
 
-kernel_memory_map* add_bskernel(kernel_memory_map* kmmap_buffer, int *index_ptr, multiboot_info_t* mbd) {
+kernel_memory_map* add_bskernel(kernel_memory_map* kmmap_buffer, unsigned int *index_ptr, multiboot_info_t* mbd) {
   if((index_ptr == 0) || (mbd == 0) || (kmmap_buffer == 0)) return 0; //Parameter checking
-  if((*index_ptr < 0) || (*index_ptr>=MAX_KMMAP_SIZE)) return 0; //Parameter checking, round 2
+  if(*index_ptr>=MAX_KMMAP_SIZE) return 0; //Parameter checking, round 2
 
-  int index = *index_ptr;
+  unsigned int index = *index_ptr;
   extern char sbs_kernel;
   extern char ebs_kernel;
   
@@ -97,11 +97,11 @@ kernel_memory_map* add_bskernel(kernel_memory_map* kmmap_buffer, int *index_ptr,
   return kmmap_buffer;  
 }
 
-kernel_memory_map* add_mbdata(kernel_memory_map* kmmap_buffer, int *index_ptr, multiboot_info_t* mbd) {
+kernel_memory_map* add_mbdata(kernel_memory_map* kmmap_buffer, unsigned int *index_ptr, multiboot_info_t* mbd) {
   if((index_ptr == 0) || (mbd == 0) || (kmmap_buffer == 0)) return 0; //Parameter checking
-  if((*index_ptr < 0) || (*index_ptr>=MAX_KMMAP_SIZE)) return 0; //Parameter checking, round 2
+  if(*index_ptr>=MAX_KMMAP_SIZE) return 0; //Parameter checking, round 2
   
-  int index = *index_ptr;
+  unsigned int index = *index_ptr;
 
   //Main multiboot structure
   kmmap_buffer[index].location = (uint32_t) mbd;
@@ -199,11 +199,11 @@ kernel_memory_map* add_mbdata(kernel_memory_map* kmmap_buffer, int *index_ptr, m
   return kmmap_buffer;  
 }
 
-kernel_memory_map* add_modules(kernel_memory_map* kmmap_buffer, int* index_ptr, multiboot_info_t* mbd) {
+kernel_memory_map* add_modules(kernel_memory_map* kmmap_buffer, unsigned int* index_ptr, multiboot_info_t* mbd) {
   if((index_ptr == 0) || (mbd == 0) || (kmmap_buffer == 0)) return 0; //Parameter checking
-  if((*index_ptr < 0) || (*index_ptr>=MAX_KMMAP_SIZE)) return 0; //Parameter checking, round 2
+  if(*index_ptr>=MAX_KMMAP_SIZE) return 0; //Parameter checking, round 2
   
-  int index = *index_ptr;
+  unsigned int index = *index_ptr;
   if(mbd->flags & 8) {
     unsigned int current_mod = 0;
     while(current_mod < mbd->mods_count) {
@@ -283,7 +283,7 @@ kernel_information* generate_kernel_info(multiboot_info_t* mbd) {
 kernel_memory_map* generate_memory_map(multiboot_info_t* mbd, kernel_information* kinfo) {
   //A buffer for memory map.
   static kernel_memory_map kmmap_buffer[MAX_KMMAP_SIZE];
-  int index = 0;
+  unsigned int index = 0;
 
   /*This function
     1/Packs all memory-related data in a memory map
@@ -314,6 +314,9 @@ kernel_memory_map* generate_memory_map(multiboot_info_t* mbd, kernel_information
   return kmmap_buffer;
 }
 
+//This variable is use as a buffer for the merge and sort memory map transformations
+static kernel_memory_map kmmap_transform_buffer[MAX_KMMAP_SIZE];
+
 kernel_memory_map* merge_memory_map(kernel_information* kinfo) {
   /* Goal of this function : parts of the memory map (segments) are overlapping, due to the fact that
      memory map provided by GRUB does not take account of used memory, only knowing the difference
@@ -332,7 +335,6 @@ kernel_memory_map* merge_memory_map(kernel_information* kinfo) {
   
   kernel_memory_map tmp = {0,0,0,0};
   kernel_memory_map* kmmap = (kernel_memory_map*) (uint32_t) kinfo->kmmap;
-  static kernel_memory_map kmmap_buffer[MAX_KMMAP_SIZE];
   unsigned int dest_index = 0, source_index, free_index;
   
   /* It's simpler if the free memory segments are listed before their used counterpart in
@@ -353,7 +355,7 @@ kernel_memory_map* merge_memory_map(kernel_information* kinfo) {
   for(source_index = 0; source_index<kinfo->kmmap_size; ++source_index) {
     //Is this a reserved segment ?
     if(kmmap[source_index].nature != 0) {
-      copy_memory_map_elt(kmmap, kmmap_buffer, source_index, dest_index++);
+      copy_memory_map_elt(kmmap, kmmap_transform_buffer, source_index, dest_index++);
       if(dest_index >= MAX_KMMAP_SIZE) {
         //Memory map overflow. Quitting...
         die(MMAP_TOO_SMALL);
@@ -368,10 +370,10 @@ kernel_memory_map* merge_memory_map(kernel_information* kinfo) {
         //Add free space behind this new segment to memory map, if needed.
         if(source_index != free_index+1) {
           if(kmmap[source_index].location != kmmap[source_index-1].location + kmmap[source_index-1].size) {
-            kmmap_buffer[dest_index].location =  kmmap[source_index-1].location + kmmap[source_index-1].size;
-            kmmap_buffer[dest_index].size = kmmap[source_index].location - (kmmap[source_index-1].location + kmmap[source_index-1].size);
-            kmmap_buffer[dest_index].nature = 0;
-            kmmap_buffer[dest_index].name = kmmap[free_index].name;
+            kmmap_transform_buffer[dest_index].location =  kmmap[source_index-1].location + kmmap[source_index-1].size;
+            kmmap_transform_buffer[dest_index].size = kmmap[source_index].location - (kmmap[source_index-1].location + kmmap[source_index-1].size);
+            kmmap_transform_buffer[dest_index].nature = 0;
+            kmmap_transform_buffer[dest_index].name = kmmap[free_index].name;
             ++dest_index;
             if(dest_index >= MAX_KMMAP_SIZE) {
               //Memory map overflow. Quitting...
@@ -382,10 +384,10 @@ kernel_memory_map* merge_memory_map(kernel_information* kinfo) {
           if(kmmap[source_index].location !=
             kmmap[free_index].location)
           {
-            kmmap_buffer[dest_index].location = kmmap[free_index].location;
-            kmmap_buffer[dest_index].size = kmmap[source_index].location - kmmap[free_index].location;
-            kmmap_buffer[dest_index].nature = 0;
-            kmmap_buffer[dest_index].name = kmmap[free_index].name;
+            kmmap_transform_buffer[dest_index].location = kmmap[free_index].location;
+            kmmap_transform_buffer[dest_index].size = kmmap[source_index].location - kmmap[free_index].location;
+            kmmap_transform_buffer[dest_index].nature = 0;
+            kmmap_transform_buffer[dest_index].name = kmmap[free_index].name;
             ++dest_index;
             if(dest_index >= MAX_KMMAP_SIZE) {
               //Memory map overflow. Quitting...
@@ -395,7 +397,7 @@ kernel_memory_map* merge_memory_map(kernel_information* kinfo) {
         }
         
         //Then add the actual segment
-        copy_memory_map_elt(kmmap, kmmap_buffer, source_index, dest_index++);
+        copy_memory_map_elt(kmmap, kmmap_transform_buffer, source_index, dest_index++);
         if(dest_index >= MAX_KMMAP_SIZE) {
           //Memory map overflow. Quitting...
           die(MMAP_TOO_SMALL);
@@ -406,11 +408,11 @@ kernel_memory_map* merge_memory_map(kernel_information* kinfo) {
       //Fill free space after the end of the last used segment, if needed
       if(source_index != free_index) {
         if(kmmap[source_index].location + kmmap[source_index].size != kmmap[free_index].location + kmmap[free_index].size) {
-          kmmap_buffer[dest_index].location = kmmap[source_index].location + kmmap[source_index].size;
-          kmmap_buffer[dest_index].size = kmmap[free_index].location + kmmap[free_index].size -
+          kmmap_transform_buffer[dest_index].location = kmmap[source_index].location + kmmap[source_index].size;
+          kmmap_transform_buffer[dest_index].size = kmmap[free_index].location + kmmap[free_index].size -
             (kmmap[source_index].location + kmmap[source_index].size);
-          kmmap_buffer[dest_index].nature = 0;
-          kmmap_buffer[dest_index].name = kmmap[free_index].name;
+          kmmap_transform_buffer[dest_index].nature = 0;
+          kmmap_transform_buffer[dest_index].name = kmmap[free_index].name;
           ++dest_index;
           if(dest_index >= MAX_KMMAP_SIZE) {
             //Memory map overflow. Quitting...
@@ -418,7 +420,7 @@ kernel_memory_map* merge_memory_map(kernel_information* kinfo) {
           }
         }
       } else {
-        copy_memory_map_elt(kmmap, kmmap_buffer, free_index, dest_index++);
+        copy_memory_map_elt(kmmap, kmmap_transform_buffer, free_index, dest_index++);
         if(dest_index >= MAX_KMMAP_SIZE) {
           //Memory map overflow. Quitting...
           die(MMAP_TOO_SMALL);
@@ -427,9 +429,9 @@ kernel_memory_map* merge_memory_map(kernel_information* kinfo) {
     }
   }
   
-  copy_memory_map_chunk(kmmap_buffer, kmmap, 0, dest_index);
+  copy_memory_map_chunk(kmmap_transform_buffer, kmmap, 0, dest_index);
   kinfo->kmmap_size = dest_index;
-  return kmmap_buffer;
+  return kmmap;
 }
 
 kernel_memory_map* sort_memory_map(kernel_information* kinfo) {
@@ -446,13 +448,12 @@ kernel_memory_map* sort_memory_map(kernel_information* kinfo) {
   
   if(!kinfo) return 0;
   else if((!kinfo->kmmap) || (kinfo->kmmap_size == 0)) return 0;
-  
-  static kernel_memory_map sorting_buffer[MAX_KMMAP_SIZE];
+
   unsigned int granularity, left_pointer, right_pointer, dest_pointer = 0, current_pair;
   
   kernel_memory_map* kmmap = (kernel_memory_map*) (uint32_t) kinfo->kmmap;
   kernel_memory_map* source = kmmap;
-  kernel_memory_map* dest = sorting_buffer;
+  kernel_memory_map* dest = kmmap_transform_buffer;
   kernel_memory_map* tmp;
   
   /* We use a cyclic behavior : at the beginning of each cycle, we have some amount of

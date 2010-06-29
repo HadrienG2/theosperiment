@@ -50,7 +50,7 @@ void load_kernel(kernel_information* kinfo, kernel_memory_map* kernel, Elf64_Ehd
     //We have encountered a loadable segment. Let's load it...
     void* source = (void*) (uint32_t) (kernel->location + phdr_table[i].p_offset);
     void* dest = (void*) (uint32_t) (phdr_table[i].p_vaddr);
-    uint32_t size = phdr_table[i].p_filesz;
+    unsigned int size = phdr_table[i].p_filesz;
     memcpy(dest, source, size);
     //...and add it to the memory map
     kmmap[kinfo->kmmap_size+loadable_count].location = phdr_table[i].p_vaddr;

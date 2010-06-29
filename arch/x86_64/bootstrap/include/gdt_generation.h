@@ -20,7 +20,7 @@
 #define _GDT_GENERATION_H_
 
 #include <bs_kernel_information.h>
-#include <hack_stdint.h>
+#include <stdint.h>
 
 #define SGT32_LIMIT_CHUNK1_SIZE   16
 #define SGT32_BASE_CHUNK1_SIZE    24

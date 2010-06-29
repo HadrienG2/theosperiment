@@ -69,6 +69,6 @@ loop:
   jmp     loop
 
 stack:
-  /* Our stack area (64kB). */
+  /* Our stack area (16kB). */
   .data
-  .space   0x10000
+  .space   0x4000
