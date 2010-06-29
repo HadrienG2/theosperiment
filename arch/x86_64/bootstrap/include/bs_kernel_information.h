@@ -19,11 +19,11 @@
 #ifndef _BS_KERNEL_INFO_H_
 #define _BS_KERNEL_INFO_H_
 
-#include <hack_stdint.h>
 #include <bs_arch_specific_kinfo.h>
+#include <stdint.h>
 
-//Reserved entries of kernel memory map
-#define MAX_KMMAP_SIZE 1000
+//Reserved entries of kernel memory map+1
+#define MAX_KMMAP_SIZE 512
 
 typedef struct kernel_memory_map kernel_memory_map;
 struct kernel_memory_map {
@@ -41,7 +41,7 @@ struct kernel_memory_map {
 typedef struct kernel_information {
   uint64_t command_line; //char* to the kernel command line
   //Memory map
-  uint32_t kmmap_size; //Number of entries in kernel memory map
+  uint64_t kmmap_size; //Number of entries in kernel memory map
   uint64_t kmmap; //Pointer to the kernel memory map
   arch_specific_info arch_info; //Some arch-specific info
 } kernel_information;

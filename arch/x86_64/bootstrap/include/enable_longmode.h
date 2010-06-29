@@ -20,11 +20,11 @@
 #define _ENABLE_LONGMODE_H_
 
 #include <bs_kernel_information.h>
-#include <paging.h>
+#include <stdint.h>
 
 /* Returns 0 if success or -1 if 64-bit mode is not available */
 int enable_compatibility(uint32_t cr3_value);
 /* Run the kernel */
-uint32_t run_kernel(uint32_t kernel_entry, kernel_information* kinfo);
+int run_kernel(uint32_t kernel_entry, kernel_information* kinfo);
 
 #endif

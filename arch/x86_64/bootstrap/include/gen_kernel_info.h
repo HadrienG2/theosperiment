@@ -26,13 +26,13 @@ extern const char* MMAP_TOO_SMALL;
 
 //Add BIOS memory map information to the kernel memory map
 //Returns pointer to memory map if successful, 0 otherwise
-kernel_memory_map* add_bios_mmap(kernel_memory_map* kmmap_buffer, int *index_ptr, multiboot_info_t* mbd);
+kernel_memory_map* add_bios_mmap(kernel_memory_map* kmmap_buffer, unsigned int *index_ptr, multiboot_info_t* mbd);
 //Adds info about the bootstrap kernel to the kernel memory map
-kernel_memory_map* add_bskernel(kernel_memory_map* kmmap_buffer, int *index_ptr, multiboot_info_t* mbd);
+kernel_memory_map* add_bskernel(kernel_memory_map* kmmap_buffer, unsigned int *index_ptr, multiboot_info_t* mbd);
 //Add multiboot information structures to the kernel memory map
-kernel_memory_map* add_mbdata(kernel_memory_map* kmmap_buffer, int *index_ptr, multiboot_info_t* mbd);
+kernel_memory_map* add_mbdata(kernel_memory_map* kmmap_buffer, unsigned int *index_ptr, multiboot_info_t* mbd);
 //Add modules-related memory map information to the kernel memory map
-kernel_memory_map* add_modules(kernel_memory_map* kmmap_buffer, int *index_ptr, multiboot_info_t* mbd);
+kernel_memory_map* add_modules(kernel_memory_map* kmmap_buffer, unsigned int *index_ptr, multiboot_info_t* mbd);
 //Duplicate part of a memory map structure in another.
 kernel_memory_map* copy_memory_map_chunk(kernel_memory_map* source, kernel_memory_map* dest, unsigned int start, unsigned int length);
 //Copy an element between two memory map structures.

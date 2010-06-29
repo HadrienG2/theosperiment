@@ -19,14 +19,14 @@
 #ifndef _BS_STRING_H_
 #define _BS_STRING_H_
 
-#include <hack_stdint.h>
+#include <stdint.h>
 
 #define NULL 0
 /* Those are rather primitive implementations, but they are sufficient for us because we
   use "clean" strings of known length and which are always zero-terminated */
 int strlen(const char* str);
 int strcmp(const char* str1, const char* str2);
-void* memcpy(void* destination, const void* source, uint32_t num);
-void* memset(void* ptr, int value, uint32_t num);
+void* memcpy(void* destination, const void* source, unsigned int num);
+void* memset(void* ptr, int value, unsigned int num);
 
 #endif

@@ -21,7 +21,7 @@
 
 #Clean
 rm -f *~
-rm -f arch/x86_64/bootstrap/*~ arch/x86_64/debug/*~ arch/x86_64/include/*~ arch/x86_64/bootstrap/lib/*~ arch/x86_64/bootstrap/include/*~
+rm -f arch/x86_64/bootstrap/*~ arch/x86_64/debug/*~ arch/x86_64/include/*~ arch/x86_64/init/*~ arch/x86_64/bootstrap/lib/*~ arch/x86_64/bootstrap/include/*~
 rm -f include/*~ init/*~ lib/*~ support/*~
 rm -f bin/bootstrap/*.o bin/kernel/*.o
 rm -f bin/bootstrap/*.bin bin/kernel/*.bin
@@ -38,13 +38,12 @@ CFLAGS="-Wall -Wextra -Werror -nostdlib -nostartfiles -nodefaultlibs -fno-builti
 CXXFLAGS="-Wall -Wextra -Werror -nostdlib -nostartfiles -nodefaultlibs -fno-builtin -fno-exceptions -fno-rtti -fstack-protector-all \
 -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow -O3"
 LFLAGS="-z max-page-size=0x1000" #Maximum page size usable by the kernel (4 KB at the moment). Add -s for reduced size when out of debugging
-INCLUDES="-I../../arch/x86_64/debug/ -I../../arch/x86_64/include/ -I../../include/ -I../../arch/x86_64/bootstrap/include"
+INCLUDES="-I../../arch/x86_64/include/ -I../../include/ -I../../arch/x86_64/bootstrap/include"
 echo \* Making bootstrap kernel...
 cd bin/bootstrap
 $AS32 ../../arch/x86_64/bootstrap/bs_multiboot.s -o bs_multiboot.o
 $AS32 ../../arch/x86_64/bootstrap/enable_longmode.s -o enable_longmode.o
 $CC32 -c ../../arch/x86_64/bootstrap/*.c $CFLAGS $INCLUDES
-$CC32 -c ../../arch/x86_64/debug/*.c $CFLAGS $INCLUDES
 $CC32 -c ../../arch/x86_64/bootstrap/lib/*.c $CFLAGS $INCLUDES
 $LD32 -T ../../support/bs_linker.lds -o bs_kernel.bin *.o $LFLAGS
 cd ../..

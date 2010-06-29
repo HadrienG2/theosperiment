@@ -1,6 +1,6 @@
- /* Structures that are passed to the main kernel by the bootstrap kernel -- arch-specific data
+ /* Display paging structures on screen for debugging purposes
 
-    Copyright (C) 2010  Hadrien Grasland
+      Copyright (C) 2010  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,20 +16,14 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef _ARCH_INFO_H_
-#define _ARCH_INFO_H_
+#ifndef _DISPLAY_PAGING_H_
+#define _DISPLAY_PAGING_H_
 
-#include <hack_stdint.h>
+#include <stdint.h>
 
-struct startup_drive_info {
-  uint8_t drive_number;
-  uint8_t partition_number;
-  uint8_t sub_partition_number;
-  uint8_t subsub_partition_number;
-};
+void dbg_print_pd(const uint32_t location);
+void dbg_print_pdpt(const uint32_t location);
+void dbg_print_pml4t(const uint32_t cr3_value);
+void dbg_print_pt(const uint32_t location);
 
-struct arch_specific_info {
-  startup_drive_info* startup_drive; /* 64-bit pointer to a startup_drive_info structure */
-};
-
-#endif 
+#endif

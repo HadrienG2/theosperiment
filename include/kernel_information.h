@@ -38,7 +38,7 @@ struct kernel_memory_map {
 typedef struct kernel_information {
   char* command_line; //char* to the kernel command line
   //Memory map
-  uint32_t kmmap_size; //Number of entries in kernel memory map
+  unsigned int kmmap_size; //Number of entries in kernel memory map
   kernel_memory_map* kmmap; //Pointer to the kernel memory map
   arch_specific_info arch_info; //Some arch-specific information
 } kernel_information;

@@ -19,7 +19,7 @@
 #ifndef _BS_ARCH_INFO_H_
 #define _BS_ARCH_INFO_H_
 
-#include <hack_stdint.h>
+#include <stdint.h>
 
 typedef struct arch_specific_info arch_specific_info;
 typedef struct startup_drive_info startup_drive_info;

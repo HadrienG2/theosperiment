@@ -18,12 +18,10 @@ Copyright (C) 2010  Hadrien Grasland
 
 #include <bs_kernel_information.h>
 #include <die.h>
-#include <display_kinfo.h>
-#include <display_paging.h>
 #include <enable_longmode.h>
 #include <gdt_generation.h>
 #include <gen_kernel_info.h>
-#include <hack_stdint.h>
+#include <stdint.h>
 #include <kernel_loader.h>
 #include <multiboot.h>
 #include <paging.h>
@@ -40,14 +38,15 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   kernel_information* kinfo;
   kernel_memory_map* kernel_location;
   Elf64_Ehdr *main_header;
-  uint64_t cr3_value;
+  uint32_t cr3_value;
+  int return_value;
   
   //Set up a GDT which is more secure than GRUB's one
   replace_gdt();
   
   //Video memory initialization (for kernel silencing purposes)
-  dbg_init_videomem();
-  dbg_clear_screen();
+  init_videomem();
+  clear_screen();
   
   //GRUB magic number check
   if(magic!=MULTIBOOT_BOOTLOADER_MAGIC) {
@@ -55,12 +54,12 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   }
   
   //Some silly text
-  dbg_set_attr(DBG_TXT_WHITE);
-  dbg_print_str("Welcome to the OS-periment's kernel v0.0.4 ");
-  dbg_set_attr(DBG_TXT_LIGHTPURPLE);
-  dbg_print_str("\"Who is this superman ?\"");
-  dbg_set_attr(DBG_TXT_LIGHTGRAY);
-  dbg_print_str("\n\n");
+  set_attr(TXT_WHITE);
+  print_str("Welcome to the OS-periment's kernel v0.0.4 ");
+  set_attr(TXT_LIGHTPURPLE);
+  print_str("\"Who is this superman ?\"");
+  set_attr(TXT_LIGHTGRAY);
+  print_str("\n\n");
   
   //Generate kernel information
   kinfo = generate_kernel_info(mbd);
@@ -77,8 +76,8 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   cr3_value = generate_paging(kinfo);
   
   //Switch to the 32-bit subset of longmode if possible, otherwise just die.
-  int ret = enable_compatibility(cr3_value);
-  if(ret==-1) die(NO_LONGMODE);
+  return_value = enable_compatibility(cr3_value);
+  if(return_value==-1) die(NO_LONGMODE);
   
   //Switch to long mode, run the kernel
   run_kernel(main_header->e_entry, kinfo);

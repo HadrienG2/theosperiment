@@ -1,4 +1,4 @@
- /* Structures that are passed to the main kernel by the bootstrap kernel -- arch-specific data
+ /* A way to make the kernel "die" when there's nothing else to do
 
     Copyright (C) 2010  Hadrien Grasland
 
@@ -15,21 +15,16 @@
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
+ 
+#include "die.h"
+#include "txt_videomem.h"
 
-#ifndef _ARCH_INFO_H_
-#define _ARCH_INFO_H_
-
-#include <hack_stdint.h>
-
-struct startup_drive_info {
-  uint8_t drive_number;
-  uint8_t partition_number;
-  uint8_t sub_partition_number;
-  uint8_t subsub_partition_number;
-};
-
-struct arch_specific_info {
-  startup_drive_info* startup_drive; /* 64-bit pointer to a startup_drive_info structure */
-};
-
-#endif 
+void die(const char* issue) {
+  set_attr(TXT_WHITE | BKG_PURPLE);
+  clear_screen();
+  print_str("Sorry, something went wrong, and the operating system just died.\n");
+  print_str("Before dying, though, it left some information that may prove to be useful :\n\n");
+  set_attr(TXT_YELLOW | BKG_PURPLE);
+  print_str(issue);
+  __asm__ volatile ("infiniteloop: hlt; jmp infiniteloop");
+}

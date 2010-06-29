@@ -1,4 +1,4 @@
- /* Display paging structures on screen for debugging purposes
+ /* A way to make the kernel "die" when there's nothing else to do
 
       Copyright (C) 2010  Hadrien Grasland
 
@@ -16,14 +16,10 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef _DISPLAY_PAGING_H_
-#define _DISPLAY_PAGING_H_
+#ifndef _DIE_H_
+#define _DIE_H_
 
-#include <hack_stdint.h>
-
-void dbg_print_pd(const uint32_t location);
-void dbg_print_pdpt(const uint32_t location);
-void dbg_print_pml4t(const uint32_t cr3_value);
-void dbg_print_pt(const uint32_t location);
+/* Display a purple screen of death with the provided invoked cause */
+void die(const char* issue);
 
 #endif
