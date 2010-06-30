@@ -37,14 +37,11 @@ void replace_gdt() {
   //64-bit code segment
   gdt[3] = 0x000f00000000ffff;
   gdt[3] = SGT64_DBIT_CODEDATA + SGT64_DBIT_SBIT + SGT64_DBIT_PRESENT + SGT64_DBIT_LONG + SGT64_DBIT_GRANULARITY;
-  //64-bit data segment
-  gdt[4] = 0x000f00000000ffff;
-  gdt[4] = SGT32_DBIT_WRITABLE + SGT64_DBIT_SBIT + SGT64_DBIT_PRESENT + SGT64_DBIT_LONG + SGT64_DBIT_GRANULARITY;
   
   //Now that the GDT is complete, setup GDTR value and load it
   gdtr = (uint32_t) gdt;
   gdtr <<= 16;
-  gdtr += 40;
+  gdtr += 32;
   //Code descriptor is 8, data descriptor is 16
   __asm__ volatile ("lgdt %0;\
                      mov $16, %%ax;\

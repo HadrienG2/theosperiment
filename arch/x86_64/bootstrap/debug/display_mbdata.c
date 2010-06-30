@@ -21,85 +21,85 @@
 #include <stdint.h>
 
 void dbg_print_mbflags(multiboot_info_t* mbd) {
-    dbg_print_str("Here's what GRUB tells us :\n");
+    print_str("Here's what GRUB tells us :\n");
   
   if(mbd->flags & 1) {
-    dbg_print_str("* We know how much memory we have : ");
-    dbg_print_uint32(mbd->mem_lower);
-    dbg_print_str("kB + ");
-    dbg_print_uint32(mbd->mem_upper);
-    dbg_print_str("kB\n");
+    print_str("* We know how much memory we have : ");
+    print_uint32(mbd->mem_lower);
+    print_str("kB + ");
+    print_uint32(mbd->mem_upper);
+    print_str("kB\n");
   }
-  else dbg_print_str("* We don't know how much memory we have\n");
+  else print_str("* We don't know how much memory we have\n");
   
   if(mbd->flags & 2) {
-    dbg_print_str("* We know where we boot from : ");
-    dbg_print_uint8(mbd->boot_device/(256*256*256));
-    dbg_print_chr('/');
-    dbg_print_uint8((mbd->boot_device/(256*256))%256);
-    dbg_print_chr('/');
-    dbg_print_uint8((mbd->boot_device/256)%256);
-    dbg_print_chr('/');
-    dbg_print_uint8(mbd->boot_device%256);
-    dbg_print_chr('\n');
+    print_str("* We know where we boot from : ");
+    print_uint8(mbd->boot_device/(256*256*256));
+    print_chr('/');
+    print_uint8((mbd->boot_device/(256*256))%256);
+    print_chr('/');
+    print_uint8((mbd->boot_device/256)%256);
+    print_chr('/');
+    print_uint8(mbd->boot_device%256);
+    print_chr('\n');
   }
-  else dbg_print_str("* We don't know where we boot from\n");
+  else print_str("* We don't know where we boot from\n");
   
   if(mbd->flags & 4) {
-    dbg_print_str("* We know the command line : ");
-    dbg_print_str(mbd->cmdline);
-    dbg_print_chr('\n');
+    print_str("* We know the command line : ");
+    print_str(mbd->cmdline);
+    print_chr('\n');
   }  
-  else dbg_print_str("* We don't know the command line\n");
+  else print_str("* We don't know the command line\n");
   
   if(mbd->flags & 8) {
-    dbg_print_str("* We know about ");
-    dbg_print_uint32(mbd->mods_count);
-    dbg_print_str(" modules\n");
+    print_str("* We know about ");
+    print_uint32(mbd->mods_count);
+    print_str(" modules\n");
   }
-  else dbg_print_str("* We don't know about modules\n");
+  else print_str("* We don't know about modules\n");
   
-  if(mbd->flags & 16) dbg_print_str("* HORROR ! GRUB has mistaken us for an a.out kernel !\n");
-  else dbg_print_str("* Grub knows we're not an a.out kernel\n");
+  if(mbd->flags & 16) print_str("* HORROR ! GRUB has mistaken us for an a.out kernel !\n");
+  else print_str("* Grub knows we're not an a.out kernel\n");
   
   if(mbd->flags & 32) {
-    dbg_print_str("* We know something about our symbol table (and we don't care)\n");
+    print_str("* We know something about our symbol table (and we don't care)\n");
   }
-  else dbg_print_str("* We don't know anything about our symbol table\n");
+  else print_str("* We don't know anything about our symbol table\n");
   
   if(mbd->flags & 64) {
-    dbg_print_str("* We have a map of memory (see below)\n");
+    print_str("* We have a map of memory (see below)\n");
   }
-  else dbg_print_str("* We don't have a map of memory\n");  
+  else print_str("* We don't have a map of memory\n");  
   
   if(mbd->flags & 128) {
-    dbg_print_str("* We know about physical drives (see below)\n");
+    print_str("* We know about physical drives\n");
   }
-  else dbg_print_str("* We don't know about physical drives\n");
+  else print_str("* We don't know about physical drives\n");
   
   if(mbd->flags & 256) {
-    dbg_print_str("* We know about ROM configuration, it's at : ");
-    dbg_print_hex32(mbd->config_table);
-    dbg_print_chr('\n');
+    print_str("* We know about ROM configuration, it's at : ");
+    print_hex32(mbd->config_table);
+    print_chr('\n');
   }  
-  else dbg_print_str("* We don't know about ROM configuration\n");
+  else print_str("* We don't know about ROM configuration\n");
   
   if(mbd->flags & 512) {
-    dbg_print_str("* We know our bootloader by name : it's ");
-    dbg_print_str(mbd->boot_loader_name);
-    dbg_print_chr('\n');
+    print_str("* We know our bootloader by name : it's ");
+    print_str(mbd->boot_loader_name);
+    print_chr('\n');
   }  
-  else dbg_print_str("* We don't know our bootloader by name\n");
+  else print_str("* We don't know our bootloader by name\n");
   
   if(mbd->flags & 1024) {
-    dbg_print_str("* We know about the APM table at ");
-    dbg_print_hex32((uint32_t) mbd->apm_table);
-    dbg_print_chr('\n');
+    print_str("* We know about the APM table at ");
+    print_hex32((uint32_t) mbd->apm_table);
+    print_chr('\n');
   }
-  else dbg_print_str("* We don't know about the APM table\n");  
+  else print_str("* We don't know about the APM table\n");  
   
-  if(mbd->flags & 2048) dbg_print_str("* We know about VBE graphics capabilities\n");
-  else dbg_print_str("* We don't know about VBE graphics capabilities\n");
+  if(mbd->flags & 2048) print_str("* We know about VBE graphics capabilities\n");
+  else print_str("* We don't know about VBE graphics capabilities\n");
 }
 
 void dbg_print_mmap(multiboot_info_t* mbd) {
@@ -111,28 +111,28 @@ void dbg_print_mmap(multiboot_info_t* mbd) {
   if(mbd->flags & 64) {
     remaining_mmap = mbd->mmap_length;
     current_mmap = mbd->mmap_addr;
-    dbg_print_str("Memory map :\n");
+    print_str("Memory map :\n");
     while(remaining_mmap > 0) {
       //Display contents
-      dbg_print_str("* Memory slice at ");
+      print_str("* Memory slice at ");
       data64 = current_mmap->base_addr_high;
       data64 *= 0x100000000;
       data64 += current_mmap->base_addr_low;
-      dbg_print_hex64(data64);
-      dbg_print_str(" of size ");
+      print_hex64(data64);
+      print_str(" of size ");
       data64 = current_mmap->length_high;
       data64 *= 0x100000000;
       data64 += current_mmap->length_low;
-      dbg_print_hex64(data64);
-      if(current_mmap->type == 1) dbg_print_str(" is available\n");
-      else dbg_print_str(" is reserved\n");
+      print_hex64(data64);
+      if(current_mmap->type == 1) print_str(" is available\n");
+      else print_str(" is reserved\n");
       //Move to next mmap item
       hack_current_mmap = (uint32_t) current_mmap;
       hack_current_mmap += current_mmap->size+4;
       remaining_mmap -= current_mmap->size+4;
       current_mmap = (memory_map_t*) hack_current_mmap;
     }
-  } else dbg_print_str("No memory map found\n");
+  } else print_str("No memory map found\n");
 }
 
 void dbg_print_drvmap(multiboot_info_t* mbd) {
@@ -144,25 +144,25 @@ void dbg_print_drvmap(multiboot_info_t* mbd) {
   if((mbd->flags & 128) && (mbd->drives_length!=0)) {
     remaining_drvmap = mbd->drives_length;
     current_drvmap = mbd->drives_addr;
-    dbg_print_str("Drives map :\n");
-    dbg_print_int32(remaining_drvmap);
+    print_str("Drives map :\n");
+    print_int32(remaining_drvmap);
     while(remaining_drvmap > 0) {
       //Display contents
-      dbg_print_str("* Drive number ");
-      dbg_print_int32(current_drvmap->drive_number);
-      dbg_print_str(" uses ");
-      if(current_drvmap->drive_mode == 0) dbg_print_str("CHS");
-      if(current_drvmap->drive_mode == 1) dbg_print_str("LBA");
-      dbg_print_str(", has ");
-      dbg_print_int32(current_drvmap->drive_cylinders);
-      dbg_print_str(" cylinders, ");
-      dbg_print_int32(current_drvmap->drive_heads);
-      dbg_print_str("heads, and has ");
-      dbg_print_int32(current_drvmap->drive_sectors);
-      dbg_print_str(" sectors/tracks\n  It is used via ports ");
+      print_str("* Drive number ");
+      print_int32(current_drvmap->drive_number);
+      print_str(" uses ");
+      if(current_drvmap->drive_mode == 0) print_str("CHS");
+      if(current_drvmap->drive_mode == 1) print_str("LBA");
+      print_str(", has ");
+      print_int32(current_drvmap->drive_cylinders);
+      print_str(" cylinders, ");
+      print_int32(current_drvmap->drive_heads);
+      print_str("heads, and has ");
+      print_int32(current_drvmap->drive_sectors);
+      print_str(" sectors/tracks\n  It is used via ports ");
       current_port = &(current_drvmap->first_port);
       while(*current_port!=0) {
-        dbg_print_int32(*current_port);
+        print_int32(*current_port);
         ++current_port;
       }
       //Move to next drvmap item
@@ -171,5 +171,5 @@ void dbg_print_drvmap(multiboot_info_t* mbd) {
       remaining_drvmap -= current_drvmap->size;
       current_drvmap = (drive_structure_t*) hack_current_drvmap;
     }
-  } else dbg_print_str("No drives map found\n");
+  } else print_str("No drives map found\n");
 }

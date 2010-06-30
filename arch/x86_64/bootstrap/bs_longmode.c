@@ -81,6 +81,6 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   
   //Switch to long mode, run the kernel
   run_kernel(main_header->e_entry, kinfo);
-
+  
   return 0;
 }

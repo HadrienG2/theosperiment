@@ -18,6 +18,10 @@
   along with this program; if not, write to the Free Software
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. */
 
+  /* Our stack area (16kB). */
+  .data
+  .lcomm stack, 0x4000
+  
   .text
   .globl  bootstrap
 bootstrap:
@@ -67,8 +71,3 @@ multiboot_entry:
 loop:
   xchg %bx, %bx
   jmp     loop
-
-stack:
-  /* Our stack area (16kB). */
-  .data
-  .space   0x4000

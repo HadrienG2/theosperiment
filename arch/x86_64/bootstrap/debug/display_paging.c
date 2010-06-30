@@ -28,41 +28,41 @@ void dbg_print_pd(const uint32_t location) {
   uint64_t address;
   
   //Print PD
-  dbg_print_str("Address            | Flags\n");
-  dbg_print_str("-------------------------------------------------------------------------------\n");
+  print_str("Address            | Flags\n");
+  print_str("-------------------------------------------------------------------------------\n");
   for(table_index=0; table_index<PD_SIZE; ++table_index) {
     //For each table element, print address, isolated as before
     current_el = pd[table_index];
     address = current_el - (current_el & mask);
-    dbg_print_hex64(address);
-    dbg_print_str(" | ");
+    print_hex64(address);
+    print_str(" | ");
     if(current_el & PBIT_PRESENT) {
-      dbg_print_str("PRST ");
+      print_str("PRST ");
     }
     if(current_el & PBIT_WRITABLE) {
-      dbg_print_str("WRIT ");
+      print_str("WRIT ");
     }
     if(current_el & PBIT_USERACCESS) {
-      dbg_print_str("USER ");
+      print_str("USER ");
     }
     if(current_el & PBIT_WRITETHROUGH) {
-      dbg_print_str("WRTH ");
+      print_str("WRTH ");
     }
     if(current_el & PBIT_NOCACHE) {
-      dbg_print_str("!CAC ");
+      print_str("!CAC ");
     }
     if(current_el & PBIT_ACCESSED) {
-      dbg_print_str("ACSD ");
+      print_str("ACSD ");
     }
     if(current_el & PBIT_LARGEPAGE) {
-      dbg_print_str("LARG ");
+      print_str("LARG ");
     }
     if(current_el & PBIT_NOEXECUTE) {
-      dbg_print_str("NOEX");
+      print_str("NOEX");
     }
-    dbg_print_chr('\n');
+    print_chr('\n');
   }
-  dbg_print_chr('\n');
+  print_chr('\n');
 }
 
 void dbg_print_pdpt(const uint32_t location) {
@@ -73,41 +73,41 @@ void dbg_print_pdpt(const uint32_t location) {
   uint64_t address;
   
   //Print PDPT
-  dbg_print_str("Address            | Flags\n");
-  dbg_print_str("-------------------------------------------------------------------------------\n");
+  print_str("Address            | Flags\n");
+  print_str("-------------------------------------------------------------------------------\n");
   for(table_index=0; table_index<PDPT_SIZE; ++table_index) {
     //For each table element, print address, isolated as before
     current_el = pdpt[table_index];
     address = current_el - (current_el & mask);
-    dbg_print_hex64(address);
-    dbg_print_str(" | ");
+    print_hex64(address);
+    print_str(" | ");
     if(current_el & PBIT_PRESENT) {
-      dbg_print_str("PRST ");
+      print_str("PRST ");
     }
     if(current_el & PBIT_WRITABLE) {
-      dbg_print_str("WRIT ");
+      print_str("WRIT ");
     }
     if(current_el & PBIT_USERACCESS) {
-      dbg_print_str("USER ");
+      print_str("USER ");
     }
     if(current_el & PBIT_WRITETHROUGH) {
-      dbg_print_str("WRTH ");
+      print_str("WRTH ");
     }
     if(current_el & PBIT_NOCACHE) {
-      dbg_print_str("!CAC ");
+      print_str("!CAC ");
     }
     if(current_el & PBIT_ACCESSED) {
-      dbg_print_str("ACSD ");
+      print_str("ACSD ");
     }
     if(current_el & PBIT_LARGEPAGE) {
-      dbg_print_str("LARG ");
+      print_str("LARG ");
     }
     if(current_el & PBIT_NOEXECUTE) {
-      dbg_print_str("NOEX");
+      print_str("NOEX");
     }
-    dbg_print_chr('\n');
+    print_chr('\n');
   }
-  dbg_print_chr('\n');
+  print_chr('\n');
 }
 
 void dbg_print_pml4t(const uint32_t cr3_value) {
@@ -119,38 +119,38 @@ void dbg_print_pml4t(const uint32_t cr3_value) {
   uint64_t address;
   
   //Print PML4T
-  dbg_print_str("Address            | Flags\n");
-  dbg_print_str("-------------------------------------------------------------------------------\n");
+  print_str("Address            | Flags\n");
+  print_str("-------------------------------------------------------------------------------\n");
   for(table_index=0; table_index<PML4T_SIZE; ++table_index) {
     //For each table element, print address, isolated as before
     current_el = pml4t[table_index];
     address = current_el - (current_el & mask);
-    dbg_print_hex64(address);
-    dbg_print_str(" | ");
+    print_hex64(address);
+    print_str(" | ");
     if(current_el & PBIT_PRESENT) {
-      dbg_print_str("PRST ");
+      print_str("PRST ");
     }
     if(current_el & PBIT_WRITABLE) {
-      dbg_print_str("WRIT ");
+      print_str("WRIT ");
     }
     if(current_el & PBIT_USERACCESS) {
-      dbg_print_str("USER ");
+      print_str("USER ");
     }
     if(current_el & PBIT_WRITETHROUGH) {
-      dbg_print_str("WRTH ");
+      print_str("WRTH ");
     }
     if(current_el & PBIT_NOCACHE) {
-      dbg_print_str("!CAC ");
+      print_str("!CAC ");
     }
     if(current_el & PBIT_ACCESSED) {
-      dbg_print_str("ACSD ");
+      print_str("ACSD ");
     }
     if(current_el & PBIT_NOEXECUTE) {
-      dbg_print_str("NOEX");
+      print_str("NOEX");
     }
-    dbg_print_chr('\n');
+    print_chr('\n');
   }
-  dbg_print_chr('\n');
+  print_chr('\n');
 }
 
 void dbg_print_pt(const uint32_t location) {
@@ -161,42 +161,42 @@ void dbg_print_pt(const uint32_t location) {
   uint64_t address;
   
   //Print PT
-  dbg_print_str("Address            | Flags\n");
-  dbg_print_str("-------------------------------------------------------------------------------\n");
+  print_str("Address            | Flags\n");
+  print_str("-------------------------------------------------------------------------------\n");
   for(table_index=0; table_index<PT_SIZE; ++table_index) {
     //For each table element, print address, isolated as before
     current_el = pt[table_index];
     address = current_el - (current_el & mask);
-    dbg_print_hex64(address);
-    dbg_print_str(" | ");
+    print_hex64(address);
+    print_str(" | ");
     if(current_el & PBIT_PRESENT) {
-      dbg_print_str("PRST ");
+      print_str("PRST ");
     }
     if(current_el & PBIT_WRITABLE) {
-      dbg_print_str("WRIT ");
+      print_str("WRIT ");
     }
     if(current_el & PBIT_USERACCESS) {
-      dbg_print_str("USER ");
+      print_str("USER ");
     }
     if(current_el & PBIT_WRITETHROUGH) {
-      dbg_print_str("WRTH ");
+      print_str("WRTH ");
     }
     if(current_el & PBIT_NOCACHE) {
-      dbg_print_str("!CAC ");
+      print_str("!CAC ");
     }
     if(current_el & PBIT_ACCESSED) {
-      dbg_print_str("ACSD ");
+      print_str("ACSD ");
     }
     if(current_el & PBIT_PAGEATTRIBTABLE) {
-      dbg_print_str("PATT ");
+      print_str("PATT ");
     }
     if(current_el & PBIT_GLOBALPAGE) {
-      dbg_print_str("GLOB ");
+      print_str("GLOB ");
     }
     if(current_el & PBIT_NOEXECUTE) {
-      dbg_print_str("NOEX");
+      print_str("NOEX");
     }
-    dbg_print_chr('\n');
+    print_chr('\n');
   }
-  dbg_print_chr('\n');
+  print_chr('\n');
 }
