@@ -34,15 +34,15 @@ extern "C" int kmain(/*kernel_information* kinfo*/) {
   vmem2[178] = '!';
   vmem2[180] = ' ';
   vmem2[182] = mon_truc.toto;
-/*  vmem3 = kinfo->command_line;
+/*vmem3 = kinfo->command_line;
   unsigned int pos=484;
   for(index=kinfo->kmmap_size; index!=0; index/=10, pos-=2) {
     vmem[pos]='0'+index%10;
   }*/
   
-  //Next thing to do : display vmem3 to make sure everything is okay
+  //TODO : display vmem3 to make sure everything is okay
   
-  /* This function doesn't work and should be fixed
+  /* TODO : This function doesn't work and must be fixed
   __stack_chk_guard_setup(); */
   
   return 0;
