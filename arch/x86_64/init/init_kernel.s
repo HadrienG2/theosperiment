@@ -29,7 +29,7 @@ ctors_check:
   jb   ctors_run
 
   /* call kernel */
-  push %rcx
+  push tmp_rcx
   call kmain
 
   /* Run destructors */

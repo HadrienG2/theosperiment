@@ -189,7 +189,7 @@ unsigned int make_page_table(unsigned int location, kernel_information* kinfo) {
               pte_mask += PBIT_NOEXECUTE;
               break;
             case 2:
-              pte_mask += PBIT_NOEXECUTE + PBIT_WRITABLE;
+              pte_mask += PBIT_WRITABLE;
               break;
           }
           break;

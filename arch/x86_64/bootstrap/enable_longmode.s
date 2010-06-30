@@ -82,7 +82,7 @@ no_longmode:
   /* return -1 */
   mov   $-1, %eax
   jmp return
-
+  
 run_kernel:
   mov   %ebp, tmp_ebp       /* Save caller's registers */
   mov   %esi, tmp_esi
@@ -93,19 +93,12 @@ run_kernel:
   mov   %esp, %ebp
 
   /* Long-jump to kernel at 4(%ebp),
-     while giving it access to information at 8(%ebp) */
+     while giving it access to information at 8(%ebp) in %ecx */
   mov 8(%ebp), %ecx
   mov 4(%ebp), %ebx
-
   ljmp $24, $trampoline
-.code64
+  .code64
 trampoline:
-  mov $32, %dx
-  mov %dx, %ds
-  mov %dx, %es
-  mov %dx, %fs
-  mov %dx, %gs
-  mov %dx, %ss
   call *%rbx
   
 kernel_returns:

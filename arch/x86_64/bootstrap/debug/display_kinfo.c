@@ -17,75 +17,71 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
  
 #include "display_kinfo.h"
-#include "txt_videomem.h"
+#include <txt_videomem.h>
  
 void dbg_print_kinfo(kernel_information* kinfo) {
   if(kinfo) {
     startup_drive_info* sdr_info = (startup_drive_info*) (uint32_t) kinfo->arch_info.startup_drive;
     //Display command line
-    dbg_print_str("Kernel command line : ");
-    if(kinfo->command_line) dbg_print_str((char*) (uint32_t) kinfo->command_line);
-    dbg_print_chr('\n');
+    print_str("Kernel command line : ");
+    if(kinfo->command_line) print_str((char*) (uint32_t) kinfo->command_line);
+    print_chr('\n');
     
     //Memory map size
-    dbg_print_str("Memory map size : ");
-    dbg_print_int32(kinfo->kmmap_size);
-    dbg_print_chr('\n');
+    print_str("Memory map size : ");
+    print_int32(kinfo->kmmap_size);
+    print_chr('\n');
     
     //Startup drive information
     if(kinfo->arch_info.startup_drive) {
-      dbg_print_str("Startup drive is : ");
-      dbg_print_uint8(sdr_info->drive_number);
-      dbg_print_chr('/');
-      dbg_print_uint8(sdr_info->partition_number);
-      dbg_print_chr('/');
-      dbg_print_uint8(sdr_info->sub_partition_number);
-      dbg_print_chr('/');
-      dbg_print_uint8(sdr_info->subsub_partition_number);
-      dbg_print_chr('\n');
+      print_str("Startup drive is : ");
+      print_uint8(sdr_info->drive_number);
+      print_chr('/');
+      print_uint8(sdr_info->partition_number);
+      print_chr('/');
+      print_uint8(sdr_info->sub_partition_number);
+      print_chr('/');
+      print_uint8(sdr_info->subsub_partition_number);
+      print_chr('\n');
     }
-    
-    //Kernel memory map
-    dbg_print_chr('\n');
-    dbg_print_kmmap(kinfo);
   } else {
-    dbg_print_str("Sorry, no kernel information available.\n");
+    print_str("Sorry, no kernel information available.\n");
   }
 }
 
 void dbg_print_kmmap(kernel_information* kinfo) {
   unsigned int i = 0;
   kernel_memory_map* kmmap = (kernel_memory_map*) (uint32_t) kinfo->kmmap;
-  dbg_print_str("Address            | Size               | Type | Name\n");
-  dbg_print_str("-------------------------------------------------------------------------------\n");
+  print_str("Address            | Size               | Type | Name\n");
+  print_str("-------------------------------------------------------------------------------\n");
   for(; i<kinfo->kmmap_size; ++i) {
-    dbg_print_hex64(kmmap[i].location);
-    dbg_print_str(" | ");
-    dbg_print_hex64(kmmap[i].size);
-    dbg_print_str(" | ");
+    print_hex64(kmmap[i].location);
+    print_str(" | ");
+    print_hex64(kmmap[i].size);
+    print_str(" | ");
     
     switch(kmmap[i].nature) {
       case 0:
-        dbg_print_str("FREE | ");
+        print_str("FREE | ");
         break;
       case 1:
-        dbg_print_str("RES  | ");
+        print_str("RES  | ");
         break;
       case 2:
-        dbg_print_str("BSK  | ");
+        print_str("BSK  | ");
         break;
       case 3:
-        dbg_print_str("KNL  | ");
+        print_str("KNL  | ");
         break;
       default:
-        dbg_print_str("UNSP | ");
+        print_str("UNSP | ");
     }
     
     if(!kmmap[i].name) {
-      dbg_print_str("\n");
+      print_str("\n");
     } else {
-      dbg_print_str((char*) (uint32_t) kmmap[i].name);
-      dbg_print_chr('\n');
+      print_str((char*) (uint32_t) kmmap[i].name);
+      print_chr('\n');
     }
   }
 }

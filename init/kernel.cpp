@@ -2,7 +2,7 @@
 #include <kernel_information.h>
 
 char* const vmem = (char *) 0xb8000;
-char* vmem2 = (char *) 0xb8000;
+char* vmem2 = vmem; //(char *) 0xb8000;
 char* vmem3;
 const char notes = 0x0e;
 
@@ -15,25 +15,30 @@ class Truc {
 Truc::Truc():
     toto(notes)
 {
-  vmem[320]='K';
-  vmem[322]='e';
-  vmem[324]='r';
-  vmem[326]='n';
-  vmem[328]='e';
-  vmem[330]='l';
-  vmem[332]=' ';
+  vmem[160]='K';
+  vmem[162]='e';
+  vmem[164]='r';
+  vmem[166]='n';
+  vmem[168]='e';
+  vmem[170]='l';
+  vmem[172]=' ';
 }
 
 Truc mon_truc;
 
-extern "C" int kmain(kernel_information* kinfo) {
+extern "C" int kmain(/*kernel_information* kinfo*/) {
+  //unsigned int index;
   //Okay, everything is ready
-  vmem[334] = 'O';
-  vmem[336] = 'K';
-  vmem2[338] = '!';
-  vmem2[340] = ' ';
-  vmem2[342] = mon_truc.toto;
-  vmem3 = kinfo->command_line;
+  vmem[174] = 'O';
+  vmem[176] = 'K';
+  vmem2[178] = '!';
+  vmem2[180] = ' ';
+  vmem2[182] = mon_truc.toto;
+/*  vmem3 = kinfo->command_line;
+  unsigned int pos=484;
+  for(index=kinfo->kmmap_size; index!=0; index/=10, pos-=2) {
+    vmem[pos]='0'+index%10;
+  }*/
   
   //Next thing to do : display vmem3 to make sure everything is okay
   
