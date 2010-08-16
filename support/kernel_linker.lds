@@ -8,7 +8,8 @@ PHDRS {
 }
 
 SECTIONS {
-  . = 0x1001000; /* Loaded at 16MB+4KB in order to prevent erasing GRUB-provided modules */
+  . = 0x20000000; /* To be loaded at 2 GB, aka "higher-half kernel". Allows to keep kernel in virtual memory
+                     when a program is loaded  */
 
   .text ALIGN(4096) :
   {

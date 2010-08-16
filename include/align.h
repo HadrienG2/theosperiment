@@ -1,4 +1,4 @@
-/*  Code used to enable long mode
+ /* Some macros that align things on a page (or other) basis.
 
       Copyright (C) 2010  Hadrien Grasland
 
@@ -16,15 +16,15 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef _ENABLE_LONGMODE_H_
-#define _ENABLE_LONGMODE_H_
+#ifndef _ALIGN_H_
+#define _ALIGN_H_
 
-#include <bs_kernel_information.h>
-#include <stdint.h>
+#define align_up(quantity, align) (((quantity)%(align)!=0) \
+                                    ?(((quantity)/(align) + 1) * (align))\
+                                    :(quantity))
+#define align_down(quantity, align) (((quantity)/(align)) * (align))
 
-/* Returns 0 if success or -1 if 64-bit mode is not available */
-int enable_compatibility(uint32_t cr3_value);
-/* Run the kernel */
-int run_kernel(uint32_t kernel_entry, kernel_information* kinfo);
-
+#define PG_SIZE 0x1000 //Page size is 4KB
+#define align_pgup(quantity) align_up(quantity, PG_SIZE)
+#define align_pgdown(quantity) align_down(quantity, PG_SIZE)
 #endif

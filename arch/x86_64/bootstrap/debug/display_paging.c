@@ -16,13 +16,14 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
  
+#include <align.h>
 #include "display_paging.h"
 #include <paging.h>
 #include <txt_videomem.h>
 
 void dbg_print_pd(const uint32_t location) {
   int table_index;
-  const uint64_t mask = PG_ALIGN-1+PBIT_NOEXECUTE; //Mask eliminating the low-order bits of CR3 and page table entries
+  const uint64_t mask = PG_SIZE-1+PBIT_NOEXECUTE; //Mask eliminating the low-order bits of CR3 and page table entries
   pde* pd = (pde*) location;  
   pde current_el;
   uint64_t address;
@@ -67,7 +68,7 @@ void dbg_print_pd(const uint32_t location) {
 
 void dbg_print_pdpt(const uint32_t location) {
   int table_index;
-  const uint64_t mask = PG_ALIGN-1 + PBIT_NOEXECUTE; //Mask eliminating the low-order bits of CR3 and page table entries
+  const uint64_t mask = PG_SIZE-1 + PBIT_NOEXECUTE; //Mask eliminating the low-order bits of CR3 and page table entries
   pdpe* pdpt = (pdpe*) location;  
   pdpe current_el;
   uint64_t address;
@@ -112,7 +113,7 @@ void dbg_print_pdpt(const uint32_t location) {
 
 void dbg_print_pml4t(const uint32_t cr3_value) {
   int table_index;
-  const uint64_t mask = PG_ALIGN-1+PBIT_NOEXECUTE; //Mask eliminating the low-order bits of CR3 and page table entries
+  const uint64_t mask = PG_SIZE-1+PBIT_NOEXECUTE; //Mask eliminating the low-order bits of CR3 and page table entries
   uint32_t pml4t_location = cr3_value - (cr3_value & mask);
   pml4e* pml4t = (pml4e*) pml4t_location;  
   pml4e current_el;
@@ -155,7 +156,7 @@ void dbg_print_pml4t(const uint32_t cr3_value) {
 
 void dbg_print_pt(const uint32_t location) {
   int table_index;
-  const uint64_t mask = PG_ALIGN-1+PBIT_NOEXECUTE; //Mask eliminating the low-order bits of CR3 and page table entries
+  const uint64_t mask = PG_SIZE-1+PBIT_NOEXECUTE; //Mask eliminating the low-order bits of CR3 and page table entries
   pte* pt = (pte*) location;  
   pte current_el;
   uint64_t address;

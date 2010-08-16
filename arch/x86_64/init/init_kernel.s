@@ -10,12 +10,12 @@
   .globl kinit
 
 kinit:
-  mov   %rbp, tmp_rbp       /* Save caller's registers */
-  mov   %rsi, tmp_rsi
-  mov   %rdi, tmp_rdi
-  mov   %rbx, tmp_rbx
-  mov   %rcx, tmp_rcx
-  mov   %rdx, tmp_rdx
+  mov   %rbp, (tmp_rbp)       /* Save caller's registers */
+  mov   %rsi, (tmp_rsi)
+  mov   %rdi, (tmp_rdi)
+  mov   %rbx, (tmp_rbx)
+  mov   %rcx, (tmp_rcx)
+  mov   %rdx, (tmp_rdx)
   mov   %rsp, %rbp
   
   /* Run constructors */
@@ -28,8 +28,8 @@ ctors_check:
   cmp  $end_ctors, %rbx
   jb   ctors_run
 
-  /* call kernel */
-  push tmp_rcx
+  /* call kernel (parameter must be put on rdi ???) */
+  mov (tmp_rcx), %rdi
   call kmain
 
   /* Run destructors */
@@ -45,10 +45,10 @@ dtors_check:
 return:
   /* Go back to bootstrap kernel, let it decide what to do */
   mov   %rbp, %rsp
-  mov   tmp_rdx, %rdx
-  mov   tmp_rcx, %rcx
-  mov   tmp_rbx, %rbx
-  mov   tmp_rdi, %rdi
-  mov   tmp_rsi, %rsi
-  mov   tmp_rbp, %rbp
+  mov   (tmp_rdx), %rdx
+  mov   (tmp_rcx), %rcx
+  mov   (tmp_rbx), %rbx
+  mov   (tmp_rdi), %rdi
+  mov   (tmp_rsi), %rsi
+  mov   (tmp_rbp), %rbp
   ret

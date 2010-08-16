@@ -377,72 +377,77 @@ void print_uint32(const uint32_t integer) {
   print_str(buff);
 } */
 
-void scroll(const int offset) {
-  unsigned int x, y;
-  unsigned int target_index, source_index, absolute_offset;
-  
-  if(offset>=0) {
-    absolute_offset = offset;
-    // Scrolling more lines than screen height is useless,
-    // In that case clearing the screen is just as effective
-    if(absolute_offset > number_of_rows) {
-      clear_screen();
+void scroll(int offset) {
+  #ifdef DEBUG
+    __asm__ volatile ("xchg %bx, %bx");
+    clear_screen();
+    offset = 0;
+  #else
+    unsigned int x, y;
+    unsigned int target_index, source_index, absolute_offset;
+    
+    if(offset>=0) {
+      absolute_offset = offset;
+      // Scrolling more lines than screen height is useless,
+      // In that case clearing the screen is just as effective
+      if(absolute_offset > number_of_rows) {
+        clear_screen();
+      } else {
+        //Make text move upwards
+        for(y=0; y<number_of_rows-absolute_offset; ++y) {
+          for(x=0; x<number_of_cols; ++x) {
+            //Copy line y+offset to line y
+            target_index = 2*(x+number_of_cols*y);
+            source_index = 2*(x+number_of_cols*(y+absolute_offset));
+            videoram[target_index] = videoram[source_index];
+            videoram[target_index+1] = videoram[source_index+1];
+          }
+        }
+        
+        //Clear text at the bottom
+        clear_rect(0, number_of_rows-absolute_offset, number_of_cols-1, number_of_rows-1);
+        
+        //Move cursor up, if it goes out of the screen make it move to the upper left corner
+        if(cursor_row - absolute_offset < number_of_rows) {
+          movecur_rel(0, -offset);
+        } else {
+          movecur_abs(0, 0);
+        }
+      }
     } else {
-      //Make text move upwards
-      for(y=0; y<number_of_rows-absolute_offset; ++y) {
-        for(x=0; x<number_of_cols; ++x) {
-          //Copy line y+offset to line y
-          target_index = 2*(x+number_of_cols*y);
-          source_index = 2*(x+number_of_cols*(y+absolute_offset));
-          videoram[target_index] = videoram[source_index];
-          videoram[target_index+1] = videoram[source_index+1];
+      absolute_offset = -offset;
+      //Same as above, but downwards
+      // Scrolling more lines than screen height is useless,
+      // In that case clearing the screen is just as effective
+      int neg_nb_row = number_of_rows;
+      neg_nb_row = -neg_nb_row;
+      if(offset < neg_nb_row) {
+        clear_screen();
+      } else {      
+        //Make text move downwards
+        for(y=number_of_rows-1; y>=-absolute_offset; --y) {
+          for(x=0; x<number_of_cols; ++x) {
+            //Copy line y+offset to line y
+            target_index = 2*(x+number_of_cols*y);
+            source_index = 2*(x+number_of_cols*(y-absolute_offset));
+            videoram[target_index] = videoram[source_index];
+            videoram[target_index+1] = videoram[source_index+1];
+          }
+        }
+        
+        //Clear text at the top
+        clear_rect(0, 0, number_of_cols-1, absolute_offset-1);
+        
+        // Move cursor down, if it goes out of the screen make it move to
+        // the bottom right corner
+        if(cursor_row + absolute_offset < number_of_rows) {
+          movecur_rel(0, absolute_offset);
+        } else {
+          movecur_abs(number_of_cols-1, number_of_rows-1);
         }
       }
-      
-      //Clear text at the bottom
-      clear_rect(0, number_of_rows-absolute_offset, number_of_cols-1, number_of_rows-1);
-      
-      //Move cursor up, if it goes out of the screen make it move to the upper left corner
-      if(cursor_row - absolute_offset < number_of_rows) {
-        movecur_rel(0, -offset);
-      } else {
-        movecur_abs(0, 0);
-      }
     }
-  } else {
-    absolute_offset = -offset;
-    //Same as above, but downwards
-    // Scrolling more lines than screen height is useless,
-    // In that case clearing the screen is just as effective
-    int neg_nb_row = number_of_rows;
-    neg_nb_row = -neg_nb_row;
-    if(offset < neg_nb_row) {
-      clear_screen();
-    } else {      
-      //Make text move downwards
-      for(y=number_of_rows-1; y>=-absolute_offset; --y) {
-        for(x=0; x<number_of_cols; ++x) {
-          //Copy line y+offset to line y
-          target_index = 2*(x+number_of_cols*y);
-          source_index = 2*(x+number_of_cols*(y-absolute_offset));
-          videoram[target_index] = videoram[source_index];
-          videoram[target_index+1] = videoram[source_index+1];
-        }
-      }
-      
-      //Clear text at the top
-      clear_rect(0, 0, number_of_cols-1, absolute_offset-1);
-      
-      // Move cursor down, if it goes out of the screen make it move to
-      // the bottom right corner
-      if(cursor_row + absolute_offset < number_of_rows) {
-        movecur_rel(0, absolute_offset);
-      } else {
-        movecur_abs(number_of_cols-1, number_of_rows-1);
-      }
-    }
-  }
-
+  #endif
 }
 void set_attr(const char new_attr) {
   attr = new_attr;

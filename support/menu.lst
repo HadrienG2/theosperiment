@@ -3,5 +3,5 @@ timeout 0
 
 title ToolbOS
 root (fd0)
-kernel /system/bs_kernel.bin
+kernel /system/bs_kernel.bin.gz
 module /system/kernel.bin

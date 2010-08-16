@@ -1,4 +1,5 @@
- /* Routines necessary in order to use some C++ features
+ /* A very simple header with one goal : create an addr_t type that is an unsigned integer of the proper
+    addressing size of each architecture.
 
       Copyright (C) 2010  Hadrien Grasland
 
@@ -16,33 +17,13 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include <cpp_support.h>
-#include <panic.h>
+#ifndef _ADDRESS_H_
+#define _ADDRESS_H_
 
-/* This code allows use of pure virtual functions */
-extern "C" void __cxa_pure_virtual() {
-  //This function should not ever be called. Hang the kernel.
-  panic();
-}
+#include <hack_stdint.h>
 
-int _purecall() {
-  //Same as above
-  panic();
-  return 0;
-}
+#define NULL 0
 
-/* This code allows use of stack smashing protection */
-void * __stack_chk_guard = 0;
+typedef uint64_t addr_t; //On x86_64, addresses are unsigned 64-bit integers
 
-extern "C" void __stack_chk_guard_setup() {
-    unsigned char * p;
-    p = (unsigned char *) &__stack_chk_guard;
-    p[sizeof(__stack_chk_guard)-1] = 255;  /* <- this should be probably randomized */
-    p[sizeof(__stack_chk_guard)-2] = '\n';
-    p[0] = 0;
-}
- 
-extern "C" void __stack_chk_fail() {
-  //Stack has been smashed. Hang the kernel
-  panic();
-}
+#endif

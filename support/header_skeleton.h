@@ -1,4 +1,4 @@
- /* Function used to kill the kernel
+ /* <Some C++ header>
 
       Copyright (C) 2010  Hadrien Grasland
 
@@ -16,9 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include <panic.h>
+#ifndef _<identifier>_H_
+#define _<identifier>_H_
 
-void panic() {
-  //This is a primitive implementation, as we do not have graphic drivers available yet.
-  for(;;);
-}
+#endif

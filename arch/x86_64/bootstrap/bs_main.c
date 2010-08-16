@@ -16,33 +16,22 @@ Copyright (C) 2010  Hadrien Grasland
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
+#include <asm_routines.h>
 #include <bs_kernel_information.h>
 #include <die.h>
-#include <enable_longmode.h>
-#include <gdt_generation.h>
-#include <gen_kernel_info.h>
+#include <sgt_generation.h>
 #include <stdint.h>
 #include <kernel_loader.h>
+#include <kinfo_handling.h>
 #include <multiboot.h>
 #include <paging.h>
 #include <txt_videomem.h>
 
-
-const char* MULTIBOOT_MISSING = "The operating system was apparently not loaded by GRUB.\n\
-GRUB brings mandatory information to it. Hence I'm afraid operation must stop.";
-const char* NO_MEMORYMAP = "A mandatory part of the system, the memory map, could not be found.\n\
-This may come from a GRUB malfunction.\nIn doubt, please contact us and tell us about this issue.";
-const char* NO_LONGMODE = "Sorry, but we require 64-bit support, which your computer does not seem to provide.";
-
 int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) { 
-  kernel_information* kinfo;
-  kernel_memory_map* kernel_location;
+  KernelInformation* kinfo;
+  KernelMemoryMap* kernel_location;
   Elf64_Ehdr *main_header;
   uint32_t cr3_value;
-  int return_value;
-  
-  //Set up a GDT which is more secure than GRUB's one
-  replace_gdt();
   
   //Video memory initialization (for kernel silencing purposes)
   init_videomem();
@@ -54,30 +43,32 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   }
   
   //Some silly text
+  movecur_abs(26, 11);
   set_attr(TXT_WHITE);
-  print_str("Welcome to the OS-periment's kernel v0.0.4 ");
+  print_str("Greetings, OS-perimenter !");
+  movecur_abs(32, 12);
   set_attr(TXT_LIGHTPURPLE);
-  print_str("\"Who is this superman ?\"");
+  print_str("Please wait...\n\n");
   set_attr(TXT_LIGHTGRAY);
-  print_str("\n\n");
-  
-  //Generate kernel information
-  kinfo = generate_kernel_info(mbd);
-  if(!kinfo->kmmap) die(NO_MEMORYMAP);
-  
+
+  //Generate kernel information and check CPU features (we need long mode and NX to be available)
+  kinfo = kinfo_gen(mbd);
+
+  //Set up segmentation structures which are more secure than GRUB's ones
+  replace_sgt(kinfo);
+
+  //Generate a page table
+  cr3_value = generate_paging(kinfo);
+
+  //Switch to the 32-bit subset of longmode
+  enable_longmode(cr3_value);
+
   //Locate the kernel in memory
   kernel_location = locate_kernel(kinfo);
   //Get kernel headers
   main_header = read_kernel_headers(kernel_location);
-  //Load the kernel in memory and add its "segments" to the memory map
-  load_kernel(kinfo, kernel_location, main_header);
-  
-  //Generate a page table
-  cr3_value = generate_paging(kinfo);
-  
-  //Switch to the 32-bit subset of longmode if possible, otherwise just die.
-  return_value = enable_compatibility(cr3_value);
-  if(return_value==-1) die(NO_LONGMODE);
+  //Load the kernel's ELF binary in memory
+  load_kernel(kinfo, kernel_location, main_header, cr3_value);
   
   //Switch to long mode, run the kernel
   run_kernel(main_header->e_entry, kinfo);
