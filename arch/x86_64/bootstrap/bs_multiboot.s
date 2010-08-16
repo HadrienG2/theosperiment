@@ -18,18 +18,22 @@
   along with this program; if not, write to the Free Software
   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA. */
 
-  /* Our stack area (16kB). */
-  .data
-  .lcomm stack, 0x4000
+  /* Our stack area. The first and the last page of it should be flagged as non-present */
+  .bss
+  .globl begin_stack
+  .globl end_stack  
+begin_stack:
+  .space 0x100000 /* Initial stack size is 1MB */
+end_stack:
   
   .text
   .globl  bootstrap
 bootstrap:
-  jmp     multiboot_entry
-  /* Align 32 bits boundary. */
-  .align  4
+  jmp multiboot_entry
+
   /* Multiboot header. */
 multiboot_header:
+  .align 4
   /* magic */
   .long   0x1BADB002
   /* flags */
@@ -51,23 +55,24 @@ multiboot_header:
   .long 0x00000019
   /* Color depth of the screen. 0 in text mode */
   .long 0x00000000
-
+  
 multiboot_entry:
-  /* Initialize the stack pointer. */
-  movl    $(stack + 0x10000), %esp
+  /* Initialize the stack pointer, while leaving one spare page. */
+  movl $end_stack, %esp
+  sub  $0x1000, %esp
 
   /* Reset EFLAGS. */
-  pushl   $0
+  pushl $0
   popf
 
   /* Push the pointer to the Multiboot information structure. */
-  pushl   %eax
+  pushl %eax
   /* Push the magic value. */
-  pushl   %ebx
+  pushl %ebx
 
   /* Now enter the C main function... */
-  call    bootstrap_longmode
+  call  bootstrap_longmode
 
 loop:
-  xchg %bx, %bx
-  jmp     loop
+  xchg  %bx, %bx
+  jmp   loop

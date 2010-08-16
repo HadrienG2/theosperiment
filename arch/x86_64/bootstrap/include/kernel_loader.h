@@ -23,10 +23,10 @@
 #include <bs_kernel_information.h>
 
 //This function reads program headers and loads all loadable program segments in memory
-void load_kernel(kernel_information* kinfo, kernel_memory_map* kernel, Elf64_Ehdr* main_header);
+void load_kernel(KernelInformation* kinfo, KernelMemoryMap* kernel, Elf64_Ehdr* main_header, uint32_t cr3_value);
 //Locate the kernel in the memory map
-kernel_memory_map* locate_kernel(kernel_information* kinfo);
+KernelMemoryMap* locate_kernel(KernelInformation* kinfo);
 //This function returns the ELF64 headers of the kernel after performing some checks on them
-Elf64_Ehdr* read_kernel_headers(kernel_memory_map* kernel);
+Elf64_Ehdr* read_kernel_headers(KernelMemoryMap* kernel);
 
 #endif

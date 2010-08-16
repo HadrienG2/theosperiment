@@ -1,4 +1,4 @@
- /* <Some C header>
+ /* Process identifier definition, along with support classes
 
       Copyright (C) 2010  Hadrien Grasland
 
@@ -16,7 +16,29 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef _<identifier>_H_
-#define _<identifier>_H_
+#ifndef _PID_H_
+#define _PID_H_
+
+#include <address.h>
+
+typedef unsigned int PID;
+const PID PID_NOBODY = 0;
+const PID PID_KERNEL = 1;
+
+class PIDs {
+  private:
+    PID current_pid;
+    PID* next_pid;
+  public:
+    PIDs() : current_pid(PID_NOBODY),
+             next_pid(NULL) {}
+    PIDs(const PID& first) : current_pid(first),
+                             next_pid(NULL) {}
+    int add_pid(PID new_pid); //Returns 0 if successful, 1 if it already exists
+                              //a negative error code in case of allocation failure
+    void clear_pids();
+    void del_pid(PID old_pid);
+    bool has_pid(PID the_pid);
+} __attribute__((packed));
 
 #endif

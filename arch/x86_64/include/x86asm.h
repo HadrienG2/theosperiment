@@ -26,22 +26,32 @@
  * Some Intel ASM routines transcribed into C
  */
 
-/* Write a byte to an I/O port */
+// CPUID instruction
+#define cpuid(code, eax, ebx, ecx, edx) \
+  __asm__ volatile ("mov %4, %%eax; \
+                     cpuid; \
+                     movl %%eax, %0; \
+                     movl %%ebx, %1;\
+                     movl %%ecx, %2;\
+                     movl %%edx, %3"\
+                    :"=m"(eax), "=m"(ebx), "=m"(ecx), "=m"(edx)\
+                    :"r"(code)\
+                    :"%eax", "%ebx", "%ecx", "%edx")
+ 
+// Write a byte to an I/O port
 #define outb(value, port)                                       \
   __asm__ volatile (                                            \
         "outb %b0,%w1"                                          \
-        ::"a" (value),"Nd" (port)                               \
-        )                                                       \
+        ::"r" (value),"Nd" (port))
 
-/* Read a byte from an I/O port */
+// Read a byte from an I/O port
 #define inb(port)                                               \
 ({                                                              \
   unsigned char _v;                                             \
   __asm__ volatile (                                            \
         "inb %w1,%0"                                            \
-        :"=a" (_v)                                              \
-        :"Nd" (port)                                            \
-        );                                                      \
+        :"=r" (_v)                                              \
+        :"Nd" (port));                                          \
   _v;                                                           \
 })
 

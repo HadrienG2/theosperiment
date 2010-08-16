@@ -16,20 +16,21 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
+#include <align.h>
 #include <bs_string.h>
 #include <die.h>
-#include <gen_kernel_info.h>
 #include <kernel_loader.h>
+#include <kinfo_handling.h>
+#include <paging.h>
 
 //Path to the kernel
 const char* KERNEL_NAME="/system/kernel.bin";
-//Error messages
-const char* KERNEL_NOT_FOUND="Sorry, vital file /system/kernel.bin could not be found.";
-const char* INVALID_KERNEL="Sorry, vital file /system/kernel.bin is corrupted and can't be safely used.";
 
-void load_kernel(kernel_information* kinfo, kernel_memory_map* kernel, Elf64_Ehdr* main_header) {
-  int i, loadable_count = 0;
-  kernel_memory_map* kmmap = (kernel_memory_map*) (uint32_t) kinfo->kmmap;
+void load_kernel(KernelInformation* kinfo, KernelMemoryMap* kernel, Elf64_Ehdr* main_header, uint32_t cr3_value) {
+  unsigned int i, size;
+  uint64_t load_addr, current_offset, flags;
+  void *source, *dest;
+  char* mmap_name;
   //The program header table
   Elf64_Phdr* phdr_table = (Elf64_Phdr*) (uint32_t) (kernel->location + main_header->e_phoff);
   
@@ -45,38 +46,52 @@ void load_kernel(kernel_information* kinfo, kernel_memory_map* kernel, Elf64_Ehd
       default:
         continue;
     }
-    if(phdr_table[i].p_filesz == 0) continue; //Loading an empty segment is pointless.
+    if(phdr_table[i].p_memsz == 0) continue; //Loading an empty segment is pointless.
     
-    //We have encountered a loadable segment. Let's load it...
-    void* source = (void*) (uint32_t) (kernel->location + phdr_table[i].p_offset);
-    void* dest = (void*) (uint32_t) (phdr_table[i].p_vaddr);
-    unsigned int size = phdr_table[i].p_filesz;
+    //We have encountered a loadable segment. Let's allocate enough space to load it. The virtual
+    //address will later be mapped there using some paging tricks later
+    switch(phdr_table[i].p_flags) {
+      case PF_R:
+        mmap_name = "Kernel R-- segment";
+        flags = PBIT_NOEXECUTE;
+        break;
+      case PF_R+PF_W:
+        mmap_name =  "Kernel RW- segment";
+        flags = PBIT_NOEXECUTE + PBIT_WRITABLE;
+        break;
+      case PF_R+PF_X:
+        mmap_name =  "Kernel R-X segment";
+        flags = 0;
+        break;
+      default:
+        mmap_name = "";
+        flags = 0;
+        die(INVALID_KERNEL);
+    }
+    load_addr = kmmap_alloc_pgalign(kinfo, phdr_table[i].p_memsz, NATURE_KNL, mmap_name);
+    
+    //Then we can load the part located in the ELF file
+    source = (void*) (uint32_t) (kernel->location + phdr_table[i].p_offset);
+    dest = (void*) (uint32_t) (load_addr);
+    size = phdr_table[i].p_filesz;
     memcpy(dest, source, size);
-    //...and add it to the memory map
-    kmmap[kinfo->kmmap_size+loadable_count].location = phdr_table[i].p_vaddr;
-    kmmap[kinfo->kmmap_size+loadable_count].size =
-      ((uint32_t) (phdr_table[i].p_filesz) / (uint32_t) (phdr_table[i].p_align) + 1) * phdr_table[i].p_align;
-    kmmap[kinfo->kmmap_size+loadable_count].nature = 3;
-    if(phdr_table[i].p_flags == PF_R) {
-      kmmap[kinfo->kmmap_size+loadable_count].name = (uint32_t) "Kernel R-- segment";
-    } else if(phdr_table[i].p_flags == (PF_R + PF_W)) {
-      kmmap[kinfo->kmmap_size+loadable_count].name = (uint32_t) "Kernel RW- segment";
-    } else if(phdr_table[i].p_flags == (PF_R + PF_X)) {
-      kmmap[kinfo->kmmap_size+loadable_count].name = (uint32_t) "Kernel R-X segment";
-    } else die(INVALID_KERNEL);
-    if(kinfo->kmmap_size+loadable_count > MAX_KMMAP_SIZE) die(MMAP_TOO_SMALL);
-    ++loadable_count;
+    //And then zero out the part which is *not* in the file (That's probably some kind of .bss)
+    dest = (void*) (uint32_t) (load_addr + phdr_table[i].p_filesz);
+    size = align_up((uint32_t) phdr_table[i].p_memsz, (uint32_t) phdr_table[i].p_align);
+    size -= phdr_table[i].p_filesz;
+    memset(dest, 0, size);
+    
+    //Now setup paging so that p_vaddr *does* point this address
+    for(current_offset=0; current_offset<phdr_table[i].p_memsz; current_offset+=PG_SIZE) {
+      setup_pagetranslation(kinfo, cr3_value, phdr_table[i].p_vaddr+current_offset,
+        load_addr+current_offset, flags);
+    }
   }
-  
-  /* Update, sort, and merge the memory map */
-  kinfo->kmmap_size+=loadable_count;
-  sort_memory_map(kinfo);
-  merge_memory_map(kinfo);
 }
 
-kernel_memory_map* locate_kernel(kernel_information* kinfo) {
+KernelMemoryMap* locate_kernel(KernelInformation* kinfo) {
   unsigned int i;
-  kernel_memory_map* kmmap = (kernel_memory_map*) (uint32_t) kinfo->kmmap;
+  KernelMemoryMap* kmmap = (KernelMemoryMap*) (uint32_t) kinfo->kmmap;
   for(i=0; i<kinfo->kmmap_size; ++i) {
     if(!strcmp((char*) (uint32_t) kmmap[i].name, KERNEL_NAME)) {
       return &(kmmap[i]);
@@ -87,7 +102,7 @@ kernel_memory_map* locate_kernel(kernel_information* kinfo) {
   return 0; //This is totally useless, but GCC will issue a warning if it's not present
 }
 
-Elf64_Ehdr* read_kernel_headers(kernel_memory_map* kernel) {
+Elf64_Ehdr* read_kernel_headers(KernelMemoryMap* kernel) {
   Elf64_Ehdr *header = (Elf64_Ehdr*) ((uint32_t) kernel->location);
   
   /* e_ident fields checks : Kernel must

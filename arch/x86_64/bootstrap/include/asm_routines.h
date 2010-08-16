@@ -1,4 +1,4 @@
- /* A way to make the kernel "die" when there's nothing else to do
+/*  Access to various assembly routines
 
       Copyright (C) 2010  Hadrien Grasland
 
@@ -16,18 +16,17 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef _DIE_H_
-#define _DIE_H_
+#ifndef _ASM_ROUTINES_H_
+#define _ASM_ROUTINES_H_
 
-//Error messages displayed when dying
-extern const char* INVALID_KERNEL; //Kernel file is corrupt
-extern const char* KERNEL_NOT_FOUND;
-extern const char* MMAP_TOO_SMALL;
-extern const char* MULTIBOOT_MISSING;
-extern const char* NO_MEMORYMAP;
-extern const char* NO_LONGMODE;
+#include <bs_kernel_information.h>
+#include <stdint.h>
 
-/* Display a purple screen of death with the provided invoked cause */
-void die(const char* issue);
+/* Check for CPUID availability and returns a boolean value */
+int cpuid_check();
+/* Enables long mode (more precisely the 32-bit subset of it, called compatibility mode) */
+int enable_longmode(uint32_t cr3_value);
+/* Run the kernel */
+int run_kernel(uint32_t kernel_entry, KernelInformation* kinfo);
 
 #endif

@@ -1,4 +1,4 @@
- /* Functions used to replace GRUB's GDT
+ /* Functions used to setup segmentation properly
 
       Copyright (C) 2010  Hadrien Grasland
 
@@ -16,8 +16,8 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef _GDT_GENERATION_H_
-#define _GDT_GENERATION_H_
+#ifndef _SGT_GENERATION_H_
+#define _SGT_GENERATION_H_
 
 #include <bs_kernel_information.h>
 #include <stdint.h>
@@ -40,19 +40,33 @@
 #define SGT32_DBIT_GRANULARITY    0x0080000000000000 //Bit 55. Specifies if limit is in bytes or in pages. Must be 1 for identity mapping
 #define SGT32_BASE_CHUNK2_SIZE    8
 
+#define SGT64_IS_A_TSS            0x0000090000000000 //Defines the segment as an unused 64-bit TSS
 #define SGT64_DBIT_CONFORMING     0x0000040000000000 //Bit 42. For code segments. A lower-privilege task accessing this segment remains at its PL
 #define SGT64_DBIT_CODEDATA       0x0000080000000000 //Bit 43. 1 for code, 0 for data
 #define SGT64_DBIT_SBIT           0x0000100000000000 //Bit 44. 1 for code/data, 0 for TSS
 #define SGT64_DPL_USERMODE        0x0000600000000000 //Segment is accessible from user mode
 #define SGT64_DBIT_PRESENT        0x0000800000000000 //Bit 47. The segment is present in memory
 #define SGT64_DBIT_LONG		        0x0020000000000000 //Bit 53. Defines the segment as a 64-bit segment
-#define SGT64_DBIT_GRANULARITY    0x0080000000000000 //Bit 55. Specifies if limit is in bytes or in pages. Must be 1 for identity mapping
 
-typedef uint64_t segment32_descriptor;
-typedef uint64_t segment64_descriptor;
+#define TSS64_SIZE   0x68   //Size of a 64-bit Task State Segment in bytes
+#define IOMAP_BASE   TSS64_SIZE //Position of the IOPB relative to the beginning of the TSS
+#define IOPB64_SIZE  0x2000 //Maximum size of an IO Permission Bitmap in long mode (bytes)
 
-//Replace GRUB's GDT with a nice one with identity mapping (no TSS at the moment, this GDT is to
-//be quickly replaced)
-void replace_gdt();
+typedef uint64_t codedata_descriptor;
+typedef uint64_t system_descriptor[2];
+
+extern const char* GDT_NAME;
+
+//Replace GRUB's GDT with a nice one. Load a null LDT.
+//Content of final GDT :
+//  * Null descriptor
+//  * 64-bit kernel code segment
+//  * Kernel data segment
+//  * 32-bit kernel code segment (used by the present code)
+//  * 32-bit user code segment (not used, present for SYSCALL compatibility reasons)
+//  * User data segment
+//  * 64-bit user code segment
+//  * One TSS per CPU core
+void replace_sgt(KernelInformation* kinfo);
 
 #endif

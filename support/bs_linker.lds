@@ -1,10 +1,11 @@
 ENTRY(bootstrap)
 
 SECTIONS {
-  . = 0x00100000;
+  . = 0x00100000; /* Bootstrap kernel loaded at 1MB */
   sbs_kernel = .;
 
   .text : {
+    bs_multiboot.o(.text) /* Have the multiboot header as early as possible */
     *(.text)
   }
 
@@ -16,10 +17,12 @@ SECTIONS {
     *(.data)
   }
 
-  .bss : {
+  .bss ALIGN (0x1000) : {
+    bs_multiboot.o(.bss) /* The easiest way to get a properly aligned stack */
     *(COMMON)
     *(.bss)
   }
 
-  ebs_kernel = ALIGN(0x1000);
+  . =  ALIGN(0x1000);
+  ebs_kernel = .;
 }

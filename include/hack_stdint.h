@@ -1,5 +1,5 @@
-/*A workaround for GCC 4.4 still missing stdint.h on GNU/Linux.
-
+/*A dirty workaround for G++ 4.5 missing stdint.h
+  WARNING : THIS ONLY WORKS BECAUSE x86_64 G++ USES LP64, ANOTHER COMPILER MIGHT FAIL !
   THIS SHOULD NOT, UNDER ANY CIRCUMSTANCES, BEING USED VOLUNTARILY AS
   AN STDINT.H REPLACEMENT. INCOMPATILITIES *WILL* OCCUR. YOU ARE WARNED.
    
@@ -22,13 +22,17 @@
 #ifndef _HACK_STDINT_H_
 #define _HACK_STDINT_H_
 
-typedef signed char int8_t;
-typedef unsigned char uint8_t;
-typedef signed short int16_t;
-typedef unsigned short uint16_t;
-typedef signed long int32_t;
-typedef unsigned long uint32_t;
-typedef signed long long int64_t;
-typedef unsigned long long uint64_t;
+#ifndef __cplusplus
+  #include <stdint.h>
+#else
+  typedef signed char int8_t;
+  typedef unsigned char uint8_t;
+  typedef signed short int16_t;
+  typedef unsigned short uint16_t;
+  typedef signed int int32_t;
+  typedef unsigned int uint32_t;
+  typedef signed long long int64_t;
+  typedef unsigned long long uint64_t;
+#endif
 
 #endif

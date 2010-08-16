@@ -53,7 +53,7 @@ void* memset(void* ptr, int value, unsigned int num) {
   char* dest = (char*) ptr;
   char val;
   
-  if(value>255) return 0;
+  if((value>255) || (value<0)) return 0;
   else val = (char) value;
   
   for(i=0; i<num; ++i) {

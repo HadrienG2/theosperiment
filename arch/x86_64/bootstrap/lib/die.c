@@ -19,6 +19,18 @@
 #include "die.h"
 #include "txt_videomem.h"
 
+const char* INVALID_KERNEL="Sorry, vital file /system/kernel.bin is corrupt and can't be safely used.";
+const char* KERNEL_NOT_FOUND="Sorry, vital file /system/kernel.bin could not be found.";
+const char* MMAP_TOO_SMALL = "A core element of the system (memory map) is too small.\n\
+This is a design mistake from our part.\nPlease tell us about this problem, so that we may fix it.";
+const char* MULTIBOOT_MISSING = "The operating system was apparently not loaded by GRUB.\n\
+GRUB brings vital information to it. Hence I'm afraid operation must stop.";
+const char* NO_MEMORYMAP = "Generation of the memory map failed.\n\
+This may come from a GRUB malfunction or it may be an error on our side.\n\
+In doubt, please contact us and tell us about this problem.";
+const char* NO_LONGMODE = "Sorry, but we require a 64-bit processor with DEP/NX support.\n\
+Your computer does not meet those requirements.";
+
 void die(const char* issue) {
   set_attr(TXT_WHITE | BKG_PURPLE);
   clear_screen();

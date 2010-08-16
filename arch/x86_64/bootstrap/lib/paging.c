@@ -1,4 +1,4 @@
-/*  Everything needed to setup 4KB-PAE-32b paging with identity mapping
+/*  Everything needed to setup 4KB-PAE-64b paging with identity mapping
 
       Copyright (C) 2010  Hadrien Grasland
 
@@ -16,18 +16,24 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
+#include <align.h>
 #include <bs_string.h>
 #include <die.h>
-#include <gen_kernel_info.h>
+#include <kinfo_handling.h>
 #include <paging.h>
 
-int find_map_region_privileges(kernel_memory_map* map_region) {
-  //Free and reserved segments are considered as RW
-  if(map_region->nature <= 1) return 2;
+const char* PAGE_TABLE_NAME = "Kernel page tables";
+const char* PAGE_DIR_NAME = "Kernel page directories";
+const char* PDPT_NAME = "Kernel page directory pointers";
+const char* PML4T_NAME = "Kernel PML4T";
+
+int find_map_region_privileges(KernelMemoryMap* map_region) {
+  //Free and reserved segments are considered as RW-
+  if(map_region->nature <= NATURE_RES) return 2;
   //Bootstrap segments are considered as R-X
-  if(map_region->nature == 2) return 0;
+  if(map_region->nature == NATURE_BSK) return 0;
   //Kernel elements are set up according to their specified permission
-  if(map_region->nature == 3) {
+  if(map_region->nature == NATURE_KNL) {
     if(strcmp((char*) (uint32_t) map_region->name, "Kernel RW- segment")==0) return 2;
     if(strcmp((char*) (uint32_t) map_region->name, "Kernel R-X segment")==0) return 0;
     //It's either a R kernel segment or a module
@@ -37,97 +43,69 @@ int find_map_region_privileges(kernel_memory_map* map_region) {
   return -1;
 }
 
-uint32_t generate_paging(kernel_information* kinfo) {
-  kernel_memory_map* kmmap = (kernel_memory_map*) (uint32_t) kinfo->kmmap;
-  unsigned int kmmap_size = kinfo->kmmap_size;
-  unsigned int pt_location, pd_location, pdpt_location, pml4t_location;
-  unsigned int pt_length, pd_length, pdpt_length, pml4t_length;
+uint32_t generate_paging(KernelInformation* kinfo) {
+  uint64_t pt_location, pd_location, pdpt_location, pml4t_location;
+  uint64_t memory_amount, pt_length, pd_length, pdpt_length, pml4t_length;
   uint32_t cr3_value;
 
   /* We'll do the following :
   
-     Step 1 : Locate the place where the page table will be stored (after the RW- segment of the kernel)
+     Step 1 : Find out how large the paging structures will be and reserve space for them
      Step 2 : Fill in a page table (aligning it on a 2^9 entry boundary with empty entries).
      Step 3 : Make page directories from the page table
      Step 4 : Make page directory pointers table from the page directory
      Step 5 : Make PML4
      Step 6 : Mark used memory as such on the memory map, sort and merge.
      Step 7 : Generate and return CR3 value. */
+     
+  memory_amount = kmmap_mem_amount(kinfo);
+  //Allocate page table space
+  pt_length = align_up((memory_amount/PHYADDR_ALIGN)*PENTRY_SIZE, PT_SIZE*PENTRY_SIZE);
+  pt_location = kmmap_alloc_pgalign(kinfo, pt_length, NATURE_KNL, PAGE_TABLE_NAME);
+  //Allocate page directory space
+  pd_length = align_up(pt_length/PT_SIZE, PD_SIZE*PENTRY_SIZE);
+  pd_location = kmmap_alloc_pgalign(kinfo, pd_length, NATURE_KNL, PAGE_DIR_NAME);
+  //Allocate PDPT space
+  pdpt_length = align_up(pd_length/PD_SIZE, PDPT_SIZE*PENTRY_SIZE);
+  pdpt_location = kmmap_alloc_pgalign(kinfo, pdpt_length, NATURE_KNL, PDPT_NAME);
+  //Allocate PML4T space
+  pml4t_length = PML4T_SIZE*PENTRY_SIZE;
+  pml4t_location = kmmap_alloc_pgalign(kinfo, pml4t_length, NATURE_KNL, PML4T_NAME);
   
-  unsigned int first_blank = locate_first_blank(kmmap, kmmap_size);
-  pt_location = kmmap[first_blank].location;
+  make_identity_page_table(pt_location, kinfo);
+  protect_stack(pt_location);
+  
+  make_identity_page_directory(pd_location, pt_location, pt_length);
 
-  pt_length = make_page_table(pt_location, kinfo);
+  make_identity_pdpt(pdpt_location, pd_location, pd_length);
   
-  pd_length = make_page_directory(pt_location, pt_length);
-  pd_location = pt_location+pt_length;
-  
-  pdpt_length = make_pdpt(pd_location, pd_length);
-  pdpt_location = pd_location+pd_length;
-  
-  pml4t_length = make_pml4t(pdpt_location, pdpt_length);
-  pml4t_location = pdpt_location+pdpt_length;
-
-  if(kmmap_size+3 >= MAX_KMMAP_SIZE) die(MMAP_TOO_SMALL);
-  kmmap[kmmap_size].location = pt_location;
-  kmmap[kmmap_size].size = pt_length;
-  kmmap[kmmap_size].nature = 3;
-  kmmap[kmmap_size].name = (uint32_t) "Kernel page tables";
-  kmmap[kmmap_size+1].location = pd_location;
-  kmmap[kmmap_size+1].size = pd_length;
-  kmmap[kmmap_size+1].nature = 3;
-  kmmap[kmmap_size+1].name = (uint32_t) "Kernel page directories";
-  kmmap[kmmap_size+2].location = pdpt_location;
-  kmmap[kmmap_size+2].size = pdpt_length;
-  kmmap[kmmap_size+2].nature = 3;
-  kmmap[kmmap_size+2].name = (uint32_t) "Kernel page directory pointers";
-  kmmap[kmmap_size+3].location = pml4t_location;
-  kmmap[kmmap_size+3].size = pml4t_length;
-  kmmap[kmmap_size+3].nature = 3;
-  kmmap[kmmap_size+3].name = (uint32_t) "Kernel PML4T";
-  kinfo->kmmap_size+=4;
-  sort_memory_map(kinfo);
-  merge_memory_map(kinfo);
+  make_identity_pml4t(pml4t_location, pdpt_location, pdpt_length);
   
   cr3_value = pml4t_location;
   return cr3_value;
 }
 
-unsigned int locate_first_blank(kernel_memory_map* kmmap, unsigned int kmmap_size) {
-  unsigned int first_blank;
-  
-  for(first_blank=0; first_blank<kmmap_size; ++first_blank) {
-    if(strcmp((char*) (uint32_t) kmmap[first_blank].name, "Kernel RW- segment")==0) return first_blank+1;
-  }
-  return 0;
-}
-
-unsigned int make_page_directory(unsigned int pt_location, unsigned int pt_length) {
-  unsigned int pd_location = pt_location+pt_length;
-  pde* page_directory = (pde*) pd_location;
+unsigned int make_identity_page_directory(unsigned int location, unsigned int pt_location, unsigned int pt_length) {
+  pde* page_directory = (pde*) location;
   pde pde_entry_buffer = PBIT_PRESENT+PBIT_WRITABLE+pt_location;
   uint64_t current_directory;
   
-  for(current_directory = 0; current_directory<pt_length/(ENTRY_SIZE*PT_SIZE);
-    ++current_directory, pde_entry_buffer += PT_SIZE*ENTRY_SIZE)
+  for(current_directory = 0; current_directory<pt_length/(PENTRY_SIZE*PT_SIZE);
+    ++current_directory, pde_entry_buffer += PT_SIZE*PENTRY_SIZE)
   {
     page_directory[current_directory] = pde_entry_buffer;
   }
   
-  for(; current_directory%(PG_ALIGN/ENTRY_SIZE)!=0; ++current_directory) page_directory[current_directory] = 0;
+  for(; current_directory%PD_SIZE!=0; ++current_directory) page_directory[current_directory] = 0;
   
-  return ENTRY_SIZE*current_directory;
+  return PENTRY_SIZE*current_directory;
 }
 
-unsigned int make_page_table(unsigned int location, kernel_information* kinfo) {
+unsigned int make_identity_page_table(unsigned int location, KernelInformation* kinfo) {
   unsigned int current_mmap_index = 0;
-  kernel_memory_map* kmmap = (kernel_memory_map*) (uint32_t) kinfo->kmmap;
+  KernelMemoryMap* kmmap = (KernelMemoryMap*) (uint32_t) kinfo->kmmap;
   uint64_t current_page, current_region_end = kmmap[0].location + kmmap[0].size;
-  
-  //x86 reserves a small amount of memory around the end of the adressable space. I don't use it, and it has
-  //no use to map all of the 32-bit adressable space because of it.
-  uint64_t memory_end = kmmap[kinfo->kmmap_size-1].location+kmmap[kinfo->kmmap_size-1].size;
-  if(memory_end==0x100000000) memory_end = kmmap[kinfo->kmmap_size-2].location+kmmap[kinfo->kmmap_size-2].size;
+  uint64_t memory_amount = kmmap_mem_amount(kinfo);
   
   pte pte_mask = PBIT_PRESENT+PBIT_NOEXECUTE+PBIT_WRITABLE; //"mask" being added to page table entries.
   pte pte_entry_buffer = pte_mask;
@@ -135,37 +113,37 @@ unsigned int make_page_table(unsigned int location, kernel_information* kinfo) {
   
   int mode = 0; // Refers to the currently examined memory region.
                 //    0 = In the middle of a normal mmap region
-                //    1 = Non-mapped region
+                //    1 = Non-mapped region (no memory)
                 //    2 = Region at the frontier between two memory map entries
   int privileges = 2; // 0 = R-X
-                              // 1 = R--
-                              // 2 = RW-
+                      // 1 = R--
+                      // 2 = RW-
   
   //Paging all known memory regions
-  for(current_page = 0; current_page*PG_ALIGN<memory_end; ++current_page, pte_entry_buffer += PG_ALIGN) {
+  for(current_page = 0; current_page*PG_SIZE<memory_amount; ++current_page, pte_entry_buffer += PG_SIZE) {
     //Writing page table entry in memory
     page_table[current_page] = pte_entry_buffer;
     
     
     // Checking if next page still is in the same memory map entry.
-    if((current_page+2)*PG_ALIGN > current_region_end) {
+    if((current_page+2)*PG_SIZE > current_region_end) {
       //No. Check what's happening then.
-      if((((current_page+2)*PG_ALIGN > kmmap[current_mmap_index+1].location) &&
-          ((current_page+1)*PG_ALIGN < kmmap[current_mmap_index].location+kmmap[current_mmap_index].size) &&
+      if((((current_page+2)*PG_SIZE > kmmap[current_mmap_index+1].location) &&
+          ((current_page+1)*PG_SIZE < kmmap[current_mmap_index].location+kmmap[current_mmap_index].size) &&
           (current_mmap_index<kinfo->kmmap_size-1))
-        || (((current_page+2)*PG_ALIGN > kmmap[current_mmap_index+2].location) &&
+        || (((current_page+2)*PG_SIZE > kmmap[current_mmap_index+2].location) &&
           (current_mmap_index<kinfo->kmmap_size-2)))
       {
         //Our page overlaps with two distinct memory map entries.
         //This means that we're in the region where GRUB puts its stuff and requires specific care
-          while((current_page+2)*PG_ALIGN >= kmmap[current_mmap_index].location + kmmap[current_mmap_index].size) {
+          while((current_page+2)*PG_SIZE >= kmmap[current_mmap_index].location + kmmap[current_mmap_index].size) {
             ++current_mmap_index;
           }
           --current_mmap_index;
           mode=2;
           current_region_end = kmmap[current_mmap_index].location + kmmap[current_mmap_index].size;
       } else {
-        if((current_page+2)*PG_ALIGN < kmmap[current_mmap_index+1].location) {
+        if((current_page+2)*PG_SIZE < kmmap[current_mmap_index+1].location) {
           //Memory region is not mapped
           mode = 1;
           current_region_end = kmmap[current_mmap_index+1].location;
@@ -179,68 +157,163 @@ unsigned int make_page_table(unsigned int location, kernel_information* kinfo) {
       }
       
       //Refreshing the page table entry mask
-      pte_mask = PBIT_PRESENT;
+      pte_mask = 0;
       switch(mode) {
         case 0:
           switch(privileges) {
-            case 0:
-              break;
-            case 1:
-              pte_mask += PBIT_NOEXECUTE;
-              break;
-            case 2:
-              pte_mask += PBIT_WRITABLE;
-              break;
+            case 2: pte_mask+= PBIT_WRITABLE;
+            case 1: pte_mask+= PBIT_NOEXECUTE;
+            case 0: pte_mask+= PBIT_PRESENT;
           }
           break;
         case 1:
-          pte_mask += PBIT_WRITABLE + PBIT_NOEXECUTE;
+          //Memory region is not present, hence page table entry is empty
           break;
         case 2:
           /* In overlapping cases, we encountered a grub segment or a module, because the rest is page aligned...
               Privilege is hence R-- */
-          pte_mask += PBIT_NOEXECUTE;
+          pte_mask = PBIT_PRESENT+PBIT_NOEXECUTE;
           break;
       }
       //Refreshing the page table entry buffer
       pte_entry_buffer = current_page;
-      pte_entry_buffer *= PG_ALIGN;
+      pte_entry_buffer *= PG_SIZE;
       pte_entry_buffer += pte_mask;
     }
   }
   
   //Padding page table with zeroes till it has proper alignment
-  for(; current_page%(PG_ALIGN/ENTRY_SIZE)!=0; ++current_page) page_table[current_page] = 0;
+  for(; current_page%PT_SIZE!=0; ++current_page) page_table[current_page] = 0;
   
-  return current_page*ENTRY_SIZE;
+  return current_page*PENTRY_SIZE;
 }
 
-unsigned int make_pdpt(unsigned int pd_location, unsigned int pd_length) {
-  unsigned int pdpt_location = pd_location+pd_length;
-  pdpe* pdpt = (pdpe*) pdpt_location;
+unsigned int make_identity_pdpt(unsigned int location, unsigned int pd_location, unsigned int pd_length) {
+  pdpe* pdpt = (pdpe*) location;
   pdpe pdpe_entry_buffer = PBIT_PRESENT+PBIT_WRITABLE+pd_location;
   uint64_t current_dp;
   
-  for(current_dp = 0; current_dp<pd_length/(ENTRY_SIZE*PD_SIZE); ++current_dp, pdpe_entry_buffer += PD_SIZE*ENTRY_SIZE) {
+  for(current_dp = 0; current_dp<pd_length/(PENTRY_SIZE*PD_SIZE); ++current_dp, pdpe_entry_buffer += PD_SIZE*PENTRY_SIZE) {
     pdpt[current_dp] = pdpe_entry_buffer;
   }
 
-  for(; current_dp%(PG_ALIGN/ENTRY_SIZE)!=0; ++current_dp) pdpt[current_dp] = 0;
+  for(; current_dp%PDPT_SIZE!=0; ++current_dp) pdpt[current_dp] = 0;
 
-  return ENTRY_SIZE*current_dp;
+  return PENTRY_SIZE*current_dp;
 }
 
-unsigned int make_pml4t(unsigned int pdpt_location, unsigned int pdpt_length) {
-  unsigned int pml4t_location = pdpt_location+pdpt_length;
-  pml4e* pml4t = (pml4e*) pml4t_location;
+unsigned int make_identity_pml4t(unsigned int location, unsigned int pdpt_location, unsigned int pdpt_length) {
+  pml4e* pml4t = (pml4e*) location;
   pml4e pml4e_entry_buffer = PBIT_PRESENT+PBIT_WRITABLE+pdpt_location;
   uint64_t current_ml4e;
   
-  for(current_ml4e = 0; current_ml4e<pdpt_length/(ENTRY_SIZE*PDPT_SIZE); ++current_ml4e, pml4e_entry_buffer += PDPT_SIZE*ENTRY_SIZE) {
+  for(current_ml4e = 0; current_ml4e<pdpt_length/(PENTRY_SIZE*PDPT_SIZE); ++current_ml4e, pml4e_entry_buffer += PDPT_SIZE*PENTRY_SIZE) {
     pml4t[current_ml4e] = pml4e_entry_buffer;
   }
   
-  for(; current_ml4e<(PG_ALIGN/ENTRY_SIZE); ++current_ml4e) pml4t[current_ml4e] = 0;
+  for(; current_ml4e<PML4T_SIZE; ++current_ml4e) pml4t[current_ml4e] = 0;
 
-  return ENTRY_SIZE*current_ml4e;
+  return PENTRY_SIZE*current_ml4e;
+}
+
+void protect_stack(uint32_t pt_location) {
+  pte* page_table = (pte*) pt_location;
+  extern char begin_stack;
+  extern char end_stack;
+  uint32_t start_pg = ((uint32_t) (&begin_stack))/PG_SIZE;
+  uint32_t end_pg = ((uint32_t) (&end_stack))/PG_SIZE - 1;
+  
+  if(page_table[start_pg]&PBIT_PRESENT) page_table[start_pg]-=PBIT_PRESENT;
+  if(page_table[end_pg]&PBIT_PRESENT) page_table[end_pg]-=PBIT_PRESENT;
+}
+
+void setup_pagetranslation(KernelInformation* kinfo, uint32_t cr3_value, uint64_t virt_addr, uint64_t phys_addr, uint64_t flags) {
+  pml4e* pml4t;
+  pdpe* pdpt;
+  pde* page_dir;
+  pte* page_table;
+  unsigned int i;
+  uint64_t pml4t_index, pdpt_index, pd_index, pt_index, virt_address = virt_addr;
+  uint64_t pdpt_location, pdpt_length, pd_location, pd_length, pt_location, pt_length;
+  
+  // What does this function do ?
+  //   1. Find related PML4T element
+  //   2. If PDPT does not exist, create it
+  //   3. Find related PDPT element
+  //   4. If PD does not exist, create it
+  //   5. Find related PD element
+  //   6. If PT does not exist, create it
+  //   7. Find related PT element
+  //   8. Change it to make it point to the physical address, and add flags.
+  //
+  // We do not need to re-set paging permissions for the PDPT, PD, and PT we create
+  // because they require RW- permission, which is the same permission as free memory
+  
+  pml4t = (pml4e*) (cr3_value & 0xfffff000);
+  pml4t_index = virt_address/PHYADDR_ALIGN; //Remove non-aligned part
+  pml4t_index /= PT_SIZE*PD_SIZE*PDPT_SIZE; //Remove PT, PD, and PDPT index parts
+  
+  if(!(pml4t[pml4t_index] & PBIT_PRESENT)) {
+    //PDPT does not exist. Create it
+    pdpt_length = PDPT_SIZE*PENTRY_SIZE;
+    pdpt_location = kmmap_alloc_pgalign(kinfo, pdpt_length, NATURE_KNL, PDPT_NAME);
+    
+    pdpt = (pdpe*) (uint32_t) pdpt_location;
+    for(i=0; i<PDPT_SIZE; ++i) pdpt[i]=0;
+    
+    //Put PDPT address in PML4T
+    pml4t[pml4t_index] = PBIT_PRESENT+PBIT_WRITABLE+pdpt_location;
+  }
+  
+  pdpt = (pdpe*) (uint32_t) (pml4t[pml4t_index] & 0xfffff000);
+  //Removing the PML4T part of the virtual address
+  pml4t_index *= PDPT_SIZE*PD_SIZE*PT_SIZE; //Add empty PDPT, PD, and PT parts
+  pml4t_index *= PHYADDR_ALIGN; //Add empty non-aligned part
+  virt_address -= pml4t_index;
+  //Getting the PDPT index part
+  pdpt_index = virt_address/PHYADDR_ALIGN; //Remove non-aligned part
+  pdpt_index /= PT_SIZE*PD_SIZE; //Remove PT and PD index part
+  
+  if(!(pdpt[pdpt_index] & PBIT_PRESENT)) {
+    //Page directory does not exist. Create it
+    pd_length = PD_SIZE*PENTRY_SIZE;
+    pd_location = kmmap_alloc_pgalign(kinfo, pd_length, NATURE_KNL, PAGE_DIR_NAME);
+    
+    page_dir = (pde*) (uint32_t) pd_location;
+    for(i=0; i<PD_SIZE; ++i) page_dir[i]=0;
+    
+    //Put PD address in PDPT
+    pdpt[pdpt_index] = PBIT_PRESENT+PBIT_WRITABLE+pd_location;
+  }
+  
+  page_dir = (pde*) (uint32_t) (pdpt[pdpt_index] & 0xfffff000);
+  //Removing the PDPT part of the virtual address
+  pdpt_index *= PD_SIZE*PT_SIZE; //Add empty PD and PT parts
+  pdpt_index *= PHYADDR_ALIGN; //Add empty non-aligned part
+  virt_address -= pdpt_index;
+  //Getting the PD index part
+  pd_index = virt_address/PHYADDR_ALIGN; //Remove non-aligned part
+  pd_index /= PT_SIZE; //Remove PT part
+  
+  if(!(page_dir[pd_index] & PBIT_PRESENT)) {
+    //Page table does not exist. Create it
+    pt_length = PT_SIZE*PENTRY_SIZE;
+    pt_location = kmmap_alloc_pgalign(kinfo, pt_length, NATURE_KNL, PAGE_TABLE_NAME);
+    
+    page_table = (pte*) (uint32_t) pt_location;
+    for(i=0; i<PT_SIZE; ++i) page_table[i]=0;
+    
+    //Put PT address in PD
+    page_dir[pd_index] = PBIT_PRESENT+PBIT_WRITABLE+pt_location;
+  }
+  
+  page_table = (pte*) (uint32_t) (page_dir[pd_index] & 0xfffff000);
+  //Removing the PD part of the virtual address
+  pd_index *= PT_SIZE; //Add empty PT part
+  pd_index *= PHYADDR_ALIGN; //Remove non-aligned part
+  virt_address -= pd_index;
+  //Getting the PT index part
+  pt_index = virt_address/PHYADDR_ALIGN;
+  
+  page_table[pt_index] = PBIT_PRESENT + flags + (phys_addr & 0xfffff000);
 }

@@ -1,0 +1,22 @@
+Use of ifdef/ifndef directives for anything other than header protection is the root of all
+ugly and unreadable C code in the universe. Therefore, to preserve code cleanness, anyone
+adding an ifdef in the code should precise here where, why, and when deleting it will be
+possible.
+
+***********************************************************************
+WHERE : arch/x86_64/bootstrap/lib/txt_videomem.c, scroll()
+WHY : To ensure that text is not scrolled during debugging, but is
+      scrolled properly on normal operation.
+WHEN : Can be disabled once debugging of the bootstrap kernel is
+       completed
+***********************************************************************
+WHERE : arch/x86_64/bootstrap/lib/kinfo_handling.c, kmmap_mem_amount()
+WHY : To speed up Bochs operation during debugging.
+WHEN : Can be disabled once debugging of the bootstrap kernel is
+       completed
+***********************************************************************
+WHERE : include/hack_stdint.h
+WHY : To ensure integer size consistency between 32-bit C code and
+      64-bit C++ code
+WHEN : Can be disabled if ISO C++ gets the stdint.h header. 
+***********************************************************************

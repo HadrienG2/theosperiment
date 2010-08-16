@@ -1,6 +1,6 @@
- /* Routines necessary in order to use some C++ features
+ /* Support classes for all code that manages chunks (contiguous or non-contiguous) of memory
 
-      Copyright (C) 2010  Hadrien Grasland
+    Copyright (C) 2010  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,13 +15,26 @@
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
+ 
+#include <memory_support.h>
 
-#ifndef _CPP_SUPPORT_H_
-#define _CPP_SUPPORT_H_
+MemMap* MemMap::find_freechunk() {
+  MemMap* current_item = this;
 
-//Stack smashing protection
-extern void * __stack_chk_guard;
-extern "C" void __stack_chk_guard_setup();
-extern "C" void __stack_chk_fail();
+  while(current_item) {
+    if(current_item->has_owner(PID_NOBODY) && current_item->allocatable) break;
+    current_item = current_item->next_item;
+  }
+  return current_item;
+}
 
-#endif
+MemMap* MemMap::find_thischunk(addr_t location) {
+  MemMap* current_item = this;
+  if(current_item->location > location) return NULL;
+  
+  while(current_item) {
+    if(current_item->location+current_item->size > location) break;
+    current_item = current_item->next_item;
+  }
+  return current_item;
+}

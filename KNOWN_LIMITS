@@ -1,0 +1,16 @@
+If order to keep the code simple and clean, some technical limitations had to be decided.
+When modifying the code, you must take account of them, and change them if they prove to be insuficient.
+This file is made in order to help you know what those are and where they are located.
+
+*** Stack size ***
+-> Initial stack is 1MB large.
+   (in arch/x86_64/bootstrap/bs_multiboot.s)
+*** Module size ***
+-> The kernel is loaded at virtual address 2 GB. This theoretically shouldn't be an issue.
+   (in support/kernel_linker.lds)
+*** Page size ***
+-> Currently, all pages are of the same size : 4KB
+   (in build_all.sh, arch/x86_64/bootstrap/bs_multiboot.s, support/*.lds and include/align.h)
+*** Kernel memory map ***
+-> In the x86_64 bootstrap kernel, memory map can't be more than 512 entries long.
+   (in arch/x86_64/bootstrap/include/bs_kernel_information.h)
