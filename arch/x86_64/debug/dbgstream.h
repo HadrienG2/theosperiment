@@ -81,7 +81,7 @@ class DebugAttributeChanger : DebugManipulator {
     uint8_t mask; //Allows one to specify which bits in the new attribute are effective
 };
 DebugAttributeChanger& attrset(uint8_t attribute);
-DebugAttributeChanger& blink(uint8_t blink_status);
+DebugAttributeChanger& blink(bool blink_status);
 DebugAttributeChanger& bkgcolor(uint8_t attribute);
 DebugAttributeChanger& txtcolor(uint8_t attribute);
 
@@ -132,8 +132,7 @@ class DebugZeroExtender : DebugManipulator {
   public:
     bool zero_extend;
 };
-DebugZeroExtender& zero_extending();
-DebugZeroExtender& no_zero_extending();
+DebugZeroExtender& zero_extending(bool zeroext_status);
 
 //*******************************************************
 //****************** MAIN DEBUG OUTPUT ******************
@@ -179,7 +178,7 @@ class DebugOutput {
     //Function displaying home-made types
     DebugOutput& operator<<(KernelInformation& input); //Displays only the memory map atm
     DebugOutput& operator<<(KernelMemoryMap& input);
-    DebugOutput& operator<<(MemMap& input);
+    DebugOutput& operator<<(PhyMemMap& input);
     //Manipulator functions
     DebugOutput& operator<<(DebugAttributeChanger& manipulator);
     DebugOutput& operator<<(DebugBreakpoint& manipulator);

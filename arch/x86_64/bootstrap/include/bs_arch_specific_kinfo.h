@@ -21,6 +21,7 @@
 
 #include <address.h>
 #include <stdint.h>
+#include <x86multiproc.h>
 
 //WARNING : ANY CHANGE MADE TO THIS FILE SHOULD BE MIRRORED TO ARCH_SPECIFIC_KINFO.H.
 //OTHERWISE, INCONSISTENT BEHAVIOR WILL OCCUR.
@@ -59,6 +60,7 @@ struct ArchSpecificCPUInfo { //On x86_64, this is basically the information retu
   uint8_t global_page_support;
   uint8_t hyperthreading_support;
   uint8_t fast_syscall_support;
+  uint64_t mp_fptr; //Very useful data for multiprocessing.
 } __attribute__ ((packed));
 
 struct StartupDriveInfo {

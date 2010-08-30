@@ -34,32 +34,34 @@
 //  -Allocation of multiple non-contiguous pages, called a chunk of memory and managed as a whole
 //
 //Later: -Sharing of physical memory pages/chunks.
+//       -Getting access to a specific page/chunk.
 class PhyMemManager {
   private:
-    MemMap* phy_mmap; //A map of the whole memory
-    MemMap* first_hole; //First free region in said map
-    MemMap* phy_highmmap; //A map of high memory (>0x100000)
-    MemMap* first_highhole; //First free region in said map
-    MemMap* free_mapitems; //A list of unused memory map items that can be put in a memory map
+    PhyMemMap* phy_mmap; //A map of the whole memory
+    PhyMemMap* free_lowmem; //A contiguous chunk representing free low memory
+    PhyMemMap* phy_highmmap; //A map of high memory (>0x100000)
+    PhyMemMap* free_highmem; //A contiguous chunk representing free high memory
+    PhyMemMap* free_mapitems; //A list of spare PhyMemMap objects that can be put in a memory map
     KernelMutex mmap_mutex;
     addr_t alloc_storage_space();
-    MemMap* chunk_allocator(MemMap* map_used, PID initial_owner, addr_t size);
-    MemMap* merge_with_next(MemMap* first_item);
-    addr_t page_allocator(MemMap* map_used, PID initial_owner);
+    PhyMemMap* chunk_allocator(PhyMemMap* map_used, PID initial_owner, addr_t size);
+    PhyMemMap* merge_with_next(PhyMemMap* first_item);
+    addr_t page_allocator(PhyMemMap* map_used, PID initial_owner);
   public:
     PhyMemManager(KernelInformation& kinfo);
-    //Routines for exclusive page/chunk allocation and suppression functions
-    MemMap* alloc_chunk(PID initial_owner, addr_t size);
+    //Exclusive page/chunk allocation and suppression functions
+    PhyMemMap* alloc_chunk(PID initial_owner, addr_t size);
     addr_t alloc_page(PID initial_owner);
     addr_t free(addr_t location);
     
     //x86_64-specific methods
-    MemMap* alloc_lowchunk(PID initial_owner, addr_t size); //Allocate a chunk of low memory
+    PhyMemMap* alloc_lowchunk(PID initial_owner, addr_t size); //Allocate a chunk of low memory
     addr_t alloc_lowpage(PID initial_owner); //Allocate a page of low memory
     
-    //Debug methods (to be deleted)
-    void print_lowmmap();
-    void print_highmmap();
+    //Internal methods. These should be protected or private, but cannot because of C++'s
+    //brain-deadness when it comes to circular header inclusion (header 1 includes
+    //header 2 which includes header 1). Don't use them.
+    PhyMemMap* get_phymmap() {return phy_mmap;}
 };
 
 #endif

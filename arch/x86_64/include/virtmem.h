@@ -1,4 +1,4 @@
- /* Virtual memory managing, ie managing contiguous chunks of virtual memory
+ /* Virtual memory management, ie managing contiguous chunks of virtual memory
     (allocation, permission management...)
 
       Copyright (C) 2010  Hadrien Grasland
@@ -20,6 +20,8 @@
 #ifndef _VIRTMEM_H_
 #define _VIRTMEM_H_
 
+#include <physmem.h>
+
 //This class takes care of
 //  -Knowing the amount of allocatable virtual memory
 //  -Mapping chunks of virtual memory which are in use by processes, and the place in
@@ -31,10 +33,12 @@
 //Later: -Sharing of physical memory pages/chunks.
 //       -Maybe swapping, in a very distant future.
 class VirMemManager {
+  private:
+    PhyMemManager* phymem;
   public:
-    VirMemManager(KernelInformation& kinfo);
+    VirMemManager(PhyMemManager& physmem, KernelInformation& kinfo);
     //Virtual page management function
-    VirMemMap* alloc_chunk(PID initial_owner, MemMap* phys_chunk, perm_flags flags);
+    addr_t alloc_chunk(PID initial_owner, PhyMemMap* phys_chunk, perm_flags flags);
     addr_t alloc_page(PID initial_owner, addr_t phys_page, perm_flags flags);
     addr_t set_pageflags(addr_t virt_page, perm_flags flags);
     addr_t free(addr_t virt_location);
@@ -42,6 +46,6 @@ class VirMemManager {
     //Debug methods (to be deleted)
     void print_lowmmap();
     void print_highmmap();
-}
+};
 
 #endif

@@ -20,7 +20,7 @@
 
 #Flags
 Fdebug=1 #Set to 0 in order to disable debugging (compilation speedup, but Bochs slowdown)
-Fno_bs=1 #Set to 0 in order to rebuild the bootstrap code (compilation slowdown)
+Fno_bs=0 #Set to 0 in order to rebuild the bootstrap code (compilation slowdown)
 
 #Cleanup
 echo "* Cleaning up..."
@@ -67,6 +67,7 @@ then
   $AS32 ../../arch/x86_64/bootstrap/lib/enable_longmode.s -o enable_longmode.o
   $AS32 ../../arch/x86_64/bootstrap/lib/run_kernel.s -o run_kernel.o
   $CC32 -c ../../arch/x86_64/bootstrap/lib/*.c $CFLAGS $INCLUDES
+  $CC32 -c ../../arch/x86_64/multiproc/*.c $CFLAGS $INCLUDES
   #Compiling debugging source files
   if [ $Fdebug -ne 0 ]
   then
