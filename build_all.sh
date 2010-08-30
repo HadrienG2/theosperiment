@@ -67,7 +67,6 @@ then
   $AS32 ../../arch/x86_64/bootstrap/lib/enable_longmode.s -o enable_longmode.o
   $AS32 ../../arch/x86_64/bootstrap/lib/run_kernel.s -o run_kernel.o
   $CC32 -c ../../arch/x86_64/bootstrap/lib/*.c $CFLAGS $INCLUDES
-  $CC32 -c ../../arch/x86_64/multiproc/*.c $CFLAGS $INCLUDES
   #Compiling debugging source files
   if [ $Fdebug -ne 0 ]
   then
