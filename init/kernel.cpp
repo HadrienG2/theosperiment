@@ -10,10 +10,18 @@ extern "C" int kmain(KernelInformation& kinfo) {
   dbgout << txtcolor(TXT_LIGHTGRAY) << endl;
   dbgout << "CPU name : " << kinfo.cpu_info.arch_info.processor_name << endl;
   dbgout << "We have " << kinfo.cpu_info.core_amount << " CPU core(s)" << endl;
-  dbgout << txtcolor(TXT_LIGHTBLUE) << "* Setting up physical memory management...";
+  dbgout << "* Setting up physical memory management...";
   PhyMemManager phymem(kinfo);
-  dbgout << txtcolor(TXT_LIGHTGREEN) << " DONE !" << endl;
+  dbgout << " DONE !" << endl << set_window(screen_win);
+  int index;
+  addr_t locations[0x5000];
+  dbgout << endl << "Allocating..." << endl;
+  for(index=0; index<0x5000; ++index) locations[index] = phymem.alloc_page(3);
+  dbgout << "Freeing..." << endl;
+  for(index=0; index<0x5000; ++index) phymem.free(locations[index]);
+  dbgout << "Allocating chunk...";
+  phymem.alloc_chunk(3, 0x5000000);
+  phymem.print_highmmap();
   
   return 0;
 }
-

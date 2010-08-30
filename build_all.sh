@@ -20,7 +20,7 @@
 
 #Flags
 Fdebug=1 #Set to 0 in order to disable debugging (compilation speedup, but Bochs slowdown)
-Fno_bs=0 #Set to 0 in order to rebuild the bootstrap code (compilation slowdown)
+Fno_bs=1 #Set to 0 in order to rebuild the bootstrap code (compilation slowdown)
 
 #Cleanup
 echo "* Cleaning up..."
@@ -52,8 +52,8 @@ then
   CXXFLAGS=$CXXFLAGS" -O3"
 else
   INCLUDES=$INCLUDES" -I../../arch/x86_64/bootstrap/debug/ -I../../arch/x86_64/debug/ -I../../debug/"
-  CFLAGS=$CFLAGS" -O0 -DDEBUG"
-  CXXFLAGS=$CXXFLAGS" -O0 -DDEBUG"
+  CFLAGS=$CFLAGS" -O3 -DDEBUG"
+  CXXFLAGS=$CXXFLAGS" -O3 -DDEBUG"
 fi
 
 #Bootstrap code compilation

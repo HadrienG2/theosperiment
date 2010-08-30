@@ -62,6 +62,9 @@ class PhyMemManager {
     //brain-deadness when it comes to circular header inclusion (header 1 includes
     //header 2 which includes header 1). Don't use them.
     PhyMemMap* get_phymmap() {return phy_mmap;}
+    void print_highmmap();
+    void print_lowmmap();
+    void print_mmap();
 };
 
 #endif
