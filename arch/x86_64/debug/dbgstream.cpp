@@ -45,7 +45,7 @@ DebugAttributeChanger& attrset(uint8_t attribute) {
   return attrchg_buff;
 }
 
-DebugAttributeChanger& blink(uint8_t blink_status) {
+DebugAttributeChanger& blink(bool blink_status) {
   if(blink_status) attrchg_buff.new_attr = TXT_BLINK;
   else attrchg_buff.new_attr = 0;
   attrchg_buff.mask = TXT_BLINK;
@@ -115,13 +115,8 @@ DebugWindower& set_window(DebugWindow window) {
   return windower_buff;
 }
 
-DebugZeroExtender& zero_extending() {
-  extender_buff.zero_extend = true;
-  return extender_buff;
-}
-
-DebugZeroExtender& no_zero_extending() {
-  extender_buff.zero_extend = false;
+DebugZeroExtender& zero_extending(bool zeroext_status) {
+  extender_buff.zero_extend = zeroext_status;
   return extender_buff;
 }
 
@@ -130,7 +125,7 @@ DebugOutput::DebugOutput(DebugWindow& using_window):
   buffer((char*) 0xb8000),
   col(0),
   row(0),
-  number_base(HEXADECIMAL),
+  number_base(DECIMAL),
   tab_size(8),
   window(topleftcorner_win),
   zero_extend(0)
@@ -522,7 +517,7 @@ DebugOutput& DebugOutput::operator<<(KernelInformation& input) {
 DebugOutput& DebugOutput::operator<<(KernelMemoryMap& input) {
   bool tmp_zeroext = zero_extend;
   
-  *this << zero_extending();
+  *this << zero_extending(true);
   *this << input.location << " | " << input.size;
   switch(input.nature) {
     case NATURE_FRE:
@@ -540,15 +535,15 @@ DebugOutput& DebugOutput::operator<<(KernelMemoryMap& input) {
   }
   *this << input.name;
   
-  if(!tmp_zeroext) *this << no_zero_extending();
+  if(!tmp_zeroext) *this << zero_extending(false);
   return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(MemMap& input) {
+DebugOutput& DebugOutput::operator<<(PhyMemMap& input) {
   bool tmp_zeroext = zero_extend;
-  MemMap* map = &input;
+  PhyMemMap* map = &input;
 
-  *this << zero_extending();  
+  *this << zero_extending(true);  
   *this << endl;
   *this << "Location           | Size               | Owner  | Misc" << endl;
   *this << "-------------------+--------------------+--------+-----------------------------";
@@ -565,9 +560,9 @@ DebugOutput& DebugOutput::operator<<(MemMap& input) {
     }
     if(map->allocatable) *this << "ALLOCA ";
     if(map->next_buddy) *this << "BUDDY-" << (uint64_t) map->next_buddy;
-    map = map->next_item;
+    map = map->next_mapitem;
   } while(map);
-  if(!tmp_zeroext) *this << no_zero_extending();
+  if(!tmp_zeroext) *this << zero_extending(false);
   return *this;
 }
 

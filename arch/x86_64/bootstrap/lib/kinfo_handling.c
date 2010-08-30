@@ -22,6 +22,7 @@
 #include <die.h>
 #include <kinfo_handling.h>
 #include <x86asm.h>
+#include <x86multiproc.h>
 
 //This variable is use as a buffer for the merge and sort memory map transformations
 static KernelMemoryMap kmmap_transform_buffer[MAX_KMMAP_SIZE];
@@ -378,10 +379,11 @@ KernelCPUInfo* generate_cpu_info(KernelInformation* kinfo) {
     cpuid(0x80000008,eax,ebx,ecx,edx);
     kinfo->cpu_info.phys_addr_size = eax&0xff;         //Physical address size in bits
     kinfo->cpu_info.virt_addr_size = (eax&0xff00)>>8;  //Linear address size in bits
-    kinfo->cpu_info.core_amount = (ecx&0xff)+1;        //Number of cores in the CPU
   }
   
-  return &(kinfo->cpu_info);
+  //A separate function takes care of the multiprocessing thing, as it is... say...
+  //more complicated than it should be.
+  return generate_multiprocessing_info(kinfo);
 }
 
 KernelMemoryMap* generate_memory_map(multiboot_info_t* mbd, KernelInformation* kinfo) {
@@ -418,6 +420,42 @@ KernelMemoryMap* generate_memory_map(multiboot_info_t* mbd, KernelInformation* k
   return kmmap_buffer;
 }
 
+KernelCPUInfo* generate_multiprocessing_info(KernelInformation* kinfo) {
+  mp_floating_ptr* floating_ptr;
+  mp_config_table_hdr* mpconfig_hdr;
+  mpconfig_proc_entry* proc_entry;
+  int current_entry, core_amount = 0;
+  
+  floating_ptr = find_fptr();
+  if(!floating_ptr) {
+    //No floating pointer. Assume the system is monoprocessor.
+    kinfo->cpu_info.core_amount = 1;
+    return &(kinfo->cpu_info);
+  }
+  kinfo->cpu_info.arch_info.mp_fptr = (uint32_t) floating_ptr;
+  //Are we, perchance, using any default 2-processor configuration ?
+  if(floating_ptr->mp_sys_config_type) {
+    kinfo->cpu_info.core_amount = 2;
+    return &(kinfo->cpu_info);
+  }
+  //Otherwise, check the MP configuration table before opening it...
+  mpconfig_hdr = mpconfig_check(floating_ptr);
+  if(!mpconfig_hdr) {
+    //The MP configuration table is incorrect. Better not use it and assume the system is monoprocessor.
+    kinfo->cpu_info.core_amount = 1;
+    return &(kinfo->cpu_info);
+  }
+  //Parse MP configuration table, looking for processors...
+  proc_entry = (mpconfig_proc_entry*) (mpconfig_hdr+1);
+  for(current_entry=0; current_entry<mpconfig_hdr->entry_count; ++current_entry, ++proc_entry) {
+    if(proc_entry->entry_type!=0) break; //We went past processor entries region.
+    if(proc_entry->cpu_flags & 1) ++core_amount;
+  }
+  //Store core amount in the kernel information structure.
+  kinfo->cpu_info.core_amount = core_amount;
+  return &(kinfo->cpu_info);
+}
+
 KernelInformation* kinfo_gen(multiboot_info_t* mbd) {
   //Some buffers
   static KernelInformation result;
@@ -439,10 +477,10 @@ KernelInformation* kinfo_gen(multiboot_info_t* mbd) {
     sd_buff.subsub_partition_number = mbd->boot_device%256;
   }
   result.arch_info.startup_drive = (uint32_t) &sd_buff;
-  /* CPU information gathering is somewhat complicated, so we give the job to a dedicated function */
-  generate_cpu_info(&result);
-  /* Memory map generation is much more tricky, hence we give the job to a dedicated function */
+  /* Memory map generation */
   generate_memory_map(mbd, &result);
+  /* CPU information gathering */
+  generate_cpu_info(&result);
   
   return &result;
 }

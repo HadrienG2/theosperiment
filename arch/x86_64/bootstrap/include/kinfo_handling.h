@@ -44,6 +44,8 @@ KernelMemoryMap* find_freemem_pgalign(KernelInformation* kinfo, uint64_t minimal
 KernelCPUInfo* generate_cpu_info(KernelInformation* kinfo);
 //Generates a detailed map of the memory.
 KernelMemoryMap* generate_memory_map(multiboot_info_t* mbd, KernelInformation* kinfo);
+//Generate info related to multiprocessing.
+KernelCPUInfo* generate_multiprocessing_info(KernelInformation* kinfo);
 
 
 //Generate a kernel information structure (see KernelInformation.h)

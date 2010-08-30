@@ -6,9 +6,13 @@
 
 
 extern "C" int kmain(KernelInformation& kinfo) {
-  dbgout << "* Setting up physical memory management..." << endl;
+  dbgout << txtcolor(TXT_LIGHTRED) << "Kernel loaded !";
+  dbgout << txtcolor(TXT_LIGHTGRAY) << endl;
+  dbgout << "CPU name : " << kinfo.cpu_info.arch_info.processor_name << endl;
+  dbgout << "We have " << kinfo.cpu_info.core_amount << " CPU core(s)" << endl;
+  dbgout << txtcolor(TXT_LIGHTBLUE) << "* Setting up physical memory management...";
   PhyMemManager phymem(kinfo);
-  dbgout << (uint32_t) sizeof(MemMap) << endl << (uint32_t) sizeof(VirMemMap);
+  dbgout << txtcolor(TXT_LIGHTGREEN) << " DONE !" << endl;
   
   return 0;
 }

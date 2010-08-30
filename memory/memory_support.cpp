@@ -18,23 +18,23 @@
  
 #include <memory_support.h>
 
-MemMap* MemMap::find_freechunk() {
-  MemMap* current_item = this;
+PhyMemMap* PhyMemMap::find_freechunk() {
+  PhyMemMap* current_item = this;
 
   while(current_item) {
     if(current_item->has_owner(PID_NOBODY) && current_item->allocatable) break;
-    current_item = current_item->next_item;
+    current_item = current_item->next_mapitem;
   }
   return current_item;
 }
 
-MemMap* MemMap::find_thischunk(addr_t location) {
-  MemMap* current_item = this;
+PhyMemMap* PhyMemMap::find_thischunk(addr_t location) {
+  PhyMemMap* current_item = this;
   if(current_item->location > location) return NULL;
   
   while(current_item) {
     if(current_item->location+current_item->size > location) break;
-    current_item = current_item->next_item;
+    current_item = current_item->next_mapitem;
   }
   return current_item;
 }
