@@ -504,13 +504,15 @@ DebugOutput& DebugOutput::operator<<(uint64_t input) {
 
 DebugOutput& DebugOutput::operator<<(KernelInformation& input) {
   unsigned int index;
+  DebugNumberBase tmp = number_base;
   
-  *this << endl;
+  *this << numberbase(HEXADECIMAL) << endl;
   *this << "Location           | Size               | Nat | Misc" << endl;
   *this << "-------------------+--------------------+-----+--------------------------------";
   for(index=0; index<input.kmmap_size; ++index) {
     *this << endl << input.kmmap[index];
   }
+  *this << numberbase(tmp);
   return *this;
 }
 
@@ -542,9 +544,10 @@ DebugOutput& DebugOutput::operator<<(KernelMemoryMap& input) {
 DebugOutput& DebugOutput::operator<<(PhyMemMap& input) {
   bool tmp_zeroext = zero_extend;
   PhyMemMap* map = &input;
+  DebugNumberBase tmp = number_base;
 
-  *this << zero_extending(true);  
-  *this << endl;
+  *this << zero_extending(true);
+  *this << numberbase(HEXADECIMAL) << endl;
   *this << "Location           | Size               | Owner  | Misc" << endl;
   *this << "-------------------+--------------------+--------+-----------------------------";
   do {
@@ -563,6 +566,7 @@ DebugOutput& DebugOutput::operator<<(PhyMemMap& input) {
     map = map->next_mapitem;
   } while(map);
   if(!tmp_zeroext) *this << zero_extending(false);
+  *this << numberbase(tmp);
   return *this;
 }
 

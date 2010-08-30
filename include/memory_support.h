@@ -51,7 +51,6 @@ struct PhyMemMap {
   void del_owner(PID old_owner) {owners.del_pid(old_owner);}
   bool has_owner(PID the_owner) {return owners.has_pid(the_owner);}
   //Algorithms finding things in the map
-  PhyMemMap* find_freechunk();
   PhyMemMap* find_thischunk(addr_t location);
 } __attribute__((packed));
 
@@ -86,7 +85,6 @@ struct VirMemMap {
   void del_owner(PID old_owner) {owners.del_pid(old_owner);}
   bool has_owner(PID the_owner) {return owners.has_pid(the_owner);}
   //Algorithms finding things in the map
-  VirMemMap* find_freechunk();
   VirMemMap* find_thischunk(addr_t location);
 } __attribute__((packed));
 
