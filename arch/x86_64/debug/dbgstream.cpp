@@ -562,7 +562,10 @@ DebugOutput& DebugOutput::operator<<(PhyMemMap& input) {
       }
     }
     if(map->allocatable) *this << "ALLOCA ";
-    if(map->next_buddy) *this << "BUDDY-" << (uint64_t) map->next_buddy;
+    if(map->next_buddy) {
+	  *this << "BUDDY-" << zero_extending(false) << (uint64_t) map->next_buddy;
+	  *this << zero_extending(true);
+	}
     map = map->next_mapitem;
   } while(map);
   if(!tmp_zeroext) *this << zero_extending(false);

@@ -37,15 +37,6 @@ class VirMemManager {
     PhyMemManager* phymem;
   public:
     VirMemManager(PhyMemManager& physmem, KernelInformation& kinfo);
-    //Virtual page management function
-    addr_t alloc_chunk(PID initial_owner, PhyMemMap* phys_chunk, perm_flags flags);
-    addr_t alloc_page(PID initial_owner, addr_t phys_page, perm_flags flags);
-    addr_t set_pageflags(addr_t virt_page, perm_flags flags);
-    addr_t free(addr_t virt_location);
-    
-    //Debug methods (to be deleted)
-    void print_lowmmap();
-    void print_highmmap();
 };
 
 #endif

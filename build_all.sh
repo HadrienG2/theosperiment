@@ -52,8 +52,8 @@ then
   CXXFLAGS=$CXXFLAGS" -O3"
 else
   INCLUDES=$INCLUDES" -I../../arch/x86_64/bootstrap/debug/ -I../../arch/x86_64/debug/ -I../../debug/"
-  CFLAGS=$CFLAGS" -O3 -DDEBUG"
-  CXXFLAGS=$CXXFLAGS" -O3 -DDEBUG"
+  CFLAGS=$CFLAGS" -O0 -DDEBUG"
+  CXXFLAGS=$CXXFLAGS" -O0 -DDEBUG"
 fi
 
 #Bootstrap code compilation
@@ -96,8 +96,6 @@ fi
 $LD -T ../../support/kernel_linker.lds -o kernel.bin *.o $LFLAGS
 cd ../..
 
-echo
-
 #Create a system floppy image
 echo \* Creating floppy image...
 #Create a copy of the floppy image where GRUB is installed
@@ -107,4 +105,6 @@ export MTOOLSRC=support/mtoolsrc.txt
 mcopy bin/bootstrap/bs_kernel.bin.gz K:/system
 mcopy bin/kernel/kernel.bin K:/system
 mcopy support/menu.lst K:/boot/grub
+
+echo
 echo "***REMEMBER TO RUN svn update, status, and commit FREQUENTLY !***"
