@@ -14,14 +14,11 @@ extern "C" int kmain(KernelInformation& kinfo) {
   PhyMemManager phymem(kinfo);
   dbgout << " DONE !" << endl << set_window(screen_win);
   int index;
-  addr_t locations[0x5000];
-  dbgout << endl << "Allocating..." << endl;
-  for(index=0; index<0x5000; ++index) locations[index] = phymem.alloc_page(3);
-  dbgout << "Freeing..." << endl;
-  for(index=0; index<0x5000; ++index) phymem.free(locations[index]);
-  dbgout << "Allocating chunk...";
-  phymem.alloc_chunk(3, 0x5000000);
-  phymem.print_highmmap();
+  addr_t locations[3];
+  for(index=0; index<3; ++index) locations[index] = phymem.alloc_lowpage(3);
+  for(index=2; index>=0; --index) phymem.free(locations[index]);
+  phymem.alloc_lowchunk(3, 0x3000);
+  phymem.print_lowmmap();
   
   return 0;
 }

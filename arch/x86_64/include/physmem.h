@@ -43,8 +43,10 @@ class PhyMemManager {
     PhyMemMap* free_highmem; //A contiguous chunk representing free high memory
     PhyMemMap* free_mapitems; //A list of spare PhyMemMap objects that can be put in a memory map
     KernelMutex mmap_mutex;
+    //Support methods used by public methods
     addr_t alloc_storage_space();
     PhyMemMap* chunk_allocator(PhyMemMap* map_used, PID initial_owner, addr_t size);
+    PhyMemMap* chunk_liberator(PhyMemMap* chunk);
     PhyMemMap* merge_with_next(PhyMemMap* first_item);
     addr_t page_allocator(PhyMemMap* map_used, PID initial_owner);
   public:
@@ -62,6 +64,8 @@ class PhyMemManager {
     //brain-deadness when it comes to circular header inclusion (header 1 includes
     //header 2 which includes header 1). Don't use them.
     PhyMemMap* get_phymmap() {return phy_mmap;}
+    
+    //Debug methods. Those will go out someday.
     void print_highmmap();
     void print_lowmmap();
     void print_mmap();

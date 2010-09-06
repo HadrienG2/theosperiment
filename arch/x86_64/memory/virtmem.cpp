@@ -38,5 +38,6 @@ VirMemManager::VirMemManager(PhyMemManager& physmem, KernelInformation& kinfo) {
   //memory region will in fact be kernel memory (in use by the physical memory manager).
   
   phymem = &physmem;
-  
+  dbgout << "Stub !" << endl;
+  dbgout << kinfo.kmmap;
 }
