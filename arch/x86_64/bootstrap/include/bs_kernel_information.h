@@ -39,8 +39,6 @@ typedef struct KernelMemoryMap KernelMemoryMap;
 typedef struct KernelInformation KernelInformation;
 
 struct KernelCPUInfo {
-  uint8_t phys_addr_size; //Size of the biggest physical address the CPU can handle in bits
-  uint8_t virt_addr_size; //Size of the biggest virtual address in bits.
   uint32_t core_amount; //Indicates how many CPU cores there are on this system
   uint32_t cache_line_size; //Size of a cache line in bytes. 0 means that caching is not supported
   ArchSpecificCPUInfo arch_info; //Other arch-specific info

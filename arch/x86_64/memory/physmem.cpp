@@ -21,7 +21,7 @@
 
 addr_t PhyMemManager::alloc_storage_space() {
   addr_t remaining_freemem, used_space;
-  PhyMemMap *current_item, *allocated_mem, *free_mem = NULL;
+  PhyMemMap *allocated_mem, *current_item, *free_mem = NULL;
   
   //Find an available chunk of memory
   allocated_mem = free_highmem;
@@ -38,16 +38,18 @@ addr_t PhyMemManager::alloc_storage_space() {
   for(used_space = sizeof(PhyMemMap); used_space<PG_SIZE;
       used_space+= sizeof(PhyMemMap))
   {
+    *current_item = PhyMemMap();
     current_item->next_buddy = current_item+1;
     ++current_item;
   }
+  *current_item = PhyMemMap();
   current_item->next_buddy = NULL;
   
   //Maybe there is some spare memory after allocating our chunk ?
   //If so, don't forget it.
   if(remaining_freemem) {
     free_mem = free_mapitems;
-    free_mapitems = free_mapitems->next_buddy;
+    free_mapitems = (PhyMemMap*) free_mapitems->next_buddy;
     *free_mem = PhyMemMap();
     free_mem->location = allocated_mem->location+PG_SIZE;
     free_mem->size = remaining_freemem;
@@ -98,7 +100,7 @@ PhyMemMap* PhyMemManager::chunk_allocator(PhyMemMap* map_used, PID initial_owner
     previous_item = current_item;
     current_item = current_item->next_buddy;
     if(!current_item) {
-      free(result->location);
+      chunk_liberator(result);
       return NULL;
     }
     current_item->add_owner(initial_owner);
@@ -161,8 +163,8 @@ PhyMemMap* PhyMemManager::chunk_liberator(PhyMemMap* chunk) {
     if(current_item->location >= 0x100000) {
       //Case where the current item belongs to high memory
       if(free_highmem == NULL) {
-        current_item->next_buddy = free_highmem;
-        free_highmem = current_item;
+        current_item->next_buddy = NULL;
+        free_highmem = (PhyMemMap*) current_item;
         continue;
       }
       if(free_highmem->location > current_item->location) {
@@ -180,7 +182,7 @@ PhyMemMap* PhyMemManager::chunk_liberator(PhyMemMap* chunk) {
     } else {
       //Case where the current item belongs to low memory
       if(free_lowmem == NULL) {
-        current_item->next_buddy = free_lowmem;
+        current_item->next_buddy = NULL;
         free_lowmem = current_item;
         continue;
       }
@@ -202,6 +204,19 @@ PhyMemMap* PhyMemManager::chunk_liberator(PhyMemMap* chunk) {
   return chunk;
 }
 
+PhyMemMap* PhyMemManager::chunk_owneradd(PhyMemMap* chunk, PID new_owner) {
+  chunk->add_owner(new_owner);
+  
+  return chunk;
+}
+
+PhyMemMap* PhyMemManager::chunk_ownerdel(PhyMemMap* chunk, PID former_owner) {
+  chunk->del_owner(former_owner);
+  if(chunk->has_owner(PID_NOBODY)) chunk_liberator(chunk);
+  
+  return chunk;
+}
+
 PhyMemMap* PhyMemManager::merge_with_next(PhyMemMap* first_item) {
   PhyMemMap* next_item = first_item->next_mapitem;
   
@@ -218,7 +233,7 @@ PhyMemMap* PhyMemManager::merge_with_next(PhyMemMap* first_item) {
 }
 
 
-addr_t PhyMemManager::page_allocator(PhyMemMap* map_used, PID initial_owner) {
+PhyMemMap* PhyMemManager::page_allocator(PhyMemMap* map_used, PID initial_owner) {
   addr_t remaining_freemem;
   PhyMemMap *allocated_mem, *free_mem = NULL;
 
@@ -261,11 +276,11 @@ addr_t PhyMemManager::page_allocator(PhyMemMap* map_used, PID initial_owner) {
   }
   allocated_mem->next_buddy = NULL;
   
-  if(allocated_mem->location!=0) return allocated_mem->location; else return 1;
+  return allocated_mem;
 }
 
 
-PhyMemManager::PhyMemManager(KernelInformation& kinfo) : free_lowmem(NULL), free_highmem(NULL) {
+PhyMemManager::PhyMemManager(KernelInformation& kinfo) {
   //This function...
   //  1/Determines the amount of memory necessary to store the management structures
   //  2/Find this amount of free space in the memory map
@@ -302,6 +317,7 @@ PhyMemManager::PhyMemManager(KernelInformation& kinfo) : free_lowmem(NULL), free
   remaining_space = phymmap_size-sizeof(PhyMemMap);
   current_item = phy_mmap;
   *current_item = PhyMemMap();
+  
   //Fill first item
   current_item->location = current_location;
   current_item->size = next_location-current_location;
@@ -453,8 +469,8 @@ PhyMemMap* PhyMemManager::alloc_chunk(PID initial_owner, addr_t size) {
 }
 
 
-addr_t PhyMemManager::alloc_page(PID initial_owner) {
-  addr_t result;
+PhyMemMap* PhyMemManager::alloc_page(PID initial_owner) {
+  PhyMemMap* result;
 
   mmap_mutex.grab_spin();
   
@@ -465,21 +481,42 @@ addr_t PhyMemManager::alloc_page(PID initial_owner) {
 }
 
 
-addr_t PhyMemManager::free(addr_t location) {
-  PhyMemMap *current_item, *result = NULL;
+PhyMemMap* PhyMemManager::free(PhyMemMap* chunk) {
+  PhyMemMap *result;
   
   mmap_mutex.grab_spin();
   
-  //Find the chunk of memory map where this location belongs and free it
-  current_item = phy_mmap->find_thischunk(location);
-  if(current_item) result = chunk_liberator(current_item);
+  result = chunk_liberator(chunk);
 
   mmap_mutex.release();
   
-  if(result) return result->location;
-  else return NULL;
+  return result;
 }
 
+PhyMemMap* PhyMemManager::owneradd(PhyMemMap* chunk, PID new_owner) {
+  PhyMemMap *result;
+  
+  mmap_mutex.grab_spin();
+  
+  result = chunk_owneradd(chunk, new_owner);
+  
+  mmap_mutex.release();
+  
+  return result;
+}
+
+  
+PhyMemMap* PhyMemManager::ownerdel(PhyMemMap* chunk, PID former_owner) {
+  PhyMemMap *result;
+  
+  mmap_mutex.grab_spin();
+  
+  result = chunk_ownerdel(chunk, former_owner);
+  
+  mmap_mutex.release();
+  
+  return result;
+}
 
 PhyMemMap* PhyMemManager::alloc_lowchunk(PID initial_owner, addr_t size) {
   PhyMemMap *result, *lowmem_end = phy_mmap;
@@ -501,9 +538,8 @@ PhyMemMap* PhyMemManager::alloc_lowchunk(PID initial_owner, addr_t size) {
 }
 
 
-addr_t PhyMemManager::alloc_lowpage(PID initial_owner) {
-  addr_t result;
-  PhyMemMap* lowmem_end = phy_mmap;
+PhyMemMap* PhyMemManager::alloc_lowpage(PID initial_owner) {
+  PhyMemMap *result, *lowmem_end = phy_mmap;
   
   mmap_mutex.grab_spin();
   
@@ -518,12 +554,15 @@ addr_t PhyMemManager::alloc_lowpage(PID initial_owner) {
   //Make high memory come back
   lowmem_end->next_mapitem = phy_highmmap;
   mmap_mutex.release();
+  
   return result;
 }
 
 void PhyMemManager::print_highmmap() {
   mmap_mutex.grab_spin();
+  
   dbgout << *phy_highmmap;
+  
   mmap_mutex.release();
 }
 
@@ -536,7 +575,7 @@ void PhyMemManager::print_lowmmap() {
   //Temporarily make high memory disappear
   lowmem_end->next_mapitem = NULL;
   
-  dbgout << *phy_mmap << *free_lowmem;
+  dbgout << *phy_mmap;
   
   //Make high memory come back
   lowmem_end->next_mapitem = phy_highmmap;
@@ -545,6 +584,8 @@ void PhyMemManager::print_lowmmap() {
 
 void PhyMemManager::print_mmap() {
   mmap_mutex.grab_spin();
+  
   dbgout << *phy_mmap;
+  
   mmap_mutex.release();
 }

@@ -548,17 +548,17 @@ DebugOutput& DebugOutput::operator<<(PhyMemMap& input) {
 
   *this << zero_extending(true);
   *this << numberbase(HEXADECIMAL) << endl;
-  *this << "Location           | Size               | Owner  | Misc" << endl;
-  *this << "-------------------+--------------------+--------+-----------------------------";
+  *this << "Location           | Size               | Own. | Misc" << endl;
+  *this << "-------------------+--------------------+------+-----------------------------";
   do {
     *this << endl << map->location << " | " << map->size;
     if(map->has_owner(PID_KERNEL)) {
-      *this << " | KERNEL | ";
+      *this << " | KERN | ";
     } else {
       if(map->has_owner(PID_NOBODY)) {
-        *this << " | NO ONE | ";
+        *this << " | none | ";
       } else {
-        *this << " | OTHER  | ";
+        *this << " | OTH.  | ";
       }
     }
     if(map->allocatable) *this << "ALLOCA ";
@@ -566,6 +566,49 @@ DebugOutput& DebugOutput::operator<<(PhyMemMap& input) {
 	  *this << "BUDDY-" << zero_extending(false) << (uint64_t) map->next_buddy;
 	  *this << zero_extending(true);
 	}
+    map = map->next_mapitem;
+  } while(map);
+  if(!tmp_zeroext) *this << zero_extending(false);
+  *this << numberbase(tmp);
+  return *this;
+}
+
+DebugOutput& DebugOutput::operator<<(VirMemMap& input) {
+  bool tmp_zeroext = zero_extend;
+  VirMemMap* map = &input;
+  DebugNumberBase tmp = number_base;
+
+  *this << zero_extending(true);
+  *this << numberbase(HEXADECIMAL) << endl;
+  *this << "Location           | Size               | Own. | Perm | Target&Misc" << endl;
+  *this << "-------------------+--------------------+------+------+------------------------";
+  do {
+    *this << endl << map->location << " | " << map->size;
+    if(map->has_owner(PID_KERNEL)) {
+      *this << " | KERN | ";
+    } else {
+      if(map->has_owner(PID_NOBODY)) {
+        *this << " | none | ";
+      } else {
+        *this << " | OTH.  | ";
+      }
+    }
+    if(map->flags & VMEM_FLAG_R) *this << 'R';
+    else *this << '-';
+    if(map->flags & VMEM_FLAG_W) *this << 'W';
+    else *this << '-';
+    if(map->flags & VMEM_FLAG_X) *this << 'X';
+    else *this << '-';
+    if(map->flags & VMEM_FLAG_P) *this << "P | ";
+    else *this << "- | ";
+    if(map->points_to) {
+      *this << zero_extending(false) << (uint64_t) map->points_to;
+      *this << zero_extending(true);
+    }
+    if(map->next_buddy) {
+      *this << " BUD-" << zero_extending(false) << (uint64_t) map->next_buddy;
+      *this << zero_extending(true);
+    }
     map = map->next_mapitem;
   } while(map);
   if(!tmp_zeroext) *this << zero_extending(false);

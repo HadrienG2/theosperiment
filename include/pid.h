@@ -21,7 +21,7 @@
 
 #include <address.h>
 
-typedef unsigned int PID;
+typedef uint32_t PID;
 const PID PID_NOBODY = 0;
 const PID PID_KERNEL = 1;
 
@@ -29,11 +29,19 @@ class PIDs {
   private:
     PID current_pid;
     PID* next_pid;
+    void copy_from(const PIDs& source); //Make this PIDs a copy of source
+    void free_members(); //Free all dynamically allocated data of this PIDs structure
   public:
+    //Constructors and destructors
     PIDs() : current_pid(PID_NOBODY),
              next_pid(NULL) {}
     PIDs(const PID& first) : current_pid(first),
                              next_pid(NULL) {}
+    ~PIDs() {free_members();}
+    //Copy constructors and allocation operator
+    PIDs(const PIDs& source) {copy_from(source);}
+    PIDs& operator=(const PIDs& source);
+    //Other useful functions
     int add_pid(PID new_pid); //Returns 0 if successful, 1 if it already exists
                               //a negative error code in case of allocation failure
     void clear_pids();
