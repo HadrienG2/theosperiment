@@ -18,6 +18,26 @@
  
 #include <pid.h>
 
+void PIDs::copy_from(const PIDs& source) {
+  current_pid = source.current_pid;
+  //Currently, due to lack of memory allocation, there can't be several PIDs in a PIDs structure
+  next_pid = NULL;
+}
+
+void PIDs::free_members() {
+  //Do nothing. There is no memory allocation around right now.
+}
+
+#include <dbgstream.h>
+
+PIDs& PIDs::operator=(const PIDs& source) {
+  if(&source!=this) {
+    free_members();
+    copy_from(source);
+  }
+  return *this;
+}
+
 int PIDs::add_pid(PID new_pid) {
   if(!current_pid) {
     current_pid = new_pid;

@@ -28,3 +28,14 @@ PhyMemMap* PhyMemMap::find_thischunk(addr_t location) {
   }
   return current_item;
 }
+
+VirMemMap* VirMemMap::find_thischunk(addr_t location) {
+  VirMemMap* current_item = this;
+  if(current_item->location > location) return NULL;
+  
+  while(current_item) {
+    if(current_item->location+current_item->size > location) break;
+    current_item = current_item->next_mapitem;
+  }
+  return current_item;
+}

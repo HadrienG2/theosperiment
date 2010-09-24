@@ -245,9 +245,6 @@ KernelCPUInfo* generate_cpu_info(KernelInformation* kinfo) {
   
   //Architecture is X86_64
   arch_info->arch = ARCH_X86_64;
-  kinfo->cpu_info.core_amount = 1; //Default values that should be replaced
-  kinfo->cpu_info.phys_addr_size = 64;
-  kinfo->cpu_info.virt_addr_size = 64;
   
   //Check CPUID support by trying to toggle bit 21 (ID) in EFLAGS.
   //If CPU does not support CPUID, it won't support long mode either
@@ -375,14 +372,8 @@ KernelCPUInfo* generate_cpu_info(KernelInformation* kinfo) {
     arch_info->processor_name = (uint32_t) processor_name;
   }
   
-  if(max_ext_function>=0x80000008) {
-    cpuid(0x80000008,eax,ebx,ecx,edx);
-    kinfo->cpu_info.phys_addr_size = eax&0xff;         //Physical address size in bits
-    kinfo->cpu_info.virt_addr_size = (eax&0xff00)>>8;  //Linear address size in bits
-  }
-  
   //A separate function takes care of the multiprocessing thing, as it is... say...
-  //more complicated than it should be.
+  //more complicated than it could be.
   return generate_multiprocessing_info(kinfo);
 }
 
@@ -432,12 +423,14 @@ KernelCPUInfo* generate_multiprocessing_info(KernelInformation* kinfo) {
     kinfo->cpu_info.core_amount = 1;
     return &(kinfo->cpu_info);
   }
+  
   kinfo->cpu_info.arch_info.mp_fptr = (uint32_t) floating_ptr;
   //Are we, perchance, using any default 2-processor configuration ?
   if(floating_ptr->mp_sys_config_type) {
     kinfo->cpu_info.core_amount = 2;
     return &(kinfo->cpu_info);
   }
+  
   //Otherwise, check the MP configuration table before opening it...
   mpconfig_hdr = mpconfig_check(floating_ptr);
   if(!mpconfig_hdr) {
@@ -445,14 +438,17 @@ KernelCPUInfo* generate_multiprocessing_info(KernelInformation* kinfo) {
     kinfo->cpu_info.core_amount = 1;
     return &(kinfo->cpu_info);
   }
+  
   //Parse MP configuration table, looking for processors...
   proc_entry = (mpconfig_proc_entry*) (mpconfig_hdr+1);
   for(current_entry=0; current_entry<mpconfig_hdr->entry_count; ++current_entry, ++proc_entry) {
     if(proc_entry->entry_type!=0) break; //We went past processor entries region.
     if(proc_entry->cpu_flags & 1) ++core_amount;
   }
+  
   //Store core amount in the kernel information structure.
   kinfo->cpu_info.core_amount = core_amount;
+  
   return &(kinfo->cpu_info);
 }
 

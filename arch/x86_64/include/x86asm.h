@@ -37,6 +37,14 @@
                     :"=m"(eax), "=m"(ebx), "=m"(ecx), "=m"(edx)\
                     :"r"(code)\
                     :"%eax", "%ebx", "%ecx", "%edx")
+
+//Read the CR3 register (for paging operation)
+#define rdcr3(cr3) \
+  __asm__ volatile("mov %%cr3, %%rax;\
+                    mov %%rax, %0"\
+                   :"=m" (cr3)\
+                   :\
+                   :"%eax")
  
 // Write a byte to an I/O port
 #define outb(value, port)                                       \
