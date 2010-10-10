@@ -175,6 +175,7 @@ class DebugOutput {
     DebugOutput& operator<<(int64_t input);
     DebugOutput& operator<<(unsigned int input) {uint64_t tmp=input; *this << tmp; return *this;}
     DebugOutput& operator<<(uint64_t input);
+    DebugOutput& operator<<(void* ptr); //This is just to make the compiler crash when trying to output a pointer
     //Function displaying home-made types
     DebugOutput& operator<<(KernelInformation& input); //Displays only the memory map atm
     DebugOutput& operator<<(KernelMemoryMap& input);

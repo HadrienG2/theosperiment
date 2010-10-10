@@ -30,9 +30,11 @@
 //-Page grouping in chunks and management of chunks as a whole (i.e. setting permission RW on address range 0x1000->0x7000)
 //-Allocation/Liberation of a contiguous chunk of linear addresses pointing to a non-contiguous chunk of physical addresses.
 //-Interoperability with the physical memory manager
+//-Transparent management of per-process page tables (and hence multiple process management)
 //
-//Later : -Transparent management of per-process page tables (and hence multiple process management)
-//        -Removing all traces of a process from memory (when it's killed or closed)
+//Later : -Memory sharing functions
+//        -Use something else than 2MB pages sometimes ?
+//        -Removing all traces of a process from memory (when it's killed or closed), switching processes
 class VirMemManager {
   private:
     PhyMemManager* phymem;
@@ -40,21 +42,23 @@ class VirMemManager {
     VirMemMap* free_mapitems; //A collection of ready to use virtual memory map items forming a dummy chunk.
     VirMapList* free_listitems; //A collection of ready to use map list items forming a dummy list.
     KernelMutex maplist_mutex;
-    //Support methods used by public methods
+    //Support methods
     addr_t alloc_mapitems(); //Get some memory map storage space
     addr_t alloc_listitems(); //Get some map list storage space
+    VirMemFlags get_current_flags(addr_t location); //Returns the current flags associated with a memory location
+    void map_kernel(PhyMemMap* phy_mmap); //Maps the kernel's RX, R, and RW segments in the memory map
+    void update_kernel_mmap(); //This brings physical memory manager and virtual memory manager back on sync and should
+                               //be called each time the kernel's virtual address space is to be accessed
   public:
     //Constructor gets the current layout of paged memory, setup management structures
     VirMemManager(PhyMemManager& physmem);
     
-    //Map a non-contiguous chunk of physical memory as a contiguous chunk of the owner's virtual memory
-    VirMemMap* map_chunk(PhyMemMap* phys_chunk, VirMemFlags flags);
-    //Destroy a chunk of virtual memory and merge it with its neighbours
-    VirMemMap* free(VirMemMap* chunk);
-    //Change a chunk's flags
+    //Map a non-contiguous chunk of physical memory as a contiguous chunk of the target's virtual memory
+    VirMemMap* map_chunk(PhyMemMap* phys_chunk, VirMemFlags flags, PID target);
+    //Destroy a chunk of virtual memory and merge it with its neighbours, put that region back on RW privileges
+    VirMemMap* free(VirMemMap* chunk, PID process);
+    //Change a chunk's flags (including in page tables, of course)
     VirMemMap* set_flags(VirMemMap* chunk, VirMemFlags flags);
-    //Commit changes to the page tables of each process
-    void commit();
 };
 
 #endif
