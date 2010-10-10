@@ -21,6 +21,7 @@
 
 #include <address.h>
 #include <pid.h>
+#include <synchronization.h>
 
 //Represents an item in a map of the physical memory, managed as a chained list at the moment.
 //Size should be a divisor of 0x1000 (current size : 0x40) to ease the early allocation process.
@@ -90,8 +91,10 @@ struct VirMapList {
   PID map_owner;
   VirMemMap* map_pointer;
   VirMapList* next_item;
-  uint32_t padding;
-  uint64_t padding2;
+  uint64_t pml4t_location;
+  KernelMutex mmap_mutex;
+  uint8_t padding;
+  uint16_t padding2;
   VirMapList() : map_owner(PID_NOBODY),
                  map_pointer(NULL),
                  next_item(NULL) {};

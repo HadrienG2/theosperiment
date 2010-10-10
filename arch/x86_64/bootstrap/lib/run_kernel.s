@@ -18,4 +18,5 @@ trampoline:
   
 kernel_returns:
   xchg %bx, %bx
+  hlt
   jmp  kernel_returns

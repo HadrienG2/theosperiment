@@ -6,7 +6,7 @@ This file is made in order to help you know what those are and where they are lo
 -> Initial stack is 1MB large.
    (in arch/x86_64/bootstrap/bs_multiboot.s)
 *** Module size ***
--> The kernel is loaded at virtual address 2 GB. This theoretically shouldn't be an issue.
+-> The kernel is loaded at virtual address 1GB. Therefore, kernel and all modules combined should be smaller than 1GB.
    (in support/kernel_linker.lds)
 *** Page size ***
 -> Currently, all pages are of the same size : 4KB

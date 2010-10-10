@@ -29,7 +29,7 @@ class KernelSemaphore8 {
     bool grab_attempt(); //Attempt to grab the semaphore. Return true if successful.
     void grab_spin() {while(!grab_attempt());} //Wait for semaphore availability
     void release() {++availability;} //Release the semaphore
-};
+} __attribute__((packed));
 
 class KernelSemaphore32 {
   protected:
@@ -39,7 +39,7 @@ class KernelSemaphore32 {
     bool grab_attempt(); //Attempt to grab the semaphore. Return true if successful.
     void grab_spin() {while(!grab_attempt());} //Wait for semaphore availability
     void release() {++availability;} //Release the semaphore
-};
+} __attribute__((packed));
 
 class KernelSemaphore64 {
   protected:
@@ -49,13 +49,13 @@ class KernelSemaphore64 {
     bool grab_attempt(); //Attempt to grab the semaphore. Return true if successful.
     void grab_spin() {while(!grab_attempt());} //Wait for semaphore availability
     void release() {++availability;} //Release the semaphore
-};
+} __attribute__((packed));
 
 typedef KernelSemaphore64 KernelSemaphore;
 
 class KernelMutex : public KernelSemaphore8 {
   public:
     KernelMutex() : KernelSemaphore8(1) {}
-};
+} __attribute__((packed));
 
 #endif

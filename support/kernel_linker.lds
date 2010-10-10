@@ -8,38 +8,56 @@ PHDRS {
 }
 
 SECTIONS {
-  . = 0x20000000; /* To be loaded at 2 GB, aka "higher-half kernel". Allows to keep kernel in virtual memory
-                     when a program is loaded  */
+  . = 0x40000000; /* To be loaded at 1GB. Simplifies the loading procedure  */
 
-  .text ALIGN(4096) :
+  .text ALIGN(0x1000) :
   {
+    knl_rx_start = .;
+    
     *(.text*)
     *(.gnu.linkonce.t*)
+
+    . =  ALIGN(0x1000);
+    knl_rx_end = .;
   } : rx
 
-  .rodata ALIGN(4096) :
+  .rodata ALIGN(0x1000) :
   {
+    knl_r_start = .;
     start_ctors = .;
+    
     *(.ctor*)
+    
     end_ctors = .;
     start_dtors = .;
+    
     *(.dtor*)
+    
     end_dtors = .;
+    
     *(.rodata*)
     *(.gnu.linkonce.r*)
+    
+    . =  ALIGN(0x1000);
+    knl_r_end = .;
   } : r
   
-  .data ALIGN(4096) :
+  .data ALIGN(0x1000) :
   {  
+    knl_rw_start = .;
+    
     *(.data*)
     *(.gnu.linkonce.d*)
   } : rw
 
-  .bss ALIGN(4096) :
+  .bss ALIGN(0x1000) :
   {
     *(.COMMON*)
     *(.bss*)
     *(.gnu.linkonce.b*)
+    
+    . =  ALIGN(0x1000);
+    knl_rw_end = .;
   } : rw
   
    /DISCARD/ :
