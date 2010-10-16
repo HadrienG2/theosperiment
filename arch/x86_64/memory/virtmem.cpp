@@ -45,6 +45,31 @@ addr_t VirMemManager::alloc_mapitems() {
   return allocated_chunk->location;
 }
 
+addr_t VirMemManager::alloc_mapitems(const unsigned int amount) {
+  addr_t used_space;
+  PhyMemMap *allocated_chunk, *current_phychunk;
+  VirMemMap *current_item;
+  
+  //Allocate a chunk of memory
+  allocated_chunk = phymem->alloc_chunk(PID_KERNEL, amount*sizeof(VirMemMap));
+  if(!allocated_chunk) return NULL;
+  
+  //Fill it with initialized map items
+  while(current_phychunk) {
+    current_item = (VirMemMap*) (current_phychunk->location);
+    for(used_space = sizeof(VirMemMap); used_space <= current_phychunk->size; used_space+=sizeof(VirMemMap)) {
+      *current_item = VirMemMap();
+      current_item->next_buddy = free_mapitems;
+      free_mapitems->next_buddy = current_item;
+      ++current_item;
+    }
+    current_phychunk = current_phychunk->next_buddy;
+  }
+  
+  //All good !
+  return allocated_chunk->location;
+}
+
 addr_t VirMemManager::alloc_listitems() {
   addr_t used_space;
   PhyMemMap* allocated_chunk;
@@ -69,7 +94,7 @@ addr_t VirMemManager::alloc_listitems() {
   return allocated_chunk->location;
 }
 
-VirMemFlags VirMemManager::get_current_flags(addr_t location) {
+VirMemFlags VirMemManager::get_current_flags(const addr_t location) const {
   uint64_t pgstruct_entry;
   VirMemFlags flags = 0;
   
@@ -82,7 +107,7 @@ VirMemFlags VirMemManager::get_current_flags(addr_t location) {
   return flags;
 }
 
-void VirMemManager::map_kernel(PhyMemMap* phy_mmap) {
+void VirMemManager::map_kernel(const PhyMemMap* phy_mmap) {
   PhyMemMap *current_phyitem;
   VirMemMap *free_mem, *kernel_item, *previous_item, *new_freemem, *initial_freemem, *trashed_item;
   extern char knl_rx_start, knl_rx_end;
@@ -123,7 +148,7 @@ void VirMemManager::map_kernel(PhyMemMap* phy_mmap) {
     
     //Locate the segment in physical memory map
     phy_addr = get_target(segments[current_sgt]);
-    current_phyitem = phy_mmap;
+    current_phyitem = (PhyMemMap*) phy_mmap;
     while(current_phyitem) {
       if(current_phyitem->location == phy_addr) break;
       current_phyitem = current_phyitem->next_mapitem;
@@ -184,7 +209,12 @@ void VirMemManager::map_kernel(PhyMemMap* phy_mmap) {
   }
 }
 
-void update_kernel_mmap() {
+void VirMemManager::update_kernel_mmap() {
+  bool map_has_changed = false;
+  unsigned int new_items_required;
+  PhyMemMap* current_phyitem;
+  VirMemMap* current_viritem;
+  
   //How it works :
   //
   //1-Check if there is a difference between the current physical and virtual memory maps (apart from kernel segments).
@@ -192,8 +222,9 @@ void update_kernel_mmap() {
   //2-Determine if allocation is necessary. If so, allocate the required amount of items + n where n is the amount of physical
   //  pages potentially created by the allocation process.
   //3-Apply changes.
-  //
-  //TODO : Code a variant of alloc_mapitems() where the user can specify the amount of memory map items requested.
+  
+  current_phyitem = phymem->dump_mmap();
+  current_viritem = map_list->map_pointer;
 }
 
 VirMemManager::VirMemManager(PhyMemManager& physmem) {
@@ -313,7 +344,7 @@ VirMemManager::VirMemManager(PhyMemManager& physmem) {
   }
 }
 
-VirMemMap* VirMemManager::map_chunk(PhyMemMap* phys_chunk, VirMemFlags flags, PID target) {
+VirMemMap* VirMemManager::map_chunk(const PhyMemMap* phys_chunk, const VirMemFlags flags, const PID target) {
   VirMapList* list_item = map_list;
   
   if(target == PID_KERNEL) update_kernel_mmap();

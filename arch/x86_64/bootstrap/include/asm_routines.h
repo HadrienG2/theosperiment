@@ -25,8 +25,8 @@
 /* Check for CPUID availability and returns a boolean value */
 int cpuid_check();
 /* Enables long mode (more precisely the 32-bit subset of it, called compatibility mode) */
-int enable_longmode(uint32_t cr3_value);
+int enable_longmode(const uint32_t cr3_value);
 /* Run the kernel */
-int run_kernel(uint32_t kernel_entry, KernelInformation* kinfo);
+int run_kernel(const uint32_t kernel_entry, const KernelInformation* kinfo);
 
 #endif

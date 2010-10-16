@@ -44,10 +44,13 @@ void clear_screen() {
   cursor_row = 0;
 }
 
-void clear_rect(unsigned int left, unsigned int top, unsigned int right, unsigned int bottom) {
+void clear_rect(const unsigned int left, const unsigned int top, const unsigned int right, const unsigned int bottom) {
   unsigned int x, y;
   int videoram_index;
-  unsigned int eff_left = left, eff_top = top, eff_right = right, eff_bottom = bottom;
+  unsigned int eff_left = (unsigned int) left,
+               eff_top = (unsigned int) top,
+               eff_right = (unsigned int) right,
+               eff_bottom = (unsigned int) bottom;
   
   //Make sure that left,right,top,bottom are valid coordinates.
   if(left >= number_of_cols) eff_left = number_of_cols-1;
@@ -377,17 +380,19 @@ void print_uint32(const uint32_t integer) {
   print_str(buff);
 } */
 
-void scroll(int offset) {
+void scroll(const int offset) {
   #ifdef DEBUG
     __asm__ volatile ("xchg %bx, %bx");
     clear_screen();
-    offset = 0;
+    //The folliwing is used just to skip the "unused parameter" kind of error message
+    int a = offset;
+    a = 0;
   #else
     unsigned int x, y;
     unsigned int target_index, source_index, absolute_offset;
     
     if(offset>=0) {
-      absolute_offset = offset;
+      absolute_offset = (unsigned int) offset;
       // Scrolling more lines than screen height is useless,
       // In that case clearing the screen is just as effective
       if(absolute_offset > number_of_rows) {
@@ -415,7 +420,7 @@ void scroll(int offset) {
         }
       }
     } else {
-      absolute_offset = -offset;
+      absolute_offset = (unsigned int) -offset;
       //Same as above, but downwards
       // Scrolling more lines than screen height is useless,
       // In that case clearing the screen is just as effective

@@ -69,7 +69,7 @@ class InterruptManager {
   private:
     IDTe IDT[IDT_LENGTH]; //Our IDT
     uint16_t knlCS; //The kernel code segment
-    void setup_handler(uint8_t vector, void* handler); //Setup a handler for a specific interrupt
+    void setup_handler(const uint8_t vector, const void* handler); //Setup a handler for a specific interrupt
   public:
     //Part which is common to all interrupt managers
     InterruptManager(); //Generates an empty interrupt table

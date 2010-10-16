@@ -26,13 +26,16 @@
 //Path to the kernel
 const char* KERNEL_NAME="/system/kernel.bin";
 
-void load_kernel(KernelInformation* kinfo, KernelMemoryMap* kernel, Elf64_Ehdr* main_header, uint32_t cr3_value) {
+void load_kernel(KernelInformation* kinfo,
+                 const KernelMemoryMap* kernel,
+                 const Elf64_Ehdr* main_header,
+                 const uint32_t cr3_value) {
   unsigned int i, size;
   uint64_t load_addr, current_offset, flags;
   void *source, *dest;
   char* mmap_name;
   //The program header table
-  Elf64_Phdr* phdr_table = (Elf64_Phdr*) (uint32_t) (kernel->location + main_header->e_phoff);
+  const Elf64_Phdr* phdr_table = (const Elf64_Phdr*) (uint32_t) (kernel->location + main_header->e_phoff);
   
   /* Locate program segments and load them in memory */
   for(i=0; i<main_header->e_phnum; ++i) {
@@ -89,9 +92,9 @@ void load_kernel(KernelInformation* kinfo, KernelMemoryMap* kernel, Elf64_Ehdr* 
   }
 }
 
-KernelMemoryMap* locate_kernel(KernelInformation* kinfo) {
+const KernelMemoryMap* locate_kernel(const KernelInformation* kinfo) {
   unsigned int i;
-  KernelMemoryMap* kmmap = (KernelMemoryMap*) (uint32_t) kinfo->kmmap;
+  const KernelMemoryMap* kmmap = (const KernelMemoryMap*) (uint32_t) kinfo->kmmap;
   for(i=0; i<kinfo->kmmap_size; ++i) {
     if(!strcmp((char*) (uint32_t) kmmap[i].name, KERNEL_NAME)) {
       return &(kmmap[i]);
@@ -102,8 +105,8 @@ KernelMemoryMap* locate_kernel(KernelInformation* kinfo) {
   return 0; //This is totally useless, but GCC will issue a warning if it's not present
 }
 
-Elf64_Ehdr* read_kernel_headers(KernelMemoryMap* kernel) {
-  Elf64_Ehdr *header = (Elf64_Ehdr*) ((uint32_t) kernel->location);
+const Elf64_Ehdr* read_kernel_headers(const KernelMemoryMap* kernel) {
+  const Elf64_Ehdr *header = (const Elf64_Ehdr*) ((uint32_t) kernel->location);
   
   /* e_ident fields checks : Kernel must
       -Be a valid elf64 file compliant to the current standard

@@ -39,8 +39,14 @@ struct DebugRect {
   int starty;
   int endx;
   int endy;
-  DebugRect() : startx(0), starty(0), endx(0), endy(0) {}
-  DebugRect(int x1, int y1, int x2, int y2) : startx(min(x1,x2)), starty(min(y1,y2)), endx(max(x1,x2)), endy(max(y1,y2)) {};
+  DebugRect() : startx(0),
+                starty(0),
+                endx(0),
+                endy(0) {}
+  DebugRect(const int x1, const int y1, const int x2, const int y2) : startx(min(x1,x2)),
+                                                                      starty(min(y1,y2)),
+                                                                      endx(max(x1,x2)),
+                                                                      endy(max(y1,y2)) {};
 };
 
 //A window is basically a rectangle with an optional border
@@ -53,9 +59,21 @@ struct DebugWindow : DebugRect {
   int endy;
   //New things
   DebugWindowBorder border;
-  DebugWindow() : startx(0), starty(0), endx(0), endy(0), border(NONE) {}
-  DebugWindow(DebugRect rect, DebugWindowBorder init_border) : startx(rect.startx), starty(rect.starty), endx(rect.endx), endy(rect.endy), border(init_border) {};
-  DebugWindow(int x1, int y1, int x2, int y2, DebugWindowBorder init_border) : startx(min(x1,x2)), starty(min(y1,y2)), endx(max(x1,x2)), endy(max(y1,y2)), border(init_border) {};
+  DebugWindow() : startx(0),
+                  starty(0),
+                  endx(0),
+                  endy(0),
+                  border(NONE) {}
+  DebugWindow(const DebugRect rect, const DebugWindowBorder init_border) : startx(rect.startx),
+                                                                           starty(rect.starty),
+                                                                           endx(rect.endx),
+                                                                           endy(rect.endy),
+                                                                           border(init_border) {};
+  DebugWindow(const int x1, const int y1, const int x2, const int y2, const DebugWindowBorder init_border) : startx(min(x1,x2)),
+                                                                                                             starty(min(y1,y2)),
+                                                                                                             endx(max(x1,x2)),
+                                                                                                             endy(max(y1,y2)),
+                                                                                                             border(init_border) {};
 };
 
 //*******************************************************
@@ -75,7 +93,7 @@ extern const char BOR_SINGLE[8];
 extern const char BOR_DOUBLE[8];
 extern const char BOR_THICK[8];
 extern const char BOR_BLOCK[8];
-const char* border_array(DebugWindowBorder border); //Find which array you want
+const char* border_array(const DebugWindowBorder border); //Find which array you want
 
 //Other litteral constants
 #define endl '\n'

@@ -67,7 +67,7 @@ addr_t PhyMemManager::alloc_storage_space() {
 }
 
 
-PhyMemMap* PhyMemManager::chunk_allocator(PhyMemMap* map_used, PID initial_owner, addr_t size) {
+PhyMemMap* PhyMemManager::chunk_allocator(PhyMemMap* map_used, const PID initial_owner, const addr_t size) {
   addr_t remaining_freemem = 0, to_be_allocd = 0;
   PhyMemMap *free_mem = NULL, *current_item, *previous_item, *result;
   
@@ -204,13 +204,13 @@ PhyMemMap* PhyMemManager::chunk_liberator(PhyMemMap* chunk) {
   return chunk;
 }
 
-PhyMemMap* PhyMemManager::chunk_owneradd(PhyMemMap* chunk, PID new_owner) {
+PhyMemMap* PhyMemManager::chunk_owneradd(PhyMemMap* chunk, const PID new_owner) {
   chunk->add_owner(new_owner);
   
   return chunk;
 }
 
-PhyMemMap* PhyMemManager::chunk_ownerdel(PhyMemMap* chunk, PID former_owner) {
+PhyMemMap* PhyMemManager::chunk_ownerdel(PhyMemMap* chunk, const PID former_owner) {
   chunk->del_owner(former_owner);
   if(chunk->has_owner(PID_NOBODY)) chunk_liberator(chunk);
   
@@ -233,7 +233,7 @@ PhyMemMap* PhyMemManager::merge_with_next(PhyMemMap* first_item) {
 }
 
 
-PhyMemMap* PhyMemManager::page_allocator(PhyMemMap* map_used, PID initial_owner) {
+PhyMemMap* PhyMemManager::page_allocator(PhyMemMap* map_used, const PID initial_owner) {
   addr_t remaining_freemem;
   PhyMemMap *allocated_mem, *free_mem = NULL;
 
@@ -280,7 +280,7 @@ PhyMemMap* PhyMemManager::page_allocator(PhyMemMap* map_used, PID initial_owner)
 }
 
 
-PhyMemManager::PhyMemManager(KernelInformation& kinfo) {
+PhyMemManager::PhyMemManager(const KernelInformation& kinfo) {
   //This function...
   //  1/Determines the amount of memory necessary to store the management structures
   //  2/Find this amount of free space in the memory map
@@ -291,7 +291,7 @@ PhyMemManager::PhyMemManager(KernelInformation& kinfo) {
   
   addr_t phymmap_location, phymmap_size, current_location, next_location;
   unsigned int index, storage_index, remaining_space; //Remaining space in the allocated chunk
-  KernelMemoryMap* kmmap = kinfo.kmmap;
+  const KernelMemoryMap* kmmap = kinfo.kmmap;
   PhyMemMap *current_item, *last_free = NULL;
   
   //We'll allocate the maximum amount of memory that we can possibly need.
@@ -457,7 +457,7 @@ PhyMemManager::PhyMemManager(KernelInformation& kinfo) {
 }
 
 
-PhyMemMap* PhyMemManager::alloc_chunk(PID initial_owner, addr_t size) {
+PhyMemMap* PhyMemManager::alloc_chunk(const PID initial_owner, const addr_t size) {
   PhyMemMap* result;
   
   mmap_mutex.grab_spin();
@@ -469,7 +469,7 @@ PhyMemMap* PhyMemManager::alloc_chunk(PID initial_owner, addr_t size) {
 }
 
 
-PhyMemMap* PhyMemManager::alloc_page(PID initial_owner) {
+PhyMemMap* PhyMemManager::alloc_page(const PID initial_owner) {
   PhyMemMap* result;
 
   mmap_mutex.grab_spin();
@@ -493,7 +493,7 @@ PhyMemMap* PhyMemManager::free(PhyMemMap* chunk) {
   return result;
 }
 
-PhyMemMap* PhyMemManager::owneradd(PhyMemMap* chunk, PID new_owner) {
+PhyMemMap* PhyMemManager::owneradd(PhyMemMap* chunk, const PID new_owner) {
   PhyMemMap *result;
   
   mmap_mutex.grab_spin();
@@ -506,7 +506,7 @@ PhyMemMap* PhyMemManager::owneradd(PhyMemMap* chunk, PID new_owner) {
 }
 
   
-PhyMemMap* PhyMemManager::ownerdel(PhyMemMap* chunk, PID former_owner) {
+PhyMemMap* PhyMemManager::ownerdel(PhyMemMap* chunk, const PID former_owner) {
   PhyMemMap *result;
   
   mmap_mutex.grab_spin();
@@ -518,7 +518,7 @@ PhyMemMap* PhyMemManager::ownerdel(PhyMemMap* chunk, PID former_owner) {
   return result;
 }
 
-PhyMemMap* PhyMemManager::alloc_lowchunk(PID initial_owner, addr_t size) {
+PhyMemMap* PhyMemManager::alloc_lowchunk(const PID initial_owner, const addr_t size) {
   PhyMemMap *result, *lowmem_end = phy_mmap;
   
   mmap_mutex.grab_spin();
@@ -538,7 +538,7 @@ PhyMemMap* PhyMemManager::alloc_lowchunk(PID initial_owner, addr_t size) {
 }
 
 
-PhyMemMap* PhyMemManager::alloc_lowpage(PID initial_owner) {
+PhyMemMap* PhyMemManager::alloc_lowpage(const PID initial_owner) {
   PhyMemMap *result, *lowmem_end = phy_mmap;
   
   mmap_mutex.grab_spin();

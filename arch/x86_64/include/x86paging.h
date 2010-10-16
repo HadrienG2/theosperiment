@@ -41,8 +41,8 @@ typedef uint64_t pml4e; //PML4 entry
 #define PTABLE_LENGTH   512     //Size of a table/directory/... in entries
 #define PENTRY_SIZE     8       //Size of a paging structure entry in bytes
 
-uint64_t find_lowestpaging(uint64_t vaddr); //Find the lowest level of paging structures associated with a linear address, if it exists.
-uint64_t get_target(uint64_t vaddr); //Get the physical memory address associated with a virtual address (if it does exist).
+uint64_t find_lowestpaging(const uint64_t vaddr); //Find the lowest level of paging structures associated with a linear address, if it exists.
+uint64_t get_target(const uint64_t vaddr); //Get the physical memory address associated with a virtual address (if it does exist).
 uint64_t get_pml4t(); //Return address of the current PML4T
 
 #endif

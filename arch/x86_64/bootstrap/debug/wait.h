@@ -21,6 +21,6 @@
 
 /* Wait a bit (factor is a multiplier, to make things slower)
    Negative factor means wait forever. Use with caution ! */
-void dbg_wait(int factor);
+void dbg_wait(const int factor);
 
 #endif

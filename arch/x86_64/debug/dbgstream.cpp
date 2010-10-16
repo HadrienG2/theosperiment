@@ -19,16 +19,16 @@
 #include "dbgstream.h"
 
 //A rectangle of the size of the screen
-DebugRect screen_rect(0, 0, NUMBER_OF_COLS-1, NUMBER_OF_ROWS-1);
+const DebugRect screen_rect(0, 0, NUMBER_OF_COLS-1, NUMBER_OF_ROWS-1);
 //Various windows
-DebugWindow bottom_oneline_win(0,NUMBER_OF_ROWS-1,NUMBER_OF_COLS-1,NUMBER_OF_ROWS-1,SINGLE);
-DebugWindow bottom_fivelines_win(0,NUMBER_OF_ROWS-5,NUMBER_OF_COLS-1,NUMBER_OF_ROWS-1,SINGLE);
-DebugWindow bottom_fifteenlines_win(0,NUMBER_OF_ROWS-15,NUMBER_OF_COLS-1,NUMBER_OF_ROWS-1,SINGLE);
-DebugWindow top_oneline_win(0,0,NUMBER_OF_COLS-1,0,SINGLE);
-DebugWindow top_fivelines_win(0,0,NUMBER_OF_COLS-1,4,SINGLE);
-DebugWindow top_fifteenlines_win(0,0,NUMBER_OF_COLS-1,14,SINGLE);
-static DebugWindow topleftcorner_win(0,0,0,0,NONE); //The smallest possible window ;)
-DebugWindow screen_win(screen_rect, NONE);
+const DebugWindow bottom_oneline_win(0,NUMBER_OF_ROWS-1,NUMBER_OF_COLS-1,NUMBER_OF_ROWS-1,SINGLE);
+const DebugWindow bottom_fivelines_win(0,NUMBER_OF_ROWS-5,NUMBER_OF_COLS-1,NUMBER_OF_ROWS-1,SINGLE);
+const DebugWindow bottom_fifteenlines_win(0,NUMBER_OF_ROWS-15,NUMBER_OF_COLS-1,NUMBER_OF_ROWS-1,SINGLE);
+const DebugWindow top_oneline_win(0,0,NUMBER_OF_COLS-1,0,SINGLE);
+const DebugWindow top_fivelines_win(0,0,NUMBER_OF_COLS-1,4,SINGLE);
+const DebugWindow top_fifteenlines_win(0,0,NUMBER_OF_COLS-1,14,SINGLE);
+static const DebugWindow topleftcorner_win(0,0,0,0,NONE); //The smallest possible window ;)
+const DebugWindow screen_win(screen_rect, NONE);
 //"Standard" debugging output
 DebugOutput dbgout(bottom_fivelines_win);
 //Buffers
@@ -39,27 +39,27 @@ static DebugNumberBaseChanger numchg_buff;
 static DebugWindower windower_buff;
 static DebugZeroExtender extender_buff;
 
-DebugAttributeChanger& attrset(uint8_t attribute) {
-  attrchg_buff.new_attr = attribute;
+DebugAttributeChanger& attrset(const uint8_t attribute) {
+  attrchg_buff.new_attr = (uint8_t) attribute;
   attrchg_buff.mask = 0xff;
   return attrchg_buff;
 }
 
-DebugAttributeChanger& blink(bool blink_status) {
+DebugAttributeChanger& blink(const bool blink_status) {
   if(blink_status) attrchg_buff.new_attr = TXT_BLINK;
   else attrchg_buff.new_attr = 0;
   attrchg_buff.mask = TXT_BLINK;
   return attrchg_buff;
 }
 
-DebugAttributeChanger& bkgcolor(uint8_t attribute) {
-  attrchg_buff.new_attr = attribute;
+DebugAttributeChanger& bkgcolor(const uint8_t attribute) {
+  attrchg_buff.new_attr = (uint8_t) attribute;
   attrchg_buff.mask = 0x70;
   return attrchg_buff;
 }
 
-DebugAttributeChanger& txtcolor(uint8_t attribute) {
-  attrchg_buff.new_attr = attribute;
+DebugAttributeChanger& txtcolor(const uint8_t attribute) {
+  attrchg_buff.new_attr = (uint8_t) attribute;
   attrchg_buff.mask = 0x0f;
   return attrchg_buff;
 }
@@ -68,45 +68,27 @@ DebugBreakpoint& bp() {
   return bp_buff;
 }
 
-DebugBreakpoint& bp_streg(uint64_t rax) {
-  bp_buff.rax = rax;
+DebugBreakpoint& bp_streg(const uint64_t rax, const uint64_t rbx, const uint64_t rcx, const uint64_t rdx) {
+  bp_buff.rax = (uint64_t) rax;
+  bp_buff.rbx = (uint64_t) rbx;
+  bp_buff.rcx = (uint64_t) rcx;
+  bp_buff.rdx = (uint64_t) rdx;
   return bp_buff;
 }
 
-DebugBreakpoint& bp_streg(uint64_t rax, uint64_t rbx) {
-  bp_buff.rax = rax;
-  bp_buff.rbx = rbx;
-  return bp_buff;
-}
-
-DebugBreakpoint& bp_streg(uint64_t rax, uint64_t rbx, uint64_t rcx) {
-  bp_buff.rax = rax;
-  bp_buff.rbx = rbx;
-  bp_buff.rcx = rcx;
-  return bp_buff;
-}
-
-DebugBreakpoint& bp_streg(uint64_t rax, uint64_t rbx, uint64_t rcx, uint64_t rdx) {
-  bp_buff.rax = rax;
-  bp_buff.rbx = rbx;
-  bp_buff.rcx = rcx;
-  bp_buff.rdx = rdx;
-  return bp_buff;
-}
-
-DebugCursorMover& movxy(unsigned int x, unsigned int y) {
+DebugCursorMover& movxy(const unsigned int x, const unsigned int y) {
   cursmov_buff.type = ABSOLUTE;
-  cursmov_buff.col_off = x;
-  cursmov_buff.row_off = y;
+  cursmov_buff.col_off = (unsigned int) x;
+  cursmov_buff.row_off = (unsigned int) y;
   return cursmov_buff;
 }
 
-DebugNumberBaseChanger& numberbase(DebugNumberBase new_base) {
-  numchg_buff.new_base = new_base;
+DebugNumberBaseChanger& numberbase(const DebugNumberBase new_base) {
+  numchg_buff.new_base = (DebugNumberBase) new_base;
   return numchg_buff;
 }
 
-DebugWindower& set_window(DebugWindow window) {
+DebugWindower& set_window(const DebugWindow window) {
   windower_buff.window.startx = min(max(0, min(window.startx, window.endx)), NUMBER_OF_COLS-1);
   windower_buff.window.starty = min(max(0, min(window.starty, window.endy)), NUMBER_OF_COLS-1);
   windower_buff.window.endx = min(max(0, max(window.startx, window.endx)), NUMBER_OF_COLS-1);
@@ -115,12 +97,12 @@ DebugWindower& set_window(DebugWindow window) {
   return windower_buff;
 }
 
-DebugZeroExtender& zero_extending(bool zeroext_status) {
-  extender_buff.zero_extend = zeroext_status;
+DebugZeroExtender& zero_extending(const bool zeroext_status) {
+  extender_buff.zero_extend = (bool) zeroext_status;
   return extender_buff;
 }
 
-DebugOutput::DebugOutput(DebugWindow& using_window):
+DebugOutput::DebugOutput(const DebugWindow& using_window):
   attribute(TXT_LIGHTGRAY),
   buffer((char*) 0xb8000),
   col(0),
@@ -130,10 +112,10 @@ DebugOutput::DebugOutput(DebugWindow& using_window):
   window(topleftcorner_win),
   zero_extend(0)
 {
-  *this << set_window(using_window);
+  *this << set_window((DebugWindow) using_window);
 }
 
-void DebugOutput::clear_border(DebugWindow window) {
+void DebugOutput::clear_border(const DebugWindow window) {
   DebugRect border_line;
 
   if(window.border) {
@@ -176,7 +158,7 @@ void DebugOutput::clear_border(DebugWindow window) {
   }
 }
 
-void DebugOutput::clear_oldwindow(DebugWindow old_window, DebugWindow new_window) {
+void DebugOutput::clear_oldwindow(const DebugWindow old_window, const DebugWindow new_window) {
   DebugRect rect;
   uint8_t overlap = 0, horz_overlap = 0, vert_overlap = 0;
 
@@ -226,7 +208,7 @@ void DebugOutput::clear_oldwindow(DebugWindow old_window, DebugWindow new_window
   }
 }
 
-void DebugOutput::clear_rect(DebugRect rect) {
+void DebugOutput::clear_rect(const DebugRect rect) {
   int col, row, offset;
   
   for(row=rect.starty; row <= rect.endy; ++row) {
@@ -238,10 +220,10 @@ void DebugOutput::clear_rect(DebugRect rect) {
   }
 }
 
-void DebugOutput::copy_rect(DebugRect rect, int dest_col, int dest_row) {
+void DebugOutput::copy_rect(const DebugRect rect, const int dest_col, const int dest_row) {
   int off_col, off_row, source_offset, dest_offset;
-  int col_length = rect.endx-rect.startx+1;
-  int row_length = rect.endy-rect.starty+1;
+  const int col_length = rect.endx-rect.startx+1;
+  const int row_length = rect.endy-rect.starty+1;
 
   if((dest_row<rect.starty) || ((dest_col<rect.startx) && (dest_row==rect.starty))) {
     //Fill destination region row by row, from top to bottom
@@ -278,7 +260,7 @@ void DebugOutput::copy_rect(DebugRect rect, int dest_col, int dest_row) {
   }
 }
 
-void DebugOutput::fill_border(DebugWindow window) {
+void DebugOutput::fill_border(const DebugWindow window) {
   DebugRect border_line;
   const char* border_characters = border_array(window.border);
   int offset;
@@ -343,7 +325,7 @@ void DebugOutput::fill_border(DebugWindow window) {
   }
 }
 
-void DebugOutput::fill_rect(DebugRect rect, char character) {
+void DebugOutput::fill_rect(const DebugRect rect, const char character) {
   int col, row, offset;
   
   for(row=rect.starty; row <= rect.endy; ++row) {
@@ -355,7 +337,7 @@ void DebugOutput::fill_rect(DebugRect rect, char character) {
   }
 }
 
-void DebugOutput::scroll(int amount) {
+void DebugOutput::scroll(const int amount) {
   if(amount < window.endy-window.starty+1) {
     DebugRect rect(window.startx, window.starty+amount, window.endx, window.endy);
     copy_rect(rect, window.startx, window.starty);
@@ -367,14 +349,14 @@ void DebugOutput::scroll(int amount) {
   }
 }
 
-DebugOutput& DebugOutput::operator<<(bool input) {
+DebugOutput& DebugOutput::operator<<(const bool input) {
   if(input) *this << "true";
   else *this << "false";
   
   return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(char input) {
+DebugOutput& DebugOutput::operator<<(const char input) {
   unsigned int offset;
   
   if(input!=0 && input!='\n' && input!='\t') { //Some characters are not printed
@@ -417,20 +399,20 @@ DebugOutput& DebugOutput::operator<<(const char* input) {
   return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(int64_t input) {
+DebugOutput& DebugOutput::operator<<(const int64_t input) {
   uint64_t absolute_value;
   
   if(input<0 && number_base==DECIMAL) {
-    absolute_value = -input;
+    absolute_value = (int64_t) -input;
     *this << '-' << absolute_value;
   } else {
-    absolute_value = input;
+    absolute_value = (int64_t) input;
     *this << absolute_value;
   }
   return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(uint64_t input) {
+DebugOutput& DebugOutput::operator<<(const uint64_t input) {
   static char buffer_reverse[64];
   static char buffer_direct[67];
   uint64_t tmp;
@@ -502,7 +484,7 @@ DebugOutput& DebugOutput::operator<<(uint64_t input) {
   return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(KernelInformation& input) {
+DebugOutput& DebugOutput::operator<<(const KernelInformation& input) {
   unsigned int index;
   DebugNumberBase tmp = number_base;
   
@@ -516,7 +498,7 @@ DebugOutput& DebugOutput::operator<<(KernelInformation& input) {
   return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(KernelMemoryMap& input) {
+DebugOutput& DebugOutput::operator<<(const KernelMemoryMap& input) {
   bool tmp_zeroext = zero_extend;
   
   *this << zero_extending(true);
@@ -541,9 +523,9 @@ DebugOutput& DebugOutput::operator<<(KernelMemoryMap& input) {
   return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(PhyMemMap& input) {
+DebugOutput& DebugOutput::operator<<(const PhyMemMap& input) {
   bool tmp_zeroext = zero_extend;
-  PhyMemMap* map = &input;
+  PhyMemMap* map = (PhyMemMap*) &input;
   DebugNumberBase tmp = number_base;
 
   *this << zero_extending(true);
@@ -573,9 +555,9 @@ DebugOutput& DebugOutput::operator<<(PhyMemMap& input) {
   return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(VirMemMap& input) {
+DebugOutput& DebugOutput::operator<<(const VirMemMap& input) {
   bool tmp_zeroext = zero_extend;
-  VirMemMap* map = &input;
+  VirMemMap* map = (VirMemMap*) &input;
   DebugNumberBase tmp = number_base;
 
   *this << zero_extending(true);
@@ -616,14 +598,14 @@ DebugOutput& DebugOutput::operator<<(VirMemMap& input) {
   return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(DebugAttributeChanger& manipulator) {
+DebugOutput& DebugOutput::operator<<(const DebugAttributeChanger& manipulator) {
   uint8_t final_attr = manipulator.new_attr & manipulator.mask;
   final_attr += attribute & ~(manipulator.mask);
   attribute = final_attr;
   return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(DebugCursorMover& manipulator) {
+DebugOutput& DebugOutput::operator<<(const DebugCursorMover& manipulator) {
   switch(manipulator.type) {
     case ABSOLUTE:
       col=manipulator.col_off;
@@ -637,7 +619,7 @@ DebugOutput& DebugOutput::operator<<(DebugCursorMover& manipulator) {
   return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(DebugBreakpoint& manipulator) {
+DebugOutput& DebugOutput::operator<<(const DebugBreakpoint& manipulator) {
   __asm__ volatile ("mov %0, %%rax; mov %1, %%rbx; mov %2, %%rcx; mov %3, %%rdx; xchg %%bx, %%bx"
                    :
                    :"m" (manipulator.rax), "m" (manipulator.rbx), "m" (manipulator.rcx), "m" (manipulator.rdx)
@@ -645,12 +627,12 @@ DebugOutput& DebugOutput::operator<<(DebugBreakpoint& manipulator) {
   return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(DebugNumberBaseChanger& manipulator) {
+DebugOutput& DebugOutput::operator<<(const DebugNumberBaseChanger& manipulator) {
   number_base = manipulator.new_base;
   return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(DebugWindower& manipulator) { 
+DebugOutput& DebugOutput::operator<<(const DebugWindower& manipulator) { 
   int col_size, row_size;
   
   //Erase old border (if any)

@@ -64,7 +64,7 @@ struct mpconfig_proc_entry {
 } __attribute__((packed));
 
 mp_floating_ptr* find_fptr(); //Finds the floating pointer, if it exists, otherwise returns 0
-uint8_t fptr_check(uint32_t location); //Check if there's a valid floating pointer at this location
-mp_config_table_hdr* mpconfig_check(mp_floating_ptr* floating_ptr); //Check MP configuration table.
+uint8_t fptr_check(const uint32_t location); //Check if there's a valid floating pointer at this location
+mp_config_table_hdr* mpconfig_check(const mp_floating_ptr* floating_ptr); //Check MP configuration table.
 
 #endif

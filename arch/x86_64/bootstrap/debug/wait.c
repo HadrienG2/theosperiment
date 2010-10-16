@@ -18,7 +18,7 @@
 
 #include "wait.h"
 
-void dbg_wait(int factor) {
+void dbg_wait(const int factor) {
   int j;
   
   if(factor>0) {

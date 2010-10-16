@@ -20,7 +20,7 @@
 #include <x86paging.h>
 #include <x86asm.h>
 
-uint64_t find_lowestpaging(uint64_t vaddr) {
+uint64_t find_lowestpaging(const uint64_t vaddr) {
   uint64_t cr3, tmp, pt_index, pd_index, pdpt_index, pml4_index;
   pml4e* pml4;
   pdp* pdpt;
@@ -60,7 +60,7 @@ uint64_t find_lowestpaging(uint64_t vaddr) {
   return (uint64_t) pt[pt_index];
 }
 
-uint64_t get_target(uint64_t vaddr) {
+uint64_t get_target(const uint64_t vaddr) {
   uint64_t cr3, tmp, pt_index, pd_index, pdpt_index, pml4_index;
   pml4e* pml4;
   pdp* pdpt;

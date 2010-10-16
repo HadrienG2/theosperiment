@@ -36,7 +36,7 @@ PIDs& PIDs::operator=(const PIDs& source) {
   return *this;
 }
 
-int PIDs::add_pid(PID new_pid) {
+int PIDs::add_pid(const PID new_pid) {
   if(!current_pid) {
     current_pid = new_pid;
     return 0;
@@ -51,7 +51,7 @@ void PIDs::clear_pids() {
   //We do not have memory allocation at the moment, so this ends here
 }
 
-void PIDs::del_pid(PID old_pid) {
+void PIDs::del_pid(const PID old_pid) {
   if(current_pid == old_pid) {
     current_pid = PID_NOBODY;
   } else {
@@ -59,10 +59,41 @@ void PIDs::del_pid(PID old_pid) {
   }
 }
 
-bool PIDs::has_pid(PID the_pid) {
+bool PIDs::has_pid(const PID the_pid) const {
   if(current_pid == the_pid) {
     return 1;
   } else {
     return 0; //We do not have memory allocation at the moment
   }
+}
+
+bool PIDs::operator==(const PIDs& param) const {
+  PIDs *source, *dest;
+  //This function compares two lists of PIDs, checking if each element of one is present in the other.
+  //(in a *very* inefficient way algorithmically-speaking, but sharing should never occur between more than
+  //~10 processes)
+  
+  source = (PIDs*) this;
+  while(source) {
+    dest = (PIDs*) &param;
+    while(dest) {
+      if(dest->current_pid == source->current_pid) break;
+      dest = dest->next_pid;
+    }
+    if(!dest) return false;
+    source = source->next_pid;
+  }
+  
+  source = (PIDs*) &param;
+  while(source) {
+    dest = (PIDs*) this;
+    while(dest) {
+      if(dest->current_pid == source->current_pid) break;
+      dest = dest->next_pid;
+    }
+    if(!dest) return false;
+    source = source->next_pid;
+  }
+  
+  return true;
 }

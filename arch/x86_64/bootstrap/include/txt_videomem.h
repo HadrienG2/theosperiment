@@ -52,7 +52,7 @@
 //Fill the screen with blank spaces
 void clear_screen();
 //Fill a rectangle on screen with blank spaces
-void clear_rect(unsigned int left, unsigned int top, unsigned int right, unsigned int bottom);
+void clear_rect(const unsigned int left, const unsigned int top, const unsigned int right, const unsigned int bottom);
 //Init video memory (hides silly blinking cursor)
 void init_videomem();
 //Move the cursor to an absolute or relative position
@@ -74,7 +74,7 @@ void print_uint8(const uint8_t integer);
 void print_uint32(const uint32_t integer);
 //void print_uint64(const uint64_t integer); ==> Not supported as of GCC 4.5.0
 /* Scroll text from "offset" lines (positive offset means scroll upper) */
-void scroll(int offset);
+void scroll(const int offset);
 //Change text attributes
 void set_attr(const char new_attr);
 

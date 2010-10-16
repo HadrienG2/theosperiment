@@ -18,8 +18,17 @@
  
 #include <memory_support.h>
 
-PhyMemMap* PhyMemMap::find_thischunk(addr_t location) {
-  PhyMemMap* current_item = this;
+bool compare_virphy(const VirMemMap& vir, const PhyMemMap& phy) {
+  if(vir.location != phy.location) return false;
+  if(vir.size != phy.size) return false;
+  if(vir.owners != phy.owners) return false;
+  if(vir.points_to != &phy) return false;
+  
+  return true;
+}
+
+PhyMemMap* PhyMemMap::find_thischunk(const addr_t location) const {
+  PhyMemMap* current_item = (PhyMemMap*) this;
   if(current_item->location > location) return NULL;
   
   while(current_item) {
@@ -29,8 +38,8 @@ PhyMemMap* PhyMemMap::find_thischunk(addr_t location) {
   return current_item;
 }
 
-VirMemMap* VirMemMap::find_thischunk(addr_t location) {
-  VirMemMap* current_item = this;
+VirMemMap* VirMemMap::find_thischunk(const addr_t location) const {
+  VirMemMap* current_item = (VirMemMap*) this;
   if(current_item->location > location) return NULL;
   
   while(current_item) {

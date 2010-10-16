@@ -26,7 +26,7 @@
   use "clean" strings of known length and which are always zero-terminated */
 int strlen(const char* str);
 int strcmp(const char* str1, const char* str2);
-void* memcpy(void* destination, const void* source, unsigned int num);
-void* memset(void* ptr, int value, unsigned int num);
+void* memcpy(void* destination, const void* source, const unsigned int num);
+void* memset(void* ptr, int value, const unsigned int num);
 
 #endif
