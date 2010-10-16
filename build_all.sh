@@ -20,16 +20,20 @@
 
 #Flags
 Fdebug=1 #Set to 0 in order to disable debugging (compilation speedup, but Bochs slowdown)
-Fno_bs=1 #Set to 0 in order to rebuild the bootstrap code (compilation slowdown)
+Fbuild_bs=0 #Build the bootstrap code
+Fbuild_knl=1 #Build the micro-kernel
 
 #Cleanup
 echo "* Cleaning up..."
 sh cleanup_temp.sh
-if [ $Fno_bs -eq 0 ]
+if [ $Fbuild_bs -eq 1 ]
 then
   rm -f bin/bootstrap/*.o bin/bootstrap/*.bin bin/bootstrap/*.gz
 fi
-rm -f bin/kernel/*.o bin/kernel/*.bin
+if [ $Fbuild_knl -eq 1 ]
+then
+  rm -f bin/kernel/*.o bin/kernel/*.bin
+fi
 rm -f floppy.img
 
 #Compilation parameters definition
@@ -57,7 +61,7 @@ else
 fi
 
 #Bootstrap code compilation
-if [ $Fno_bs -eq 0 ]
+if [ $Fbuild_bs -eq 1 ]
 then
   echo \* Building bootstrap code...
   cd bin/bootstrap
@@ -80,21 +84,24 @@ then
 fi
 
 #Kernel compilation
-echo \* Building kernel...
-cd bin/kernel
-$AS ../../arch/x86_64/init/init_kernel.s -o init_kernel.o
-$CXX -c ../../arch/x86_64/interrupts/*.cpp $CXXFLAGS $INCLUDES
-$CXX -c ../../arch/x86_64/memory/*.cpp $CXXFLAGS $INCLUDES
-$CXX -c ../../arch/x86_64/synchronization/*.cpp $CXXFLAGS $INCLUDES
-$CXX -c ../../init/*.cpp $CXXFLAGS $INCLUDES
-$CXX -c ../../memory/*.cpp $CXXFLAGS $INCLUDES
-$CXX -c ../../process/*.cpp $CXXFLAGS $INCLUDES
-if [ $Fdebug -ne 0 ]
+if [ $Fbuild_knl -eq 1 ]
 then
-  $CXX -c ../../arch/x86_64/debug/*.cpp $CXXFLAGS $INCLUDES
+  echo \* Building kernel...
+  cd bin/kernel
+  $AS ../../arch/x86_64/init/init_kernel.s -o init_kernel.o
+  $CXX -c ../../arch/x86_64/interrupts/*.cpp $CXXFLAGS $INCLUDES
+  $CXX -c ../../arch/x86_64/memory/*.cpp $CXXFLAGS $INCLUDES
+  $CXX -c ../../arch/x86_64/synchronization/*.cpp $CXXFLAGS $INCLUDES
+  $CXX -c ../../init/*.cpp $CXXFLAGS $INCLUDES
+  $CXX -c ../../memory/*.cpp $CXXFLAGS $INCLUDES
+  $CXX -c ../../process/*.cpp $CXXFLAGS $INCLUDES
+  if [ $Fdebug -ne 0 ]
+  then
+    $CXX -c ../../arch/x86_64/debug/*.cpp $CXXFLAGS $INCLUDES
+  fi
+  $LD -T ../../support/kernel_linker.lds -o kernel.bin *.o $LFLAGS
+  cd ../..
 fi
-$LD -T ../../support/kernel_linker.lds -o kernel.bin *.o $LFLAGS
-cd ../..
 
 #Create a system floppy image
 echo \* Creating floppy image...

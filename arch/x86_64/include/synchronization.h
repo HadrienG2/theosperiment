@@ -25,7 +25,7 @@ class KernelSemaphore8 {
   protected:
     uint8_t availability;
   public:
-    KernelSemaphore8(uint8_t max_users) : availability(max_users) {}
+    KernelSemaphore8(const uint8_t max_users) : availability(max_users) {}
     bool grab_attempt(); //Attempt to grab the semaphore. Return true if successful.
     void grab_spin() {while(!grab_attempt());} //Wait for semaphore availability
     void release() {++availability;} //Release the semaphore
@@ -35,7 +35,7 @@ class KernelSemaphore32 {
   protected:
     uint32_t availability;
   public:
-    KernelSemaphore32(uint32_t max_users) : availability(max_users) {}
+    KernelSemaphore32(const uint32_t max_users) : availability(max_users) {}
     bool grab_attempt(); //Attempt to grab the semaphore. Return true if successful.
     void grab_spin() {while(!grab_attempt());} //Wait for semaphore availability
     void release() {++availability;} //Release the semaphore
@@ -45,7 +45,7 @@ class KernelSemaphore64 {
   protected:
     uint64_t availability;
   public:
-    KernelSemaphore64(uint64_t max_users) : availability(max_users) {}
+    KernelSemaphore64(const uint64_t max_users) : availability(max_users) {}
     bool grab_attempt(); //Attempt to grab the semaphore. Return true if successful.
     void grab_spin() {while(!grab_attempt());} //Wait for semaphore availability
     void release() {++availability;} //Release the semaphore

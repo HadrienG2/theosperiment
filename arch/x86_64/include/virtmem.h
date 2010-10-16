@@ -44,9 +44,10 @@ class VirMemManager {
     KernelMutex maplist_mutex;
     //Support methods
     addr_t alloc_mapitems(); //Get some memory map storage space
+    addr_t alloc_mapitems(const unsigned int amount); //Same as before, but allocates at least "amount" map items
     addr_t alloc_listitems(); //Get some map list storage space
-    VirMemFlags get_current_flags(addr_t location); //Returns the current flags associated with a memory location
-    void map_kernel(PhyMemMap* phy_mmap); //Maps the kernel's RX, R, and RW segments in the memory map
+    VirMemFlags get_current_flags(const addr_t location) const; //Returns the current flags associated with a memory location
+    void map_kernel(const PhyMemMap* phy_mmap); //Maps the kernel's RX, R, and RW segments in the memory map
     void update_kernel_mmap(); //This brings physical memory manager and virtual memory manager back on sync and should
                                //be called each time the kernel's virtual address space is to be accessed
   public:
@@ -54,11 +55,11 @@ class VirMemManager {
     VirMemManager(PhyMemManager& physmem);
     
     //Map a non-contiguous chunk of physical memory as a contiguous chunk of the target's virtual memory
-    VirMemMap* map_chunk(PhyMemMap* phys_chunk, VirMemFlags flags, PID target);
+    VirMemMap* map_chunk(const PhyMemMap* phys_chunk, const VirMemFlags flags, const PID target);
     //Destroy a chunk of virtual memory and merge it with its neighbours, put that region back on RW privileges
-    VirMemMap* free(VirMemMap* chunk, PID process);
+    VirMemMap* free(VirMemMap* chunk, const PID process);
     //Change a chunk's flags (including in page tables, of course)
-    VirMemMap* set_flags(VirMemMap* chunk, VirMemFlags flags);
+    VirMemMap* set_flags(VirMemMap* chunk, const VirMemFlags flags);
 };
 
 #endif

@@ -37,7 +37,7 @@ int strcmp(const char* str1, const char* str2) {
   else return -1;
 }
 
-void* memcpy(void* destination, const void* source, unsigned int num) {
+void* memcpy(void* destination, const void* source, const unsigned int num) {
   unsigned int i;
   char *dest = (char*) destination, *sourc = (char*) source;
   
@@ -48,7 +48,7 @@ void* memcpy(void* destination, const void* source, unsigned int num) {
   return destination;
 }
 
-void* memset(void* ptr, int value, unsigned int num) {
+void* memset(void* ptr, int value, const unsigned int num) {
   unsigned int i;
   char* dest = (char*) ptr;
   char val;

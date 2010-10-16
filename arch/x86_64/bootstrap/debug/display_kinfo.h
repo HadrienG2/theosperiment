@@ -22,8 +22,8 @@
 #include <bs_kernel_information.h>
 
 //Display contents of the kernel information structure
-void dbg_print_kinfo(KernelInformation* kinfo);
+void dbg_print_kinfo(const KernelInformation* kinfo);
 //Display contents of the kernel memory map
-void dbg_print_kmmap(KernelInformation* kinfo);
+void dbg_print_kmmap(const KernelInformation* kinfo);
 
 #endif

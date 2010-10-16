@@ -22,10 +22,10 @@
 #include <multiboot.h>
  
 //Print the map of drives provided by GRUB
-void dbg_print_drvmap(multiboot_info_t* mbd);
+void dbg_print_drvmap(const multiboot_info_t* mbd);
 //Describes multiboot flags info, with one line of text per flag.
-void dbg_print_mbflags(multiboot_info_t* mbd);
+void dbg_print_mbflags(const multiboot_info_t* mbd);
 //Prints the map of memory provided by GRUB
-void dbg_print_mmap(multiboot_info_t* mbd);
+void dbg_print_mmap(const multiboot_info_t* mbd);
 
 #endif

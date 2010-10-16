@@ -47,30 +47,30 @@ class PhyMemManager {
     KernelMutex mmap_mutex;
     //Support methods used by public methods
     addr_t alloc_storage_space(); //Get some memory map storage space
-    PhyMemMap* chunk_allocator(PhyMemMap* map_used, PID initial_owner, addr_t size); //Allocate a chunk of memory of pre-defined size
+    PhyMemMap* chunk_allocator(PhyMemMap* map_used, const PID initial_owner, const addr_t size); //Allocate a chunk of memory of pre-defined size
     PhyMemMap* chunk_liberator(PhyMemMap* chunk); 
-    PhyMemMap* chunk_owneradd(PhyMemMap* chunk, PID new_owner); //Add an owner to a chunk (for sharing purposes)
-    PhyMemMap* chunk_ownerdel(PhyMemMap* chunk, PID former_owner); //Remove a chunk owner
+    PhyMemMap* chunk_owneradd(PhyMemMap* chunk, const PID new_owner); //Add an owner to a chunk (for sharing purposes)
+    PhyMemMap* chunk_ownerdel(PhyMemMap* chunk, const PID former_owner); //Remove a chunk owner
     PhyMemMap* merge_with_next(PhyMemMap* first_item);
-    PhyMemMap* page_allocator(PhyMemMap* map_used, PID initial_owner);
+    PhyMemMap* page_allocator(PhyMemMap* map_used, const PID initial_owner);
   public:
-    PhyMemManager(KernelInformation& kinfo);
+    PhyMemManager(const KernelInformation& kinfo);
     //Page/chunk allocation and freeing functions
-    PhyMemMap* alloc_chunk(PID initial_owner, addr_t size);
-    PhyMemMap* alloc_page(PID initial_owner);
+    PhyMemMap* alloc_chunk(const PID initial_owner, const addr_t size);
+    PhyMemMap* alloc_page(const PID initial_owner);
     PhyMemMap* free(PhyMemMap* chunk);
     
     //Sharing functions
-    PhyMemMap* owneradd(PhyMemMap* chunk, PID new_owner);
-    PhyMemMap* ownerdel(PhyMemMap* chunk, PID former_owner);
+    PhyMemMap* owneradd(PhyMemMap* chunk, const PID new_owner);
+    PhyMemMap* ownerdel(PhyMemMap* chunk, const PID former_owner);
     
     //x86_64-specific methods
-    PhyMemMap* alloc_lowchunk(PID initial_owner, addr_t size); //Allocate a chunk of low memory
-    PhyMemMap* alloc_lowpage(PID initial_owner); //Allocate a page of low memory
+    PhyMemMap* alloc_lowchunk(const PID initial_owner, const addr_t size); //Allocate a chunk of low memory
+    PhyMemMap* alloc_lowpage(const PID initial_owner); //Allocate a page of low memory
     
     //Internal methods. Should be protected, but C++'s brain-deadness when it comes to circular
     //header inclusion doesn't allow this.
-    PhyMemMap* dump_mmap() {return phy_mmap;}
+    PhyMemMap* dump_mmap() const {return phy_mmap;}
     
     //Debug methods. Those will go out someday, so don't use them either.
     void print_highmmap();

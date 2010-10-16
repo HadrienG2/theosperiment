@@ -25,39 +25,49 @@
 
 //Add BIOS memory map information to the kernel memory map
 //Returns pointer to memory map if successful, 0 otherwise
-KernelMemoryMap* add_bios_mmap(KernelMemoryMap* kmmap_buffer, unsigned int *index_ptr, multiboot_info_t* mbd);
+KernelMemoryMap* add_bios_mmap(KernelMemoryMap* kmmap_buffer, unsigned int *index_ptr, const multiboot_info_t* mbd);
 //Adds info about the bootstrap kernel to the kernel memory map
-KernelMemoryMap* add_bskernel(KernelMemoryMap* kmmap_buffer, unsigned int *index_ptr, multiboot_info_t* mbd);
+KernelMemoryMap* add_bskernel(KernelMemoryMap* kmmap_buffer, unsigned int *index_ptr, const multiboot_info_t* mbd);
 //Add interesting parts of multiboot information structures to the kernel memory map
-KernelMemoryMap* add_mbdata(KernelMemoryMap* kmmap_buffer, unsigned int *index_ptr, multiboot_info_t* mbd);
+KernelMemoryMap* add_mbdata(KernelMemoryMap* kmmap_buffer, unsigned int *index_ptr, const multiboot_info_t* mbd);
 //Add modules-related memory map information to the kernel memory map
-KernelMemoryMap* add_modules(KernelMemoryMap* kmmap_buffer, unsigned int *index_ptr, multiboot_info_t* mbd);
+KernelMemoryMap* add_modules(KernelMemoryMap* kmmap_buffer, unsigned int *index_ptr, const multiboot_info_t* mbd);
 //Duplicate part of a memory map structure in another.
-KernelMemoryMap* copy_memory_map_chunk(KernelMemoryMap* source, KernelMemoryMap* dest, unsigned int start, unsigned int length);
+KernelMemoryMap* copy_memory_map_chunk(const KernelMemoryMap* source,
+                                       KernelMemoryMap* dest,
+                                       const unsigned int start,
+                                       const unsigned int length);
 //Copy an element between two memory map structures.
-KernelMemoryMap* copy_memory_map_elt(KernelMemoryMap* source, KernelMemoryMap* dest, unsigned int source_index, unsigned int dest_index);
+KernelMemoryMap* copy_memory_map_elt(const KernelMemoryMap* source,
+                                     KernelMemoryMap* dest,
+                                     const unsigned int source_index,
+                                     const unsigned int dest_index);
 //Find a chunk of free high mem space of at least the specified size.
-KernelMemoryMap* find_freemem(KernelInformation* kinfo, uint64_t minimal_size);
+KernelMemoryMap* find_freemem(const KernelInformation* kinfo, const uint64_t minimal_size);
 //Same as above, but with page alignment taken into account
-KernelMemoryMap* find_freemem_pgalign(KernelInformation* kinfo, uint64_t minimal_size);
+KernelMemoryMap* find_freemem_pgalign(const KernelInformation* kinfo, const uint64_t minimal_size);
 //Gathers information about the CPU and checks CPU capabilities
 KernelCPUInfo* generate_cpu_info(KernelInformation* kinfo);
 //Generates a detailed map of the memory.
-KernelMemoryMap* generate_memory_map(multiboot_info_t* mbd, KernelInformation* kinfo);
+KernelMemoryMap* generate_memory_map(const multiboot_info_t* mbd, KernelInformation* kinfo);
 //Generate info related to multiprocessing.
 KernelCPUInfo* generate_multiprocessing_info(KernelInformation* kinfo);
 
 
 //Generate a kernel information structure (see KernelInformation.h)
-KernelInformation* kinfo_gen(multiboot_info_t* mbd);
+KernelInformation* kinfo_gen(const multiboot_info_t* mbd);
 //Add an element of specified location, size, nature, and name to the memory map.
-void kmmap_add(KernelInformation* kinfo, uint64_t location, uint64_t size, uint8_t nature, const char* name);
+void kmmap_add(KernelInformation* kinfo,
+               const uint64_t location,
+               const uint64_t size,
+               const uint8_t nature,
+               const char* name);
 //Allocate a chunk of free high mem space of the specified size, nature, and name
-uint64_t kmmap_alloc(KernelInformation* kinfo, uint64_t size, uint8_t nature, const char* name);
+uint64_t kmmap_alloc(KernelInformation* kinfo, const uint64_t size, const uint8_t nature, const char* name);
 //Same as above, but with page aligment taken into account
-uint64_t kmmap_alloc_pgalign(KernelInformation* kinfo, uint64_t size, uint8_t nature, const char* name);
+uint64_t kmmap_alloc_pgalign(KernelInformation* kinfo, const uint64_t size, const uint8_t nature, const char* name);
 //Return the amount of physical memory
-uint64_t kmmap_mem_amount(KernelInformation* kinfo);
+uint64_t kmmap_mem_amount(const KernelInformation* kinfo);
 //Update the memory map so that it follows latest changes
 void kmmap_update(KernelInformation* kinfo);
 

@@ -28,7 +28,7 @@ const PID PID_KERNEL = 1;
 class PIDs {
   private:
     PID current_pid;
-    PID* next_pid;
+    PIDs* next_pid;
     void copy_from(const PIDs& source); //Make this PIDs a copy of source
     void free_members(); //Free all dynamically allocated data of this PIDs structure
   public:
@@ -42,11 +42,14 @@ class PIDs {
     PIDs(const PIDs& source) {copy_from(source);}
     PIDs& operator=(const PIDs& source);
     //Other useful functions
-    int add_pid(PID new_pid); //Returns 0 if successful, 1 if it already exists
+    int add_pid(const PID new_pid); //Returns 0 if successful, 1 if it already exists
                               //a negative error code in case of allocation failure
     void clear_pids();
-    void del_pid(PID old_pid);
-    bool has_pid(PID the_pid);
+    void del_pid(const PID old_pid);
+    bool has_pid(const PID the_pid) const;
+    //Comparison of PIDs
+    bool operator==(const PIDs& param) const;
+    bool operator!=(const PIDs& param) const {return !(*this==param);}
 } __attribute__((packed));
 
 #endif

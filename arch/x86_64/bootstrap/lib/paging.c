@@ -27,7 +27,7 @@ const char* PAGE_DIR_NAME = "Kernel page directories";
 const char* PDPT_NAME = "Kernel page directory pointers";
 const char* PML4T_NAME = "Kernel PML4T";
 
-int find_map_region_privileges(KernelMemoryMap* map_region) {
+int find_map_region_privileges(const KernelMemoryMap* map_region) {
   //Free and reserved segments are considered as RW-
   if(map_region->nature <= NATURE_RES) return 2;
   //Bootstrap segments are considered as R-X
@@ -85,7 +85,9 @@ uint32_t generate_paging(KernelInformation* kinfo) {
   return cr3_value;
 }
 
-unsigned int make_identity_page_directory(unsigned int location, unsigned int pt_location, unsigned int pt_length) {
+unsigned int make_identity_page_directory(const unsigned int location,
+                                          const unsigned int pt_location,
+                                          const unsigned int pt_length) {
   pde* page_directory = (pde*) location;
   pde pde_entry_buffer = PBIT_PRESENT+PBIT_WRITABLE+pt_location;
   uint64_t current_directory;
@@ -101,9 +103,9 @@ unsigned int make_identity_page_directory(unsigned int location, unsigned int pt
   return PENTRY_SIZE*current_directory;
 }
 
-unsigned int make_identity_page_table(unsigned int location, KernelInformation* kinfo) {
+unsigned int make_identity_page_table(const unsigned int location, const KernelInformation* kinfo) {
   unsigned int current_mmap_index = 0;
-  KernelMemoryMap* kmmap = (KernelMemoryMap*) (uint32_t) kinfo->kmmap;
+  const KernelMemoryMap* kmmap = (const KernelMemoryMap*) (uint32_t) kinfo->kmmap;
   uint64_t current_page, current_region_end = kmmap[0].location + kmmap[0].size;
   uint64_t memory_amount = kmmap_mem_amount(kinfo);
   
@@ -188,7 +190,7 @@ unsigned int make_identity_page_table(unsigned int location, KernelInformation* 
   return current_page*PENTRY_SIZE;
 }
 
-unsigned int make_identity_pdpt(unsigned int location, unsigned int pd_location, unsigned int pd_length) {
+unsigned int make_identity_pdpt(const unsigned int location, const unsigned int pd_location, const unsigned int pd_length) {
   pdpe* pdpt = (pdpe*) location;
   pdpe pdpe_entry_buffer = PBIT_PRESENT+PBIT_WRITABLE+pd_location;
   uint64_t current_dp;
@@ -202,7 +204,7 @@ unsigned int make_identity_pdpt(unsigned int location, unsigned int pd_location,
   return PENTRY_SIZE*current_dp;
 }
 
-unsigned int make_identity_pml4t(unsigned int location, unsigned int pdpt_location, unsigned int pdpt_length) {
+unsigned int make_identity_pml4t(const unsigned int location, const unsigned int pdpt_location, const unsigned int pdpt_length) {
   pml4e* pml4t = (pml4e*) location;
   pml4e pml4e_entry_buffer = PBIT_PRESENT+PBIT_WRITABLE+pdpt_location;
   uint64_t current_ml4e;
@@ -216,7 +218,7 @@ unsigned int make_identity_pml4t(unsigned int location, unsigned int pdpt_locati
   return PENTRY_SIZE*current_ml4e;
 }
 
-void protect_stack(uint32_t pt_location) {
+void protect_stack(const uint32_t pt_location) {
   pte* page_table = (pte*) pt_location;
   extern char begin_stack;
   extern char end_stack;
@@ -227,7 +229,11 @@ void protect_stack(uint32_t pt_location) {
   if(page_table[end_pg]&PBIT_PRESENT) page_table[end_pg]-=PBIT_PRESENT;
 }
 
-void setup_pagetranslation(KernelInformation* kinfo, uint32_t cr3_value, uint64_t virt_addr, uint64_t phys_addr, uint64_t flags) {
+void setup_pagetranslation(KernelInformation* kinfo,
+                           const uint32_t cr3_value,
+                           const uint64_t virt_addr,
+                           const uint64_t phys_addr,
+                           const uint64_t flags) {
   pml4e* pml4t;
   pdpe* pdpt;
   pde* page_dir;

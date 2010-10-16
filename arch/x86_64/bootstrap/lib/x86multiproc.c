@@ -75,7 +75,7 @@ mp_floating_ptr* find_fptr() {
   return floating_ptr;
 }
 
-uint8_t fptr_check(uint32_t location) {
+uint8_t fptr_check(const uint32_t location) {
   mp_floating_ptr* floating_ptr = (mp_floating_ptr*) location;
   //Check floating pointer signature
   if(floating_ptr->signature[0]!='_') return 0;
@@ -97,7 +97,7 @@ uint8_t fptr_check(uint32_t location) {
   return 1;
 }
 
-mp_config_table_hdr* mpconfig_check(mp_floating_ptr* floating_ptr) {
+mp_config_table_hdr* mpconfig_check(const mp_floating_ptr* floating_ptr) {
   mp_config_table_hdr* config_hdr = (mp_config_table_hdr*) floating_ptr->phy_addr_ptr;
   //Check that MP configuration table is present
   if(!config_hdr) return 0;

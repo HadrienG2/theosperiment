@@ -32,7 +32,7 @@ InterruptManager::InterruptManager() {
   }
 }
 
-void InterruptManager::setup_handler(uint8_t vector, void* handler) {
+void InterruptManager::setup_handler(const uint8_t vector, const void* handler) {
   uint64_t address = (uint64_t) handler;
   
   //Remove old address

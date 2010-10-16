@@ -27,11 +27,8 @@ Copyright (C) 2010  Hadrien Grasland
 #include <paging.h>
 #include <txt_videomem.h>
 
-int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) { 
+int bootstrap_longmode(const multiboot_info_t* mbd, const uint32_t magic) { 
   KernelInformation* kinfo;
-  KernelMemoryMap* kernel_location;
-  Elf64_Ehdr *main_header;
-  uint32_t cr3_value;
   
   //Video memory initialization (for kernel silencing purposes)
   init_videomem();
@@ -58,15 +55,15 @@ int bootstrap_longmode(multiboot_info_t* mbd, uint32_t magic) {
   replace_sgt(kinfo);
 
   //Generate a page table
-  cr3_value = generate_paging(kinfo);
+  const uint32_t cr3_value = generate_paging(kinfo);
 
   //Switch to the 32-bit subset of longmode
   enable_longmode(cr3_value);
 
   //Locate the kernel in memory
-  kernel_location = locate_kernel(kinfo);
+  const KernelMemoryMap* kernel_location = locate_kernel(kinfo);
   //Get kernel headers
-  main_header = read_kernel_headers(kernel_location);
+  const Elf64_Ehdr* main_header = read_kernel_headers(kernel_location);
   //Load the kernel's ELF binary in memory
   load_kernel(kinfo, kernel_location, main_header, cr3_value);
   

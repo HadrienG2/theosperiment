@@ -20,7 +20,7 @@
 #include "txt_videomem.h"
 #include <stdint.h>
 
-void dbg_print_mbflags(multiboot_info_t* mbd) {
+void dbg_print_mbflags(const multiboot_info_t* mbd) {
     print_str("Here's what GRUB tells us :\n");
   
   if(mbd->flags & 1) {
@@ -102,7 +102,7 @@ void dbg_print_mbflags(multiboot_info_t* mbd) {
   else print_str("* We don't know about VBE graphics capabilities\n");
 }
 
-void dbg_print_mmap(multiboot_info_t* mbd) {
+void dbg_print_mmap(const multiboot_info_t* mbd) {
   int remaining_mmap;
   memory_map_t* current_mmap;
   uint32_t hack_current_mmap;
@@ -135,7 +135,7 @@ void dbg_print_mmap(multiboot_info_t* mbd) {
   } else print_str("No memory map found\n");
 }
 
-void dbg_print_drvmap(multiboot_info_t* mbd) {
+void dbg_print_drvmap(const multiboot_info_t* mbd) {
   uint32_t remaining_drvmap;
   drive_structure_t* current_drvmap;
   uint32_t hack_current_drvmap;

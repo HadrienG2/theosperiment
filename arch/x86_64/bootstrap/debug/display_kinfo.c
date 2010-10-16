@@ -19,7 +19,7 @@
 #include "display_kinfo.h"
 #include <txt_videomem.h>
  
-void dbg_print_kinfo(KernelInformation* kinfo) {
+void dbg_print_kinfo(const KernelInformation* kinfo) {
   if(kinfo) {
     StartupDriveInfo* sdr_info = (StartupDriveInfo*) (uint32_t) kinfo->arch_info.startup_drive;
     //Display command line
@@ -49,7 +49,7 @@ void dbg_print_kinfo(KernelInformation* kinfo) {
   }
 }
 
-void dbg_print_kmmap(KernelInformation* kinfo) {
+void dbg_print_kmmap(const KernelInformation* kinfo) {
   unsigned int i = 0;
   KernelMemoryMap* kmmap = (KernelMemoryMap*) (uint32_t) kinfo->kmmap;
   print_str("Address            | Size               | Type | Name\n");
