@@ -24,31 +24,37 @@
 class KernelSemaphore8 {
   protected:
     uint8_t availability;
+    uint8_t max_avl;
   public:
-    KernelSemaphore8(const uint8_t max_users) : availability(max_users) {}
+    KernelSemaphore8(const uint8_t max_users) : availability(max_users), max_avl(max_users) {}
     bool grab_attempt(); //Attempt to grab the semaphore. Return true if successful.
     void grab_spin() {while(!grab_attempt());} //Wait for semaphore availability
-    void release() {++availability;} //Release the semaphore
+    void release() {if(availability < max_avl) ++availability;} //Release the semaphore
+    uint8_t state() {return availability;}
 } __attribute__((packed));
 
 class KernelSemaphore32 {
   protected:
     uint32_t availability;
+    uint32_t max_avl;
   public:
-    KernelSemaphore32(const uint32_t max_users) : availability(max_users) {}
+    KernelSemaphore32(const uint32_t max_users) : availability(max_users), max_avl(max_users) {}
     bool grab_attempt(); //Attempt to grab the semaphore. Return true if successful.
     void grab_spin() {while(!grab_attempt());} //Wait for semaphore availability
-    void release() {++availability;} //Release the semaphore
+    void release() {if(availability < max_avl) ++availability;} //Release the semaphore
+    uint32_t state() {return availability;}
 } __attribute__((packed));
 
 class KernelSemaphore64 {
   protected:
     uint64_t availability;
+    uint64_t max_avl;
   public:
-    KernelSemaphore64(const uint64_t max_users) : availability(max_users) {}
+    KernelSemaphore64(const uint64_t max_users) : availability(max_users), max_avl(max_users) {}
     bool grab_attempt(); //Attempt to grab the semaphore. Return true if successful.
     void grab_spin() {while(!grab_attempt());} //Wait for semaphore availability
-    void release() {++availability;} //Release the semaphore
+    void release() {if(availability < max_avl) ++availability;} //Release the semaphore
+    uint64_t state() {return availability;}
 } __attribute__((packed));
 
 typedef KernelSemaphore64 KernelSemaphore;

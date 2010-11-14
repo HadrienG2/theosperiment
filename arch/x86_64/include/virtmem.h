@@ -41,15 +41,14 @@ class VirMemManager {
     VirMapList* map_list;
     VirMemMap* free_mapitems; //A collection of ready to use virtual memory map items forming a dummy chunk.
     VirMapList* free_listitems; //A collection of ready to use map list items forming a dummy list.
-    KernelMutex maplist_mutex;
+    KernelMutex maplist_mutex; //Hold that mutex when parsing the map list or adding/removing maps from it.
     //Support methods
     addr_t alloc_mapitems(); //Get some memory map storage space
-    addr_t alloc_mapitems(const unsigned int amount); //Same as before, but allocates at least "amount" map items
     addr_t alloc_listitems(); //Get some map list storage space
+    VirMemMap* chunk_mapper(const PhyMemMap* phys_chunk, const VirMemFlags flags, VirMapList* target);
+    VirMapList* find_or_create(PID target); //Find or create the map list entry associated to this PID
     VirMemFlags get_current_flags(const addr_t location) const; //Returns the current flags associated with a memory location
-    void map_kernel(const PhyMemMap* phy_mmap); //Maps the kernel's RX, R, and RW segments in the memory map
-    void update_kernel_mmap(); //This brings physical memory manager and virtual memory manager back on sync and should
-                               //be called each time the kernel's virtual address space is to be accessed
+    VirMapList* setup_pid(PID target); //Create management structures for a new PID
   public:
     //Constructor gets the current layout of paged memory, setup management structures
     VirMemManager(PhyMemManager& physmem);
@@ -60,6 +59,10 @@ class VirMemManager {
     VirMemMap* free(VirMemMap* chunk, const PID process);
     //Change a chunk's flags (including in page tables, of course)
     VirMemMap* set_flags(VirMemMap* chunk, const VirMemFlags flags);
+    
+    //Debug methods. Will go out in final release.
+    void print_maplist();
+    void print_mmap(PID owner);
 };
 
 #endif

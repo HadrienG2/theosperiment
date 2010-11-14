@@ -26,8 +26,6 @@
 typedef struct PhyMemMap PhyMemMap;
 typedef struct VirMemMap VirMemMap;
 
-bool compare_virphy(const VirMemMap& vir, const PhyMemMap& phy);
-
 //Represents an item in a map of the physical memory, managed as a chained list at the moment.
 //Size should be a divisor of 0x1000 (current size : 0x40) to ease the early allocation process.
 struct PhyMemMap {
@@ -51,11 +49,10 @@ struct PhyMemMap {
   void clear_owners() {owners.clear_pids();}
   void del_owner(const PID old_owner) {owners.del_pid(old_owner);}
   bool has_owner(const PID the_owner) const {return owners.has_pid(the_owner);}
-  //Algorithms finding things in the map
+  //Algorithms finding things in or about the map
+  PhyMemMap* find_freechunk(const addr_t size) const;
   PhyMemMap* find_thischunk(const addr_t location) const;
-  //Comparison between a PhyMemMap item and a VirMemMap item
-  bool operator==(const VirMemMap& param) const {return compare_virphy(param, *this);}
-  bool operator!=(const VirMemMap& param) const {return !compare_virphy(param, *this);}
+  unsigned int length() const;
 } __attribute__((packed));
 
 //The following flags are available when handling virtual memory
@@ -70,28 +67,21 @@ typedef uint32_t VirMemFlags;
 struct VirMemMap {
   addr_t location;
   addr_t size;
-  PIDs owners;
   VirMemFlags flags;
   PhyMemMap* points_to; //Physical memory chunk this virtual memory chunk points to
   VirMemMap* next_buddy;
   VirMemMap* next_mapitem;
-  uint64_t padding;
+  uint32_t padding;
+  uint64_t padding2;
+  uint64_t padding3;
   VirMemMap() : location(0),
                 size(0),
-                owners(PID_NOBODY),
                 flags(VMEM_FLAG_R + VMEM_FLAG_W),
                 next_buddy(NULL),
                 next_mapitem(NULL) {};
-  //This mirrors the member functions of "owners"
-  int add_owner(const PID new_owner) {return owners.add_pid(new_owner);}
-  void clear_owners() {owners.clear_pids();}
-  void del_owner(const PID old_owner) {owners.del_pid(old_owner);}
-  bool has_owner(const PID the_owner) const {return owners.has_pid(the_owner);}
-  //Algorithms finding things in the map
+  //Algorithms finding things in or about the map
   VirMemMap* find_thischunk(const addr_t location) const;
-  //Comparison between a PhyMemMap item and a VirMemMap item (all common items must be the same)
-  bool operator==(const PhyMemMap& param) const {return compare_virphy(*this, param);}
-  bool operator!=(const PhyMemMap& param) const {return !compare_virphy(*this, param);}
+  unsigned int length() const;
 } __attribute__((packed));
 
 //There is one map of virtual memory per process. Since there probably won't ever be more than
@@ -103,7 +93,7 @@ struct VirMapList {
   VirMemMap* map_pointer;
   VirMapList* next_item;
   uint64_t pml4t_location;
-  KernelMutex mmap_mutex;
+  KernelMutex mutex;
   uint8_t padding;
   uint16_t padding2;
   VirMapList() : map_owner(PID_NOBODY),

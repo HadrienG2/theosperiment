@@ -19,7 +19,7 @@
 #    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA
 
 #Flags
-Fdebug=1 #Set to 0 in order to disable debugging (compilation speedup, but Bochs slowdown)
+Fdebug=1 #Enable debug mode (access to various debugging features, like the debug stream)
 Fbuild_bs=0 #Build the bootstrap code
 Fbuild_knl=1 #Build the micro-kernel
 
@@ -46,12 +46,11 @@ LD=x86_64-elf-ld
 CFLAGS="-Wall -Wextra -Werror -nostdlib -nostartfiles -nodefaultlibs -fno-builtin -std=c99 -ffreestanding"
 CXXFLAGS="-Wall -Wextra -nostdlib -nostartfiles -nodefaultlibs -fno-builtin -fno-exceptions -fno-rtti -fno-stack-protector \
 -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow -std=c++98"
-LFLAGS="--warn-common --warn-once -zmax-page-size=0x1000" #Maximum page size usable by the kernel (4 KB at the moment).
+LFLAGS="-s --warn-common --warn-once -zmax-page-size=0x1000" #Maximum page size usable by the kernel (4 KB at the moment).
 INCLUDES="-I../../arch/x86_64/include/ -I../../include/ -I../../arch/x86_64/bootstrap/include"
 #Modification of parameters depending on debugging status
 if [ $Fdebug -eq 0 ]
 then
-  LFLAGS=$LFLAGS" -s"
   CFLAGS=$CFLAGS" -O3"
   CXXFLAGS=$CXXFLAGS" -O3"
 else
@@ -72,7 +71,7 @@ then
   $AS32 ../../arch/x86_64/bootstrap/lib/run_kernel.s -o run_kernel.o
   $CC32 -c ../../arch/x86_64/bootstrap/lib/*.c $CFLAGS $INCLUDES
   #Compiling debugging source files
-  if [ $Fdebug -ne 0 ]
+  if [ $Fdebug -eq 1 ]
   then
     $CC32 -c ../../arch/x86_64/bootstrap/debug/*.c $CFLAGS $INCLUDES
   fi
@@ -95,7 +94,7 @@ then
   $CXX -c ../../init/*.cpp $CXXFLAGS $INCLUDES
   $CXX -c ../../memory/*.cpp $CXXFLAGS $INCLUDES
   $CXX -c ../../process/*.cpp $CXXFLAGS $INCLUDES
-  if [ $Fdebug -ne 0 ]
+  if [ $Fdebug -eq 1 ]
   then
     $CXX -c ../../arch/x86_64/debug/*.cpp $CXXFLAGS $INCLUDES
   fi

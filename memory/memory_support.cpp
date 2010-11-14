@@ -18,13 +18,15 @@
  
 #include <memory_support.h>
 
-bool compare_virphy(const VirMemMap& vir, const PhyMemMap& phy) {
-  if(vir.location != phy.location) return false;
-  if(vir.size != phy.size) return false;
-  if(vir.owners != phy.owners) return false;
-  if(vir.points_to != &phy) return false;
+PhyMemMap* PhyMemMap::find_freechunk(const addr_t size) const {
+  PhyMemMap* current_item = (PhyMemMap*) this;
+  if(current_item->location > location) return NULL;
   
-  return true;
+  while(current_item) {
+    if((current_item->size >= size) && (current_item->has_owner(PID_NOBODY))) break;
+    current_item = current_item->next_mapitem;
+  }
+  return current_item;
 }
 
 PhyMemMap* PhyMemMap::find_thischunk(const addr_t location) const {
@@ -38,6 +40,17 @@ PhyMemMap* PhyMemMap::find_thischunk(const addr_t location) const {
   return current_item;
 }
 
+unsigned int PhyMemMap::length() const {
+  unsigned int result;
+  PhyMemMap* current_item = (PhyMemMap*) this;
+  
+  while(current_item) {
+    ++result;
+    current_item = current_item->next_mapitem;
+  }
+  return result;
+}
+
 VirMemMap* VirMemMap::find_thischunk(const addr_t location) const {
   VirMemMap* current_item = (VirMemMap*) this;
   if(current_item->location > location) return NULL;
@@ -47,4 +60,15 @@ VirMemMap* VirMemMap::find_thischunk(const addr_t location) const {
     current_item = current_item->next_mapitem;
   }
   return current_item;
+}
+
+unsigned int VirMemMap::length() const {
+  unsigned int result;
+  VirMemMap* current_item = (VirMemMap*) this;
+  
+  while(current_item) {
+    ++result;
+    current_item = current_item->next_mapitem;
+  }
+  return result;
 }
