@@ -555,6 +555,31 @@ DebugOutput& DebugOutput::operator<<(const PhyMemMap& input) {
   return *this;
 }
 
+DebugOutput& DebugOutput::operator<<(const VirMapList& input) {
+  VirMapList* list = (VirMapList*) &input;
+  bool tmp_zeroext = zero_extend;
+  DebugNumberBase tmp = number_base;
+
+  *this << zero_extending(true);
+  *this << numberbase(HEXADECIMAL) << endl;
+  *this << "PID                | Map location       | PML4T location   | Mutex" << endl;
+  *this << "-------------------+--------------------+------------------+-----------";
+  do {
+    *this << endl << list->map_owner << " | " << (uint64_t) list->map_pointer << " | ";
+    *this << list->pml4t_location << " | ";
+    if(list->mutex.state()) {
+      *this << "Available";
+    } else {
+      *this << "BUSY";
+    }
+    list = list->next_item;
+  } while(list);
+  if(!tmp_zeroext) *this << zero_extending(false);
+  *this << numberbase(tmp);
+
+  return *this;
+}
+
 DebugOutput& DebugOutput::operator<<(const VirMemMap& input) {
   bool tmp_zeroext = zero_extend;
   VirMemMap* map = (VirMemMap*) &input;
@@ -562,19 +587,10 @@ DebugOutput& DebugOutput::operator<<(const VirMemMap& input) {
 
   *this << zero_extending(true);
   *this << numberbase(HEXADECIMAL) << endl;
-  *this << "Location           | Size               | Own. | Perm | Target&Misc" << endl;
-  *this << "-------------------+--------------------+------+------+------------------------";
+  *this << "Location           | Size               | Perm | Target&Misc" << endl;
+  *this << "-------------------+--------------------+------+-------------------------------";
   do {
-    *this << endl << map->location << " | " << map->size;
-    if(map->has_owner(PID_KERNEL)) {
-      *this << " | KERN | ";
-    } else {
-      if(map->has_owner(PID_NOBODY)) {
-        *this << " | none | ";
-      } else {
-        *this << " | OTH.  | ";
-      }
-    }
+    *this << endl << map->location << " | " << map->size << " | ";
     if(map->flags & VMEM_FLAG_R) *this << 'R';
     else *this << '-';
     if(map->flags & VMEM_FLAG_W) *this << 'W';
@@ -595,6 +611,7 @@ DebugOutput& DebugOutput::operator<<(const VirMemMap& input) {
   } while(map);
   if(!tmp_zeroext) *this << zero_extending(false);
   *this << numberbase(tmp);
+  
   return *this;
 }
 

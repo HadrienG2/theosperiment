@@ -177,6 +177,7 @@ class DebugOutput {
     DebugOutput& operator<<(const KernelInformation& input); //Displays only the memory map atm
     DebugOutput& operator<<(const KernelMemoryMap& input);
     DebugOutput& operator<<(const PhyMemMap& input);
+    DebugOutput& operator<<(const VirMapList& input);
     DebugOutput& operator<<(const VirMemMap& input);
     //Manipulator functions
     DebugOutput& operator<<(const DebugAttributeChanger& manipulator);
