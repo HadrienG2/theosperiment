@@ -72,10 +72,6 @@ class PhyMemManager {
     PhyMemMap* alloc_lowcontigchunk(const PID initial_owner, const addr_t size);
     PhyMemMap* alloc_lowpage(const PID initial_owner); //Allocate a page of low memory
     
-    //Internal methods. Should be protected, but C++'s brain-deadness when it comes to circular
-    //header inclusion doesn't allow this.
-    PhyMemMap* dump_mmap() const {return phy_mmap;}
-    
     //Debug methods. Will go out in final release.
     void print_highmmap();
     void print_lowmmap();
