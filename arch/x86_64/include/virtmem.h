@@ -45,18 +45,20 @@ class VirMemManager {
     //Support methods
     addr_t alloc_mapitems(); //Get some memory map storage space
     addr_t alloc_listitems(); //Get some map list storage space
+    VirMemMap* chunk_liberator(VirMemMap* chunk, VirMapList* target);
     VirMemMap* chunk_mapper(const PhyMemMap* phys_chunk, const VirMemFlags flags, VirMapList* target);
-    VirMapList* find_or_create(PID target); //Find or create the map list entry associated to this PID
+    VirMapList* find_or_create_pid(PID target); //Same as below, but create the entry if it does not exist yet
+    VirMapList* find_pid(PID target);  //Find the map list entry associated to this PID
     VirMemFlags get_current_flags(const addr_t location) const; //Returns the current flags associated with a memory location
     VirMapList* setup_pid(PID target); //Create management structures for a new PID
   public:
     //Constructor gets the current layout of paged memory, setup management structures
     VirMemManager(PhyMemManager& physmem);
     
+    //Destroy a chunk of virtual memory
+    VirMemMap* free(VirMemMap* chunk, const PID target);
     //Map a non-contiguous chunk of physical memory as a contiguous chunk of the target's virtual memory
-    VirMemMap* map_chunk(const PhyMemMap* phys_chunk, const VirMemFlags flags, const PID target);
-    //Destroy a chunk of virtual memory and merge it with its neighbours, put that region back on RW privileges
-    VirMemMap* free(VirMemMap* chunk, const PID process);
+    VirMemMap* map(const PhyMemMap* phys_chunk, const VirMemFlags flags, const PID target);
     //Change a chunk's flags (including in page tables, of course)
     VirMemMap* set_flags(VirMemMap* chunk, const VirMemFlags flags);
     

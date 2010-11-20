@@ -21,7 +21,7 @@
 
 #include <hack_stdint.h>
 
-class KernelSemaphore8 {
+class KernelSemaphore8 { //A 8-bit semaphore
   protected:
     uint8_t availability;
     uint8_t max_avl;

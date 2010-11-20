@@ -551,7 +551,7 @@ DebugOutput& DebugOutput::operator<<(const PhyMemMap& input) {
     map = map->next_mapitem;
   } while(map);
   if(!tmp_zeroext) *this << zero_extending(false);
-  *this << numberbase(tmp);
+  *this << numberbase(tmp) << endl;
   return *this;
 }
 
@@ -562,8 +562,8 @@ DebugOutput& DebugOutput::operator<<(const VirMapList& input) {
 
   *this << zero_extending(true);
   *this << numberbase(HEXADECIMAL) << endl;
-  *this << "PID                | Map location       | PML4T location   | Mutex" << endl;
-  *this << "-------------------+--------------------+------------------+-----------";
+  *this << "PID                | Map location       | PML4T location     | Mutex" << endl;
+  *this << "-------------------+--------------------+--------------------+-----------------";
   do {
     *this << endl << list->map_owner << " | " << (uint64_t) list->map_pointer << " | ";
     *this << list->pml4t_location << " | ";
@@ -575,7 +575,7 @@ DebugOutput& DebugOutput::operator<<(const VirMapList& input) {
     list = list->next_item;
   } while(list);
   if(!tmp_zeroext) *this << zero_extending(false);
-  *this << numberbase(tmp);
+  *this << numberbase(tmp) << endl;
 
   return *this;
 }
@@ -610,7 +610,7 @@ DebugOutput& DebugOutput::operator<<(const VirMemMap& input) {
     map = map->next_mapitem;
   } while(map);
   if(!tmp_zeroext) *this << zero_extending(false);
-  *this << numberbase(tmp);
+  *this << numberbase(tmp) << endl;
   
   return *this;
 }

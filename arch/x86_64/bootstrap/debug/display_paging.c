@@ -34,6 +34,7 @@ void dbg_print_pd(const uint32_t location) {
   for(table_index=0; table_index<PD_SIZE; ++table_index) {
     //For each table element, print address, isolated as before
     current_el = pd[table_index];
+    if(current_el == 0) continue;
     address = current_el - (current_el & mask);
     print_hex64(address);
     print_str(" | ");
@@ -79,6 +80,7 @@ void dbg_print_pdpt(const uint32_t location) {
   for(table_index=0; table_index<PDPT_SIZE; ++table_index) {
     //For each table element, print address, isolated as before
     current_el = pdpt[table_index];
+    if(current_el == 0) continue;
     address = current_el - (current_el & mask);
     print_hex64(address);
     print_str(" | ");
@@ -125,6 +127,7 @@ void dbg_print_pml4t(const uint32_t cr3_value) {
   for(table_index=0; table_index<PML4T_SIZE; ++table_index) {
     //For each table element, print address, isolated as before
     current_el = pml4t[table_index];
+    if(current_el == 0) continue;
     address = current_el - (current_el & mask);
     print_hex64(address);
     print_str(" | ");
@@ -167,6 +170,7 @@ void dbg_print_pt(const uint32_t location) {
   for(table_index=0; table_index<PT_SIZE; ++table_index) {
     //For each table element, print address, isolated as before
     current_el = pt[table_index];
+    if(current_el == 0) continue;
     address = current_el - (current_el & mask);
     print_hex64(address);
     print_str(" | ");
