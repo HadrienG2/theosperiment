@@ -18,6 +18,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
  
 #include <align.h>
+#include <kmaths.h>
 #include <virtmem.h>
 #include <x86paging.h>
 
@@ -76,20 +77,28 @@ VirMemMap* VirMemManager::chunk_liberator(VirMemMap* chunk, VirMapList* target) 
     next_item = current_item->next_buddy;
     
     //Remove item from the map
-    current_mapitem = target->map_pointer;
-    while(current_mapitem->next_mapitem) {
-      if(current_mapitem->next_mapitem == current_item) break;
-      current_mapitem = current_mapitem->next_mapitem;
+    if(target->map_pointer == current_item) {
+      target->map_pointer = current_item->next_mapitem;
+    } else {
+      current_mapitem = target->map_pointer;
+      while(current_mapitem->next_mapitem) {
+        if(current_mapitem->next_mapitem == current_item) break;
+        current_mapitem = current_mapitem->next_mapitem;
+      }
+      if(current_mapitem->next_mapitem) current_mapitem->next_mapitem = current_mapitem->next_mapitem->next_mapitem;
     }
-    if(current_mapitem->next_mapitem) current_mapitem->next_mapitem = current_mapitem->next_mapitem->next_mapitem;
     
-    //TODO : Manage impact on paging structures : liberate what can be liberated, delete page table entries
+    //Manage impact on paging structures : liberate what can be liberated, delete page table entries
+    remove_paging(current_item->location, current_item->size, target->pml4t_location);
     
     *current_item = VirMemMap();
     current_item->next_buddy = free_mapitems;
     free_mapitems = current_item;
     current_item = next_item;
   }
+  
+  //Check if this PID's address space is empty, if so delete it.
+  if(target->map_pointer == NULL) remove_pid(target->map_owner);
   
   return chunk;
 }
@@ -99,7 +108,7 @@ VirMemMap* VirMemManager::chunk_mapper(const PhyMemMap* phys_chunk, const VirMem
   // -To map that chunk of physical memory in the virtual memory map of the target.
   // -To put it in its virtual address space, too.
   
-  addr_t total_size = 0;
+  addr_t total_size, offset, tmp;
   VirMemMap *result, *map_parser, *last_item;
   PhyMemMap *chunk_parser;
   
@@ -116,6 +125,7 @@ VirMemMap* VirMemManager::chunk_mapper(const PhyMemMap* phys_chunk, const VirMem
   
   //Find virtual chunk size
   chunk_parser = (PhyMemMap*) phys_chunk;
+  total_size = 0;
   while(chunk_parser) {
     total_size+= chunk_parser->size;
     chunk_parser = chunk_parser->next_buddy;
@@ -133,7 +143,7 @@ VirMemMap* VirMemManager::chunk_mapper(const PhyMemMap* phys_chunk, const VirMem
       target->map_pointer = result;
     } else {
       last_item = target->map_pointer;
-      map_parser = last_item->next_mapitem;
+      map_parser = target->map_pointer->next_mapitem;
       while(map_parser) {
         if(map_parser->location-last_item->location-last_item->size >= total_size) {
           result->location = map_parser->location-total_size;
@@ -151,8 +161,26 @@ VirMemMap* VirMemManager::chunk_mapper(const PhyMemMap* phys_chunk, const VirMem
     }
   }
   
-  //TODO : Now, commit changes to the paging structures.
+  //Allocate paging structures
   //If allocation fails, don't forget to restore the map into a clean state before returning NULL.
+  tmp = setup_4kpages(result->location, result->size, target->pml4t_location);
+  if(!tmp) {
+    chunk_liberator(result, target);
+    return NULL;
+  }
+  
+  //Fill those structures we just allocated
+  chunk_parser = (PhyMemMap*) phys_chunk;
+  offset = 0;
+  while(chunk_parser) {
+    x86paging::fill_4kpaging(chunk_parser->location,
+                             result->location+offset,
+                             chunk_parser->size,
+                             x86flags(result->flags),
+                             target->pml4t_location);
+    offset+= chunk_parser->size;
+    chunk_parser = chunk_parser->next_buddy;
+  }
   
   return result;
 }
@@ -185,17 +213,84 @@ VirMapList* VirMemManager::find_pid(PID target) {
   return list_item;
 }
 
-VirMemFlags VirMemManager::get_current_flags(const addr_t location) const {
-  uint64_t pgstruct_entry;
-  VirMemFlags flags = 0;
+addr_t VirMemManager::setup_4kpages(addr_t vir_addr, const addr_t length, addr_t pml4t_location) {
+  using namespace x86paging;
   
-  pgstruct_entry = x86paging::find_lowestpaging(location);
-  if(pgstruct_entry) {
-    if(pgstruct_entry & PBIT_PRESENT) flags|= VMEM_FLAG_P + VMEM_FLAG_R;
-    if(pgstruct_entry & PBIT_WRITABLE) flags|= VMEM_FLAG_R + VMEM_FLAG_W;
-    if(!(pgstruct_entry & PBIT_NOEXECUTE)) flags|= VMEM_FLAG_X;
+  pml4e* pml4t = (pml4e*) pml4t_location;
+  pdp* pdpt;
+  pde* pd;
+  addr_t tmp;
+  int pd_index, pdpt_index, pml4t_index;
+  int pd_len, pdpt_len, pml4t_len;
+  PhyMemMap* allocd_data;
+  
+  //Determine where the virtual address is located in the paging structures
+  tmp = vir_addr/(0x1000*PTABLE_LENGTH);
+  pd_index = tmp%PTABLE_LENGTH;
+  tmp/= PTABLE_LENGTH;
+  pdpt_index = tmp%PTABLE_LENGTH;
+  tmp/= PTABLE_LENGTH;
+  pml4t_index = tmp%PTABLE_LENGTH;
+  
+  //Determine on how much paging structures the vmem block spreads
+  tmp = (addr_t) align_up(length, 0x1000)/0x1000; //In pages
+  tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In page tables
+  const int first_pd_len = min(tmp, PTABLE_LENGTH-pd_index);
+  const int last_pd_len = (tmp-first_pd_len)%PTABLE_LENGTH;
+  tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In page directories
+  const int first_pdpt_len = min(tmp, PTABLE_LENGTH-pdpt_index);
+  const int last_pdpt_len = (tmp-first_pdpt_len)%PTABLE_LENGTH;
+  tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In PDPTs
+  pml4t_len = tmp%(PTABLE_LENGTH-pml4t_index);
+  
+  //Allocate paging structures
+  for(int pml4t_parser = 0; pml4t_parser < pml4t_len; ++pml4t_parser) { //PML4T level : allocate PDPTs, parse them to allocate PDs
+    //Make sure the PDPT exists
+    if(!pml4t[pml4t_index+pml4t_parser]) {
+      allocd_data = phymem->alloc_page(PID_KERNEL);
+      if(!allocd_data) return NULL;
+      pml4t[pml4t_index+pml4t_parser] = allocd_data->location + PBIT_PRESENT + PBIT_WRITABLE + PBIT_USERACCESS;
+    }
+    pdpt = (pdp*) (pml4t[pml4t_index+pml4t_parser] & 0x000ffffffffff000);
+    
+    //Know which of its entries we're going to parse
+    if(pml4t_parser == 0) pdpt_len = first_pdpt_len;
+    if(pml4t_parser == 1) {
+      pdpt_index = 0; //pdpt_index is only valid for the first PDPT we consider.
+      pdpt_len = PTABLE_LENGTH; //The others are browsed from the beginning to the end...
+    }
+    if(pml4t_parser == pml4t_len-1) pdpt_len = last_pdpt_len; //...except for the last one.
+    
+    //Parse it
+    for(int pdpt_parser = 0; pdpt_parser < pdpt_len; ++pdpt_parser) { //PDPT level : allocate PDs, parse them to allocate PTs
+      //Make sure the PD exists
+      if(!pdpt[pdpt_index+pdpt_parser]) {
+        allocd_data = phymem->alloc_page(PID_KERNEL);
+        if(!allocd_data) return NULL;
+        pdpt[pdpt_index+pdpt_parser] = allocd_data->location + PBIT_PRESENT + PBIT_WRITABLE + PBIT_USERACCESS;
+      }
+      pd = (pde*) (pdpt[pdpt_index+pdpt_parser] & 0x000ffffffffff000);
+      
+      //Know which of its entries we're going to parse
+      if(pml4t_parser == 0 && pdpt_parser == 0) pd_len = first_pd_len;
+      if(pml4t_parser == 0 && pdpt_parser == 1) {
+        pd_index = 0; //pd_index is only valid for the very first PD we consider.
+        pd_len = PTABLE_LENGTH; //The others are browsed from the beginning to the end...
+      }
+      if(pml4t_parser == pml4t_len-1 && pdpt_parser == pdpt_len-1) pd_len = last_pd_len; //...except for the last one.
+      
+      //Parse it
+      for(int pd_parser = 0; pd_parser < pd_len; ++pd_parser) { //PD level : allocate page tables
+        if(!pd[pd_index+pd_parser]) {
+          allocd_data = phymem->alloc_page(PID_KERNEL);
+          if(!allocd_data) return NULL;
+          pd[pd_index+pd_parser] = allocd_data->location + PBIT_PRESENT + PBIT_WRITABLE + PBIT_USERACCESS;
+        }
+      }
+    }
   }
-  return flags;
+  
+  return pml4t_location;
 }
 
 VirMapList* VirMemManager::setup_pid(PID target) {
@@ -221,6 +316,150 @@ VirMapList* VirMemManager::setup_pid(PID target) {
   return result;
 }
 
+addr_t VirMemManager::remove_paging(addr_t vir_addr, const addr_t length, addr_t pml4t_location) {
+  using namespace x86paging;
+  
+  pml4e* pml4t = (pml4e*) pml4t_location;
+  pdp* pdpt;
+  pde* pd;
+  pte* pt;
+  addr_t tmp;
+  int pt_index, pd_index, pdpt_index, pml4t_index;
+  int pt_len, pd_len, pdpt_len, pml4t_len;
+  
+  //Determine where the virtual address is located in the paging structures
+  tmp = vir_addr/0x1000;
+  pt_index = tmp%PTABLE_LENGTH;
+  tmp/= PTABLE_LENGTH;
+  pd_index = tmp%PTABLE_LENGTH;
+  tmp/= PTABLE_LENGTH;
+  pdpt_index = tmp%PTABLE_LENGTH;
+  tmp/= PTABLE_LENGTH;
+  pml4t_index = tmp%PTABLE_LENGTH;
+  
+  //Determine on how much paging structures the vmem block spreads
+  tmp = (addr_t) align_up(length, 0x1000)/0x1000; //In pages
+  const int first_pt_len = min(tmp, PTABLE_LENGTH-pt_index);
+  const int last_pt_len = (tmp-first_pt_len)%PTABLE_LENGTH;
+  tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In page tables
+  const int first_pd_len = min(tmp, PTABLE_LENGTH-pd_index);
+  const int last_pd_len = (tmp-first_pd_len)%PTABLE_LENGTH;
+  tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In page directories
+  const int first_pdpt_len = min(tmp, PTABLE_LENGTH-pdpt_index);
+  const int last_pdpt_len = (tmp-first_pdpt_len)%PTABLE_LENGTH;
+  tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In PDPTs
+  pml4t_len = tmp%(PTABLE_LENGTH-pml4t_index);
+  
+  //Free paging structures
+  for(int pml4t_parser = 0; pml4t_parser < pml4t_len; ++pml4t_parser) { //PML4T level : parse PDPTs to free PDs, then free them
+    //If this PDPT does not exist, skip it.
+    if(!pml4t[pml4t_index+pml4t_parser]) continue;
+    pdpt = (pdp*) (pml4t[pml4t_index+pml4t_parser] & 0x000ffffffffff000);
+    
+    //Know which of its entries we're going to parse
+    if(pml4t_parser == 0) pdpt_len = first_pdpt_len;
+    if(pml4t_parser == 1) {
+      pdpt_index = 0; //pdpt_index is only valid for the first PDPT we consider.
+      pdpt_len = PTABLE_LENGTH; //The others are browsed from the beginning to the end...
+    }
+    if(pml4t_parser == pml4t_len-1) pdpt_len = last_pdpt_len; //...except for the last one.
+    
+    //Parse it
+    for(int pdpt_parser = 0; pdpt_parser < pdpt_len; ++pdpt_parser) { //PDPT level : parse PDs to free PTs, then free them
+      //If this PD does not exist, skip it
+      if(!pdpt[pdpt_index+pdpt_parser]) continue;
+      pd = (pde*) (pdpt[pdpt_index+pdpt_parser] & 0x000ffffffffff000);
+      
+      //Know which of its entries we're going to parse
+      if(pdpt_parser == 0 && pml4t_parser == 0) pd_len = first_pd_len;
+      if(pdpt_parser == 1 && pml4t_parser == 0) {
+        pd_index = 0; //pd_index is only valid for the very first PD we consider.
+        pd_len = PTABLE_LENGTH; //The others are browsed from the beginning to the end...
+      }
+      if(pdpt_parser == pdpt_len-1 && pml4t_parser == pml4t_len-1) pd_len = last_pd_len; //...except for the last one.
+      
+      //Parse it
+      for(int pd_parser = 0; pd_parser < pd_len; ++pd_parser) { //PD level : parse PTs to free individual items, or free them
+        //If this PT does not exist, skip it
+        if(!pd[pd_index+pd_parser]) continue;
+        pt = (pte*) (pd[pd_index+pd_parser] & 0x000ffffffffff000);
+        
+        //Know which of its entries we're going to parse
+        if(pd_parser == 0 && pdpt_parser == 0 && pml4t_parser == 0) pt_len = first_pt_len;
+        if(pd_parser == 1 && pdpt_parser == 0 && pml4t_parser == 0) {
+          pt_index = 0; //pt_index is only valid for the very first PT we consider.
+          pt_len = PTABLE_LENGTH; //The others are browsed from the beginning to the end...
+        }
+        if(pd_parser == pd_len-1 && pdpt_parser == pdpt_len-1 && pml4t_parser == pml4t_len-1) pt_len = last_pt_len; //...except for the last one.
+        
+        //Parse and clear entries of this page table
+        for(int pt_parser = 0; pt_parser < pt_len; ++pt_parser) { //PT level : clear individual page table entries
+          pt[pt_index+pt_parser] = 0;
+        }
+        
+        //If this page table is now empty, free it
+        bool pt_empty = true;
+        for(int pt_parser = 0; pt_parser < PTABLE_LENGTH; ++pt_parser) {
+          if(pt[pt_parser]) pt_empty = false; break;
+        }
+        if(pt_empty) phymem->free((addr_t) pt);
+      }
+      
+      //If this page directory is now empty, free it
+      bool pd_empty = true;
+      for(int pd_parser = 0; pd_parser < PTABLE_LENGTH; ++pd_parser) {
+        if(pd[pd_parser]) pd_empty = false; break;
+      }
+      if(pd_empty) phymem->free((addr_t) pd);
+    }
+    
+    //If this PDPT is now empty, free it
+    bool pdpt_empty = true;
+    for(int pdpt_parser = 0; pdpt_parser < PTABLE_LENGTH; ++pdpt_parser) {
+      if(pdpt[pdpt_parser]) pdpt_empty = false; break;
+    }
+    if(pdpt_empty) phymem->free((addr_t) pdpt);
+  }
+  
+  return pml4t_location;
+}
+
+VirMapList* VirMemManager::remove_pid(PID target) {
+  VirMapList *result, *previous_item;
+  
+  //Remove the PID from the map list
+  if(map_list->map_owner == target) {
+    result = map_list;
+    map_list = map_list->next_item;
+  } else {
+    previous_item = map_list;
+    while(previous_item->next_item) {
+      if(previous_item->next_item->map_owner == target) break;
+      previous_item = previous_item->next_item;
+    }
+    result = previous_item->next_item;
+    previous_item->next_item = previous_item->next_item->next_item;
+    if(!result) return NULL;
+  }
+  
+  //Free its entry
+  *result = VirMapList();
+  result->next_item = free_listitems;
+  free_listitems = result;
+  
+  return result;
+}
+
+uint64_t VirMemManager::x86flags(VirMemFlags flags) {
+  uint64_t result = PBIT_USERACCESS + PBIT_NOEXECUTE;
+  
+  if(flags & VMEM_FLAG_P) result+= PBIT_PRESENT;
+  if(flags & VMEM_FLAG_W) result+= PBIT_WRITABLE;
+  if(flags & VMEM_FLAG_X) result-= PBIT_NOEXECUTE;
+  
+  return result;
+}
+
 VirMemManager::VirMemManager(PhyMemManager& physmem) {  
   //Store a pointer to the physical memory manager, for future access.
   phymem = &physmem;
@@ -233,7 +472,7 @@ VirMemManager::VirMemManager(PhyMemManager& physmem) {
   map_list = free_listitems;
   free_listitems = free_listitems->next_item;
   map_list->map_owner = PID_KERNEL;
-  map_list->map_pointer = NULL; //Paging is disabled for the kernel (as it turns out it makes things insanely complicated)
+  map_list->map_pointer = NULL; //Paging is disabled for the kernel (turns out it makes things insanely complicated for little benefit)
   map_list->next_item = NULL;
   map_list->pml4t_location = x86paging::get_pml4t();
 }

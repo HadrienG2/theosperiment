@@ -35,18 +35,23 @@ namespace x86paging {
   #define PBIT_DIRTY                (1<<6)  //Only present at the PTE level of hierarchy
   #define PBIT_LARGEPAGE            (1<<7)  //Only present at the PDE/PDPE level of hierarchy
   #define PBIT_PAGEATTRIBTAB_4KB    (1<<7)  //Only present at the PTE level
-  #define PBIT_PAGEATTRIBTAB_LARGE  (1<<7)  //Only present at the lowest level
+  #define PBIT_PAGEATTRIBTAB_LARGE  (1<<12) //Only present at the lowest level
   #define PBIT_GLOBALPAGE           (1<<8)  //Only present at PTE level, TLB entry not invalidated on context switch by MOV CRn
-  #define PBIT_NOEXECUTE            0x8000000000000000 //Prevents execution (can't be written in bitshift form because we still handle 32b data)
+  #define PBIT_NOEXECUTE            0x8000000000000000 //Prevents execution of data located in this page
   /* Other useful data... */
   #define PTABLE_LENGTH   512     //Size of a table/directory/... in entries
   #define PENTRY_SIZE     8       //Size of a paging structure entry in bytes
 
-  uint64_t create_pml4t(uint64_t location);
-  uint64_t find_lowestpaging(const uint64_t vaddr); //Find the lowest level of paging structures associated with a linear address, if it exists.
-  uint64_t find_lowestpaging(const uint64_t vaddr, const uint64_t pml4t_location);
-  uint64_t get_target(const uint64_t vaddr); //Get the physical memory address associated with a virtual address (if it does exist).
-  uint64_t get_target(const uint64_t vaddr, const uint64_t pml4t_location);
+  uint64_t create_pml4t(uint64_t location); //Create an empty PML4T at that location
+  uint64_t fill_4kpaging(const uint64_t phy_addr,
+                       uint64_t vir_addr,               //Have "length" bytes of physical memory starting at phy_addr mapped in the virtual
+                       const uint64_t length,           //address space of a process starting at vir_addr. Note : this function assumes
+                       uint64_t flags,                  //that paging structures are already allocated and set up for 4k paging
+                       const uint64_t pml4t_location);
+  uint64_t find_lowestpaging(const uint64_t vaddr,            //Find the lowest level of paging structures associated with a linear address,
+                             const uint64_t pml4t_location);  //if it exists.
+  uint64_t get_target(const uint64_t vaddr,           //Get the physical memory address associated with a virtual address (if it does exist).
+                      const uint64_t pml4t_location); 
   uint64_t get_pml4t(); //Return address of the current PML4T
 }
 
