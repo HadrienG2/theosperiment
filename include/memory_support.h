@@ -68,15 +68,17 @@ struct VirMemMap {
   addr_t location;
   addr_t size;
   VirMemFlags flags;
+  PID owner; //Only here for convenience purpose (less function parameters), can be removed if
+             //there's a need for room in this class or to faster vmem handling.
   PhyMemMap* points_to; //Physical memory chunk this virtual memory chunk points to
   VirMemMap* next_buddy;
   VirMemMap* next_mapitem;
-  uint32_t padding;
   uint64_t padding2;
   uint64_t padding3;
   VirMemMap() : location(0),
                 size(0),
-                flags(VMEM_FLAG_R + VMEM_FLAG_W),
+                flags(VMEM_FLAG_P + VMEM_FLAG_R + VMEM_FLAG_W),
+                owner(PID_NOBODY),
                 next_buddy(NULL),
                 next_mapitem(NULL) {};
   //Algorithms finding things in or about the map
