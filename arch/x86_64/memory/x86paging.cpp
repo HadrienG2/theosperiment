@@ -197,4 +197,83 @@ namespace x86paging {
     rdcr3(cr3);
     return cr3 & 0x000ffffffffff000;
   }
+  
+  uint64_t set_flags(uint64_t vaddr, const uint64_t length, uint64_t flags, uint64_t pml4t_location) {
+    pml4e* pml4t = (pml4e*) pml4t_location;
+    pdp* pdpt;
+    pde* pd;
+    pte* pt;
+    uint64_t tmp;
+    int pt_index, pd_index, pdpt_index, pml4t_index;
+    int pt_len, pd_len, pdpt_len, pml4t_len;
+    
+    //Determine where the virtual address is located in the paging structures
+    tmp = vaddr/0x1000;
+    pt_index = tmp%PTABLE_LENGTH;
+    tmp/= PTABLE_LENGTH;
+    pd_index = tmp%PTABLE_LENGTH;
+    tmp/= PTABLE_LENGTH;
+    pdpt_index = tmp%PTABLE_LENGTH;
+    tmp/= PTABLE_LENGTH;
+    pml4t_index = tmp%PTABLE_LENGTH;
+    
+    //Determine on how much paging structures the vmem block spreads
+    tmp = (uint64_t) align_up(length, 0x1000)/0x1000; //In pages
+    const int first_pt_len = min(tmp, PTABLE_LENGTH-pt_index);
+    const int last_pt_len = (tmp-first_pt_len)%PTABLE_LENGTH;
+    tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In page tables
+    const int first_pd_len = min(tmp, PTABLE_LENGTH-pd_index);
+    const int last_pd_len = (tmp-first_pd_len)%PTABLE_LENGTH;
+    tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In page directories
+    const int first_pdpt_len = min(tmp, PTABLE_LENGTH-pdpt_index);
+    const int last_pdpt_len = (tmp-first_pdpt_len)%PTABLE_LENGTH;
+    tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In PDPTs
+    pml4t_len = tmp%(PTABLE_LENGTH-pml4t_index);
+    
+    //Fill paging structures
+    for(int pml4t_parser = 0; pml4t_parser < pml4t_len; ++pml4t_parser) { //PML4T parsing
+      pdpt = (pdp*) (pml4t[pml4t_index+pml4t_parser] & 0x000ffffffffff000);
+      
+      //Know which PDPTs we're going to parse
+      if(pml4t_parser == 0) pdpt_len = first_pdpt_len;
+      if(pml4t_parser == 1) {
+        pdpt_index = 0; //pdpt_index is only valid for the first PDPT we consider.
+        pdpt_len = PTABLE_LENGTH; //The others are browsed from the beginning to the end...
+      }
+      if(pml4t_parser == pml4t_len-1) pdpt_len = last_pdpt_len; //...except for the last one.
+      
+      //Parse them
+      for(int pdpt_parser = 0; pdpt_parser < pdpt_len; ++pdpt_parser) { //PDPT parsing
+        pd = (pde*) (pdpt[pdpt_index+pdpt_parser] & 0x000ffffffffff000);
+        
+        //Know which PDs we're going to parse
+        if(pdpt_parser == 0 && pml4t_parser == 0) pd_len = first_pd_len;
+        if(pdpt_parser == 1 && pml4t_parser == 0) {
+          pd_index = 0; //pd_index is only valid for the very first PD we consider.
+          pd_len = PTABLE_LENGTH; //The others are browsed from the beginning to the end...
+        }
+        if(pdpt_parser == pdpt_len-1 && pml4t_parser == pml4t_len-1) pd_len = last_pd_len; //...except for the last one.
+        
+        //Parse them
+        for(int pd_parser = 0; pd_parser < pd_len; ++pd_parser) { //PD parsing
+          pt = (pte*) (pd[pd_index+pd_parser] & 0x000ffffffffff000);
+          
+          //Know which PT entries we're going to parse
+          if(pd_parser == 0 && pdpt_parser == 0 && pml4t_parser == 0) pt_len = first_pt_len;
+          if(pd_parser == 1 && pdpt_parser == 0 && pml4t_parser == 0) {
+            pt_index = 0; //pt_index is only valid for the very first PT we consider.
+            pt_len = PTABLE_LENGTH; //The others are browsed from the beginning to the end...
+          }
+          if(pd_parser == pd_len-1 && pdpt_parser == pdpt_len-1 && pml4t_parser == pml4t_len-1) pt_len = last_pt_len; //...except for the last one.
+          
+          //Fill this page table
+          for(int pt_parser = 0; pt_parser < pt_len; ++pt_parser) { //PT level : switching flags
+            pt[pt_index+pt_parser] = (pt[pt_index+pt_parser] & 0x000ffffffffff000)+flags;
+          }
+        }
+      }
+    }
+    
+    return pml4t_location;
+  }
 }

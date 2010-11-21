@@ -49,6 +49,7 @@ class VirMemManager {
     VirMemMap* chunk_mapper(const PhyMemMap* phys_chunk, const VirMemFlags flags, VirMapList* target);
     VirMapList* find_or_create_pid(PID target); //Same as below, but create the entry if it does not exist yet
     VirMapList* find_pid(PID target);  //Find the map list entry associated to this PID
+    VirMemMap* flag_adjust(VirMemMap* chunk, const VirMemFlags flags, const VirMemFlags mask, VirMapList* target);
     addr_t setup_4kpages(addr_t vir_addr, const addr_t length, addr_t pml4t_location); //Setup paging structures for 4KB x86 paging in
                                                                                        //a virtual address range.
     VirMapList* setup_pid(PID target); //Create management structures for a new PID
@@ -59,12 +60,13 @@ class VirMemManager {
     //Constructor gets the current layout of paged memory, setup management structures
     VirMemManager(PhyMemManager& physmem);
     
-    //Destroy a chunk of virtual memory
-    VirMemMap* free(VirMemMap* chunk, const PID target);
     //Map a non-contiguous chunk of physical memory as a contiguous chunk of the target's virtual memory
     VirMemMap* map(const PhyMemMap* phys_chunk, const VirMemFlags flags, const PID target);
+    //Destroy a chunk of virtual memory
+    VirMemMap* free(VirMemMap* chunk);
     //Change a chunk's flags (including in page tables, of course)
-    VirMemMap* set_flags(VirMemMap* chunk, const VirMemFlags flags);
+    VirMemMap* adjust_flags(VirMemMap* chunk, const VirMemFlags flags, const VirMemFlags mask);
+    VirMemMap* set_flags(VirMemMap* chunk, const VirMemFlags flags) {return adjust_flags(chunk, flags, ~0);}
     
     //Debug methods. Will go out in final release.
     void print_maplist();

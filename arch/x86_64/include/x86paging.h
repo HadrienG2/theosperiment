@@ -53,6 +53,10 @@ namespace x86paging {
   uint64_t get_target(const uint64_t vaddr,           //Get the physical memory address associated with a virtual address (if it does exist).
                       const uint64_t pml4t_location); 
   uint64_t get_pml4t(); //Return address of the current PML4T
+  uint64_t set_flags(uint64_t vaddr,            //Sets a whole virtual address block's flags to flags
+                     const uint64_t length,
+                     uint64_t flags,
+                     uint64_t pml4t_location);
 }
 
 #endif
