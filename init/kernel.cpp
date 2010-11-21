@@ -15,16 +15,6 @@ extern "C" int kmain(const KernelInformation& kinfo) {
   dbgout << "* Setting up virtual memory management..." << endl;
   VirMemManager virmem(phymem);
   
-  PhyMemMap* test1 = phymem.alloc_page(2);
-  PhyMemMap* test2 = phymem.alloc_page(2);
-  PhyMemMap* test3 = phymem.alloc_page(2);
-  virmem.map(test1, VMEM_FLAG_R, 2);
-  VirMemMap* vtest = virmem.map(test2, VMEM_FLAG_R + VMEM_FLAG_W, 2);
-  virmem.map(test3, VMEM_FLAG_R + VMEM_FLAG_X, 2);
-  virmem.free(vtest, 2);
-  virmem.map(test2, VMEM_FLAG_R + VMEM_FLAG_W, 2);
-  //...Then free test2 and re-map it.
-  
   virmem.print_maplist();
   dbgout << endl;
   virmem.print_mmap(2);

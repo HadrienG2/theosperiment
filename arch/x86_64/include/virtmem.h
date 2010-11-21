@@ -49,8 +49,12 @@ class VirMemManager {
     VirMemMap* chunk_mapper(const PhyMemMap* phys_chunk, const VirMemFlags flags, VirMapList* target);
     VirMapList* find_or_create_pid(PID target); //Same as below, but create the entry if it does not exist yet
     VirMapList* find_pid(PID target);  //Find the map list entry associated to this PID
-    VirMemFlags get_current_flags(const addr_t location) const; //Returns the current flags associated with a memory location
+    addr_t setup_4kpages(addr_t vir_addr, const addr_t length, addr_t pml4t_location); //Setup paging structures for 4KB x86 paging in
+                                                                                       //a virtual address range.
     VirMapList* setup_pid(PID target); //Create management structures for a new PID
+    addr_t remove_paging(addr_t vir_addr, const addr_t length, addr_t pml4t_location); //Remove paging structures in a virtual address range
+    VirMapList* remove_pid(PID target); //Remove management structures for this PID
+    uint64_t x86flags(VirMemFlags flags); //Converts VirMemFlags to x86 paging flags
   public:
     //Constructor gets the current layout of paged memory, setup management structures
     VirMemManager(PhyMemManager& physmem);

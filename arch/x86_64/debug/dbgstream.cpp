@@ -15,8 +15,9 @@
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
- 
+
 #include "dbgstream.h"
+#include <kmaths.h>
 
 //A rectangle of the size of the screen
 const DebugRect screen_rect(0, 0, NUMBER_OF_COLS-1, NUMBER_OF_ROWS-1);
