@@ -23,14 +23,12 @@
 #include <x86asm.h>
 
 namespace x86paging {
-  uint64_t create_pml4t(uint64_t location) {
+  void create_pml4t(uint64_t location) {
     uint64_t* pointer = (uint64_t*) location;
     for(int i=0; i<512; ++i) pointer[i] = 0;
-    
-    return location;
   }
   
-  uint64_t fill_4kpaging(const uint64_t phy_addr,
+  void fill_4kpaging(const uint64_t phy_addr,
                        uint64_t vir_addr,
                        const uint64_t length,
                        uint64_t flags,
@@ -110,8 +108,6 @@ namespace x86paging {
         }
       }
     }
-    
-    return pml4t_location;
   }
 
   uint64_t find_lowestpaging(const uint64_t vaddr, const uint64_t pml4t_location) {
@@ -198,7 +194,7 @@ namespace x86paging {
     return cr3 & 0x000ffffffffff000;
   }
   
-  uint64_t set_flags(uint64_t vaddr, const uint64_t length, uint64_t flags, uint64_t pml4t_location) {
+  void set_flags(uint64_t vaddr, const uint64_t length, uint64_t flags, uint64_t pml4t_location) {
     pml4e* pml4t = (pml4e*) pml4t_location;
     pdp* pdpt;
     pde* pd;
@@ -273,7 +269,5 @@ namespace x86paging {
         }
       }
     }
-    
-    return pml4t_location;
   }
 }

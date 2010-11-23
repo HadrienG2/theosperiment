@@ -42,8 +42,8 @@ namespace x86paging {
   #define PTABLE_LENGTH   512     //Size of a table/directory/... in entries
   #define PENTRY_SIZE     8       //Size of a paging structure entry in bytes
 
-  uint64_t create_pml4t(uint64_t location); //Create an empty PML4T at that location
-  uint64_t fill_4kpaging(const uint64_t phy_addr,
+  void create_pml4t(uint64_t location); //Create an empty PML4T at that location
+  void fill_4kpaging(const uint64_t phy_addr,
                        uint64_t vir_addr,               //Have "length" bytes of physical memory starting at phy_addr mapped in the virtual
                        const uint64_t length,           //address space of a process starting at vir_addr. Note : this function assumes
                        uint64_t flags,                  //that paging structures are already allocated and set up for 4k paging
@@ -53,7 +53,7 @@ namespace x86paging {
   uint64_t get_target(const uint64_t vaddr,           //Get the physical memory address associated with a virtual address (if it does exist).
                       const uint64_t pml4t_location); 
   uint64_t get_pml4t(); //Return address of the current PML4T
-  uint64_t set_flags(uint64_t vaddr,            //Sets a whole virtual address block's flags to flags
+  void set_flags(uint64_t vaddr,            //Sets a whole virtual address block's flags to flags
                      const uint64_t length,
                      uint64_t flags,
                      uint64_t pml4t_location);

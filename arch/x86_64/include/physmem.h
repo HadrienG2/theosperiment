@@ -36,7 +36,6 @@
 //
 //Later : -Allocating a specific page/chunk in memory
 //        -Removing all traces of a process.
-//        -Ordering a full cleanup of the management structures (as an example when the computer is on but not being used)
 class PhyMemManager {
   private:
     PhyMemMap* phy_mmap; //A map of the whole memory

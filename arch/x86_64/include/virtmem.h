@@ -32,9 +32,7 @@
 //-Interoperability with the physical memory manager
 //-Transparent management of per-process page tables (and hence multiple process management)
 //
-//Later : -Memory sharing functions
-//        -Use something else than 2MB pages sometimes ?
-//        -Removing all traces of a process from memory (when it's killed or closed), switching processes
+//Later : -Removing all traces of a process from memory (when it's killed or closed), switching processes
 class VirMemManager {
   private:
     PhyMemManager* phymem;

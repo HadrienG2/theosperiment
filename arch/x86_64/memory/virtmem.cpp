@@ -173,15 +173,11 @@ VirMemMap* VirMemManager::chunk_mapper(const PhyMemMap* phys_chunk, const VirMem
   chunk_parser = (PhyMemMap*) phys_chunk;
   offset = 0;
   while(chunk_parser) {
-    tmp = x86paging::fill_4kpaging(chunk_parser->location,
-                                   result->location+offset,
-                                   chunk_parser->size,
-                                   x86flags(result->flags),
-                                   target->pml4t_location);
-    if(!tmp) {
-      chunk_liberator(result, target);
-      return NULL;
-    }
+    x86paging::fill_4kpaging(chunk_parser->location,
+                             result->location+offset,
+                             chunk_parser->size,
+                             x86flags(result->flags),
+                             target->pml4t_location);
     offset+= chunk_parser->size;
     chunk_parser = chunk_parser->next_buddy;
   }
