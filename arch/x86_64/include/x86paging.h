@@ -20,41 +20,53 @@
 #define _X86PAGING_H_
 
 namespace x86paging {
-  typedef uint64_t pte; //Page table entry
-  typedef uint64_t pde; //Page directory entry
-  typedef uint64_t pdp; //Page directory pointer
-  typedef uint64_t pml4e; //PML4 entry
+    typedef uint64_t pte; //Page table entry
+    typedef uint64_t pde; //Page directory entry
+    typedef uint64_t pdp; //Page directory pointer
+    typedef uint64_t pml4e; //PML4 entry
 
-  /* Sensible bits in page tables */
-  #define PBIT_PRESENT              1
-  #define PBIT_WRITABLE             (1<<1)
-  #define PBIT_USERACCESS           (1<<2)
-  #define PBIT_WRITETHROUGH         (1<<3)  //Slower than writeback, and not useful on a non-distributed system. Avoid it.
-  #define PBIT_NOCACHE              (1<<4)
-  #define PBIT_ACCESSED             (1<<5)
-  #define PBIT_DIRTY                (1<<6)  //Only present at the PTE level of hierarchy
-  #define PBIT_LARGEPAGE            (1<<7)  //Only present at the PDE/PDPE level of hierarchy
-  #define PBIT_PAGEATTRIBTAB_4KB    (1<<7)  //Only present at the PTE level
-  #define PBIT_PAGEATTRIBTAB_LARGE  (1<<12) //Only present at the lowest level
-  #define PBIT_GLOBALPAGE           (1<<8)  //Only present at PTE level, TLB entry not invalidated on context switch by MOV CRn
-  #define PBIT_NOEXECUTE            0x8000000000000000 //Prevents execution of data located in this page
-  /* Other useful data... */
-  #define PTABLE_LENGTH   512     //Size of a table/directory/... in entries
-  #define PENTRY_SIZE     8       //Size of a paging structure entry in bytes
+    /* Sensible bits in page tables (read Intel/AMD manuals for mor details) */
+    #define PBIT_PRESENT              1      //Page is present, may be accessed.
+    #define PBIT_WRITABLE             (1<<1) //User-mode software may write data in this page.
+    #define PBIT_USERACCESS           (1<<2) //User-mode software has access to this page.
+    #define PBIT_NOCACHE              (1<<4) //This page cannot be cached by the CPU.
+    #define PBIT_ACCESSED             (1<<5) //Bit set by the CPU : the paging structure
+                                             //has been accessed by software.
+    #define PBIT_DIRTY                (1<<6) //Only present at the page level of hierarchy.
+                                             //Set by the CPU : data has been written in this page.
+    #define PBIT_LARGEPAGE            (1<<7) //Only present at the PDE/PDPE level of hierarchy.
+                                             //Indicates that pages larger than 4KB are being used.
+    #define PBIT_GLOBALPAGE           (1<<8) //Only present at the page level of hierarchy.
+                                             //TLB entry not invalidated on context switch.
+    #define PBIT_NOEXECUTE            0x8000000000000000 //Prevents execution of data referenced by
+                                                         //this paging structure.
+                                                         
+    /* Other useful data... */
+    #define PTABLE_LENGTH   512     //Size of a table/directory/... in entries
+    #define PENTRY_SIZE     8       //Size of a paging structure entry in bytes
 
-  void create_pml4t(uint64_t location); //Create an empty PML4T at that location
-  void fill_4kpaging(const uint64_t phy_addr,
-                       uint64_t vir_addr,               //Have "length" bytes of physical memory starting at phy_addr mapped in the virtual
-                       const uint64_t length,           //address space of a process starting at vir_addr. Note : this function assumes
-                       uint64_t flags,                  //that paging structures are already allocated and set up for 4k paging
-                       const uint64_t pml4t_location);
-  uint64_t find_lowestpaging(const uint64_t vaddr,            //Find the lowest level of paging structures associated with a linear address,
-                             const uint64_t pml4t_location);  //if it exists.
-  uint64_t get_target(const uint64_t vaddr,           //Get the physical memory address associated with a virtual address (if it does exist).
-                      const uint64_t pml4t_location); 
-  uint64_t get_pml4t(); //Return address of the current PML4T
-  void set_flags(uint64_t vaddr,            //Sets a whole virtual address block's flags to flags
-                     const uint64_t length,
+    void create_pml4t(uint64_t location); //Create an empty PML4T at that location
+    
+    void fill_4kpaging(const uint64_t phy_addr,        //Have "length" bytes of physical memory,
+                       uint64_t vir_addr,              //starting at phy_addr, be mapped in the
+                       const uint64_t length,          //virtual address space of a process,
+                       uint64_t flags,                 //starting at vir_addr.
+                       const uint64_t pml4t_location); //(This function assumes that paging
+                                                       //structures are already allocated and
+                                                       //set up for 4k paging.)
+                                                       
+    uint64_t find_lowestpaging(const uint64_t vaddr,           //Find the lowest level of paging
+                               const uint64_t pml4t_location); //structures associated with a linear
+                                                               //address, return 0 if that address
+                                                               //is invalid.
+                                                               
+    uint64_t get_target(const uint64_t vaddr,         //Get the physical memory address associated
+                      const uint64_t pml4t_location); //with a linear address (if it does exist).
+                      
+    uint64_t get_pml4t(); //Return address of the current PML4T
+    
+    void set_flags(uint64_t vaddr,             //Sets a whole linear address block's paging flags to
+                     const uint64_t length,    //"flags"
                      uint64_t flags,
                      uint64_t pml4t_location);
 }

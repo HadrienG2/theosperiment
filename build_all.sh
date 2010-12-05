@@ -47,14 +47,16 @@ CFLAGS="-Wall -Wextra -Werror -nostdlib -nostartfiles -nodefaultlibs -fno-builti
 CXXFLAGS="-Wall -Wextra -nostdlib -nostartfiles -nodefaultlibs -fno-builtin -fno-exceptions -fno-rtti -fno-stack-protector \
 -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow -std=c++98"
 LFLAGS="-s --warn-common --warn-once -zmax-page-size=0x1000" #Maximum page size usable by the kernel (4 KB at the moment).
-INCLUDES="-I../../arch/x86_64/include/ -I../../include/ -I../../arch/x86_64/bootstrap/include"
+INCLUDES="-I../../arch/x86_64/include/ -I../../include/"
+INCLUDES_BST="-I../../arch/x86_64/bootstrap/include "$INCLUDES
 #Modification of parameters depending on debugging status
 if [ $Fdebug -eq 0 ]
 then
   CFLAGS=$CFLAGS" -O3"
   CXXFLAGS=$CXXFLAGS" -O3"
 else
-  INCLUDES=$INCLUDES" -I../../arch/x86_64/bootstrap/debug/ -I../../arch/x86_64/debug/ -I../../debug/"
+  INCLUDES="-I../../arch/x86_64/debug/ -I../../debug/ "$INCLUDES
+  INCLUDES_BST="-I../../arch/x86_64/bootstrap/debug/ "$INCLUDES_BST
   CFLAGS=$CFLAGS" -O0 -DDEBUG"
   CXXFLAGS=$CXXFLAGS" -O0 -DDEBUG"
 fi
@@ -65,15 +67,15 @@ then
   echo \* Building bootstrap code...
   cd bin/bootstrap
   $AS32 ../../arch/x86_64/bootstrap/bs_multiboot.s -o bs_multiboot.o
-  $CC32 -c ../../arch/x86_64/bootstrap/*.c $CFLAGS $INCLUDES
+  $CC32 -c ../../arch/x86_64/bootstrap/*.c $CFLAGS $INCLUDES_BST
   $AS32 ../../arch/x86_64/bootstrap/lib/cpuid_check.s -o cpuid_check.o
   $AS32 ../../arch/x86_64/bootstrap/lib/enable_longmode.s -o enable_longmode.o
   $AS32 ../../arch/x86_64/bootstrap/lib/run_kernel.s -o run_kernel.o
-  $CC32 -c ../../arch/x86_64/bootstrap/lib/*.c $CFLAGS $INCLUDES
+  $CC32 -c ../../arch/x86_64/bootstrap/lib/*.c $CFLAGS $INCLUDES_BST
   #Compiling debugging source files
   if [ $Fdebug -eq 1 ]
   then
-    $CC32 -c ../../arch/x86_64/bootstrap/debug/*.c $CFLAGS $INCLUDES
+    $CC32 -c ../../arch/x86_64/bootstrap/debug/*.c $CFLAGS $INCLUDES_BST
   fi
   #Linking
   $LD32 -T ../../support/bs_linker.lds -o bs_kernel.bin *.o $LFLAGS

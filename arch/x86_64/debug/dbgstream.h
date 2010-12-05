@@ -24,13 +24,14 @@
 #include <kernel_information.h>
 #include <memory_support.h>
 #include <physmem.h>
+#include <x86paging.h>
 
 
 //*******************************************************
 //***************** TEXT ATTRIBUTE BITS *****************
 //*******************************************************
 
-//Text attributes
+//Text color attributes
 #define TXT_BLACK 0x00
 #define TXT_BLUE 0x01
 #define TXT_GREEN 0x02
@@ -47,9 +48,10 @@
 #define TXT_LIGHTPURPLE 0x0D
 #define TXT_YELLOW 0x0E
 #define TXT_WHITE 0x0F
-#define TXT_BLINK 0x80
 
-//Background attributes
+#define TXT_BLINK 0x80 //Blinking text
+
+//Background color attributes
 #define BKG_BLACK 0x00
 #define BKG_BLUE 0x10
 #define BKG_GREEN 0x20
@@ -76,9 +78,9 @@ class DebugManipulator {};
 
 //This manipulator is used to change text attributes
 class DebugAttributeChanger : DebugManipulator {
-  public:
-    uint8_t new_attr; //New attribute being set
-    uint8_t mask; //Allows one to specify which bits in the new attribute are effective
+    public:
+        uint8_t new_attr; //New attribute being set
+        uint8_t mask; //Allows one to specify which bits in the new attribute are effective
 };
 DebugAttributeChanger& attrset(const uint8_t attribute);
 DebugAttributeChanger& blink(const bool blink_status);
@@ -88,48 +90,55 @@ DebugAttributeChanger& txtcolor(const uint8_t attribute);
 //This manipulator is used to move the text cursor on screen
 enum DebugCursorMoverType {ABSOLUTE, RELATIVE};
 class DebugCursorMover : DebugManipulator {
-  public:
-    DebugCursorMoverType type;
-    int col_off;
-    int row_off;
+    public:
+        DebugCursorMoverType type;
+        int col_off;
+        int row_off;
 };
 DebugCursorMover& movxy(const unsigned int x, const unsigned int y);
 
 //This manipulator is used to trigger a breakpoint from Bochs, while maybe leaving some interesting
 //information in the registers
 class DebugBreakpoint : DebugManipulator {
-  public:
-    uint64_t rax;
-    uint64_t rbx;
-    uint64_t rcx;
-    uint64_t rdx;
+    public:
+        uint64_t rax;
+        uint64_t rbx;
+        uint64_t rcx;
+        uint64_t rdx;
 };
 DebugBreakpoint& bp();
-DebugBreakpoint& bp_streg(const uint64_t rax, const uint64_t rbx = 0, const uint64_t rcx = 0, const uint64_t rdx = 0);
+DebugBreakpoint& bp_streg(const uint64_t rax,
+                          const uint64_t rbx = 0,
+                          const uint64_t rcx = 0,
+                          const uint64_t rdx = 0);
 
 //This manipulator is used to change the base in which number are displayed (ie binary, decimal...)
 class DebugNumberBaseChanger : DebugManipulator {
-  public:
-    DebugNumberBase new_base;
+    public:
+        DebugNumberBase new_base;
 };
 DebugNumberBaseChanger& numberbase(const DebugNumberBase new_base);
+
+//This manipulator is used to set up padding when printing numbers.
+//A padding of 5 means that if the final number is less than 5 digits long,
+//spaces will be added to keep string length constant (ex : 512 -> "512  ").
+//A padding of 0 means that maximum padding is used.
+class DebugPadder : DebugManipulator {
+    public:
+        bool padding_on;
+        int padsize;
+};
+DebugPadder& pad_status(const bool padding_status);
+DebugPadder& pad_size(unsigned int padsize);
 
 //This manipulator is used to restrict debug I/O to a specific
 //region of the screen (called a window). Content will be kept
 //around as long as resizing the window does not make it move out.
 class DebugWindower : DebugManipulator {
-  public:
-    DebugWindow window;
+    public:
+        DebugWindow window;
 };
 DebugWindower& set_window(const DebugWindow window);
-
-//This manipulator allows one to turn on and off the zero-extending
-//capabilities of the number printing function...
-class DebugZeroExtender : DebugManipulator {
-  public:
-    bool zero_extend;
-};
-DebugZeroExtender& zero_extending(const bool zeroext_status);
 
 //*******************************************************
 //****************** MAIN DEBUG OUTPUT ******************
@@ -137,31 +146,38 @@ DebugZeroExtender& zero_extending(const bool zeroext_status);
 
 //The main debug output class...
 class DebugOutput {
-  private:
-    //Current state
-    uint8_t attribute;
-    char* buffer;
-    int col;
-    int row;
-    DebugNumberBase number_base;
-    unsigned int tab_size; //Tabulation alignment in characters
-    DebugWindow window;
-    bool zero_extend; //Whether numbers must be zero-extended to reach their maximum number of digits.
-    //Internal functions
-    void check_boundaries() { if(col>window.endx-window.startx) {++row; col=0;}
-      if(row>window.endy-window.starty) scroll(row+window.starty-window.endy); }
-    void clear_border(const DebugWindow window);
-    void clear_oldwindow(const DebugWindow old_window, const DebugWindow new_window); //Clear what remains of an old window after a new one has been drawn
-    void clear_rect(const DebugRect rect);
-    void clear_window() {clear_rect(window); col=0; row=0;}
-    void copy_rect(const DebugRect rect, const int dest_col, const int dest_row);
-    void cursor_movabs(const unsigned int acol, const unsigned int arow) {col = acol; row = arow; check_boundaries();}
-    void fill_border(const DebugWindow window);
-    void fill_rect(const DebugRect rect, const char character);
-    unsigned int get_offset() const { //Returns the offset in character buffer corresponding to current col/row
-      return get_offset(col+window.startx, row+window.starty);}
-    unsigned int get_offset(const int col, const int row) const {return 2*col+2*NUMBER_OF_COLS*row;}
-    void scroll(const int amount);
+    private:
+        //Current state
+        uint8_t attribute; //Text attributes (see above)
+        char* buffer; //The buffer in which text is written
+        int col; //Current cursor position : column...
+        int row; //...and row
+        DebugNumberBase number_base; //Base in which we count : octal, binary, hexa, decimal...
+        unsigned int padsize; //Zero padding in digits (see DebugZeroExtender description above)
+        unsigned int tab_size; //Tabulation alignment in characters
+        DebugWindow window; //The window we use (see doc)
+        bool padding_on; //Whether numbers must be kept above a certain length (see doc)
+        //Internal functions
+        void check_boundaries(); //Check that the text cursor has not scrolled beyond the limits
+                                 //of the screen, correct it so that we're ready to write.
+        void clear_border(const DebugWindow window); //Clear the border of a window.
+        void clear_oldwindow(const DebugWindow old_window,  //Clear what remains of an old window
+                             const DebugWindow new_window); //after a new one has been drawn
+        void clear_rect(const DebugRect rect); //Clear the contents of a rectangle on screen
+        void clear_window() {clear_rect(window); col=0; row=0;} //Clear the current window
+        void copy_rect(const DebugRect rect, //Copy the contents of a specified rectangle
+                       const int dest_col,   //somewhere else on the screen.
+                       const int dest_row);  //Overlap allowed.
+        void cursor_movabs(const unsigned int acol,  //Move the text cursor at a specified position
+                           const unsigned int arow); //on screen.
+        void fill_border(const DebugWindow window); //Draw the border of a window
+        void fill_rect(const DebugRect rect,  //Fill a rectangle with the specified character
+                       const char character); 
+        unsigned int get_offset() const { //Returns the offset in character buffer corresponding to current col/row
+            return get_offset(col+window.startx, row+window.starty);}
+        unsigned int get_offset(const int col, const int row) const {
+            return 2*col+2*NUMBER_OF_COLS*row;}
+        void scroll(const int amount);
   public:
     DebugOutput(const DebugWindow& window);
     //Functions displaying standard types
@@ -172,8 +188,8 @@ class DebugOutput {
     DebugOutput& operator<<(const int64_t input);
     DebugOutput& operator<<(const unsigned int input) {uint64_t tmp=input; *this << tmp; return *this;}
     DebugOutput& operator<<(const uint64_t input);
-    DebugOutput& operator<<(const void* ptr); //This is just to make the compiler crash when trying to output a pointer
-    //Function displaying home-made types
+    DebugOutput& operator<<(const void* ptr); //HACK WARNING : This is just to make the compiler fail when trying to output a pointer
+    //Functions displaying home-made types
     DebugOutput& operator<<(const KernelInformation& input); //Displays only the memory map atm
     DebugOutput& operator<<(const KernelMemoryMap& input);
     DebugOutput& operator<<(const PhyMemMap& input);
@@ -185,7 +201,7 @@ class DebugOutput {
     DebugOutput& operator<<(const DebugCursorMover& manipulator);
     DebugOutput& operator<<(const DebugNumberBaseChanger& manipulator);
     DebugOutput& operator<<(const DebugWindower& manipulator);
-    DebugOutput& operator<<(const DebugZeroExtender& manipulator) {zero_extend = manipulator.zero_extend; return *this;}
+    DebugOutput& operator<<(const DebugPadder& manipulator);
 };
 
 //*******************************************************

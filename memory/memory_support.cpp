@@ -1,6 +1,6 @@
  /* Support classes for all code that manages chunks (contiguous or non-contiguous) of memory
 
-    Copyright (C) 2010  Hadrien Grasland
+    Copyright (C) 2010    Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -9,66 +9,66 @@
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.    See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA    02110-1301    USA */
  
 #include <memory_support.h>
 
 PhyMemMap* PhyMemMap::find_freechunk(const addr_t size) const {
-  PhyMemMap* current_item = (PhyMemMap*) this;
-  if(current_item->location > location) return NULL;
-  
-  while(current_item) {
-    if((current_item->size >= size) && (current_item->has_owner(PID_NOBODY))) break;
-    current_item = current_item->next_mapitem;
-  }
-  return current_item;
+    PhyMemMap* current_item = (PhyMemMap*) this;
+    if(current_item->location > location) return NULL;
+    
+    while(current_item) {
+        if((current_item->size >= size) && (current_item->has_owner(PID_NOBODY))) break;
+        current_item = current_item->next_mapitem;
+    }
+    return current_item;
 }
 
 PhyMemMap* PhyMemMap::find_thischunk(const addr_t location) const {
-  PhyMemMap* current_item = (PhyMemMap*) this;
-  if(current_item->location > location) return NULL;
-  
-  while(current_item) {
-    if(current_item->location+current_item->size > location) break;
-    current_item = current_item->next_mapitem;
-  }
-  return current_item;
+    PhyMemMap* current_item = (PhyMemMap*) this;
+    if(current_item->location > location) return NULL;
+    
+    while(current_item) {
+        if(current_item->location+current_item->size > location) break;
+        current_item = current_item->next_mapitem;
+    }
+    return current_item;
 }
 
 unsigned int PhyMemMap::length() const {
-  unsigned int result;
-  PhyMemMap* current_item = (PhyMemMap*) this;
-  
-  while(current_item) {
-    ++result;
-    current_item = current_item->next_mapitem;
-  }
-  return result;
+    unsigned int result;
+    PhyMemMap* current_item = (PhyMemMap*) this;
+    
+    while(current_item) {
+        ++result;
+        current_item = current_item->next_mapitem;
+    }
+    return result;
 }
 
 VirMemMap* VirMemMap::find_thischunk(const addr_t location) const {
-  VirMemMap* current_item = (VirMemMap*) this;
-  if(current_item->location > location) return NULL;
-  
-  while(current_item) {
-    if(current_item->location+current_item->size > location) break;
-    current_item = current_item->next_mapitem;
-  }
-  return current_item;
+    VirMemMap* current_item = (VirMemMap*) this;
+    if(current_item->location > location) return NULL;
+    
+    while(current_item) {
+        if(current_item->location+current_item->size > location) break;
+        current_item = current_item->next_mapitem;
+    }
+    return current_item;
 }
 
 unsigned int VirMemMap::length() const {
-  unsigned int result;
-  VirMemMap* current_item = (VirMemMap*) this;
-  
-  while(current_item) {
-    ++result;
-    current_item = current_item->next_mapitem;
-  }
-  return result;
+    unsigned int result;
+    VirMemMap* current_item = (VirMemMap*) this;
+    
+    while(current_item) {
+        ++result;
+        current_item = current_item->next_mapitem;
+    }
+    return result;
 }
