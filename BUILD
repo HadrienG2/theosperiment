@@ -1,5 +1,5 @@
 BUILDING REQUIREMENTS :
--> A POSIX-compatible system
+-> A POSIX-compatible system with a bash-compatible shell
 -> MTools
 -> GZip
 * For x86_64 target

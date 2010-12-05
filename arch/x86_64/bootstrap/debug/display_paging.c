@@ -23,18 +23,25 @@
 
 void dbg_print_pd(const uint32_t location) {
   int table_index;
-  const uint64_t mask = PG_SIZE-1+PBIT_NOEXECUTE; //Mask eliminating the low-order bits of CR3 and page table entries
+  uint64_t mask; //Mask used to separate physical addresses from control bits
   pde* pd = (pde*) location;  
   pde current_el;
   uint64_t address;
   
   //Print PD
-  print_str("Address            | Flags\n");
+  print_str("Index      | Address            | Flags\n");
   print_str("-------------------------------------------------------------------------------\n");
   for(table_index=0; table_index<PD_SIZE; ++table_index) {
-    //For each table element, print address, isolated as before
+    //For each nonzero table element, print address and control bits
     current_el = pd[table_index];
     if(current_el == 0) continue;
+    print_hex32(table_index);
+    print_str(" | ");
+    if(current_el & PBIT_LARGEPAGE) {
+      mask = (1<<21)-1+PBIT_NOEXECUTE;
+    } else {
+      mask = (1<<12)-1+PBIT_NOEXECUTE;
+    }
     address = current_el - (current_el & mask);
     print_hex64(address);
     print_str(" | ");
@@ -69,18 +76,25 @@ void dbg_print_pd(const uint32_t location) {
 
 void dbg_print_pdpt(const uint32_t location) {
   int table_index;
-  const uint64_t mask = PG_SIZE-1 + PBIT_NOEXECUTE; //Mask eliminating the low-order bits of CR3 and page table entries
+  uint64_t mask; //Mask used to separate physical addresses from control bits
   pdpe* pdpt = (pdpe*) location;  
   pdpe current_el;
   uint64_t address;
   
   //Print PDPT
-  print_str("Address            | Flags\n");
+  print_str("Index      | Address            | Flags\n");
   print_str("-------------------------------------------------------------------------------\n");
   for(table_index=0; table_index<PDPT_SIZE; ++table_index) {
     //For each table element, print address, isolated as before
     current_el = pdpt[table_index];
     if(current_el == 0) continue;
+    print_hex32(table_index);
+    print_str(" | ");
+    if(current_el & PBIT_LARGEPAGE) {
+      mask = (1<<30)-1+PBIT_NOEXECUTE;
+    } else {
+      mask = (1<<12)-1+PBIT_NOEXECUTE;
+    }
     address = current_el - (current_el & mask);
     print_hex64(address);
     print_str(" | ");
@@ -115,19 +129,21 @@ void dbg_print_pdpt(const uint32_t location) {
 
 void dbg_print_pml4t(const uint32_t cr3_value) {
   int table_index;
-  const uint64_t mask = PG_SIZE-1+PBIT_NOEXECUTE; //Mask eliminating the low-order bits of CR3 and page table entries
+  const uint64_t mask = PG_SIZE-1+PBIT_NOEXECUTE; //Mask used to eliminate the control bits of CR3
   uint32_t pml4t_location = cr3_value - (cr3_value & mask);
   pml4e* pml4t = (pml4e*) pml4t_location;  
   pml4e current_el;
   uint64_t address;
   
   //Print PML4T
-  print_str("Address            | Flags\n");
+  print_str("Index      | Address            | Flags\n");
   print_str("-------------------------------------------------------------------------------\n");
   for(table_index=0; table_index<PML4T_SIZE; ++table_index) {
     //For each table element, print address, isolated as before
     current_el = pml4t[table_index];
     if(current_el == 0) continue;
+    print_hex32(table_index);
+    print_str(" | ");
     address = current_el - (current_el & mask);
     print_hex64(address);
     print_str(" | ");
@@ -159,18 +175,20 @@ void dbg_print_pml4t(const uint32_t cr3_value) {
 
 void dbg_print_pt(const uint32_t location) {
   int table_index;
-  const uint64_t mask = PG_SIZE-1+PBIT_NOEXECUTE; //Mask eliminating the low-order bits of CR3 and page table entries
+  const uint64_t mask = (1<<12)-1+PBIT_NOEXECUTE; //Mask used to separate control bits from adresses
   pte* pt = (pte*) location;  
   pte current_el;
   uint64_t address;
   
   //Print PT
-  print_str("Address            | Flags\n");
+  print_str("Index      | Address            | Flags\n");
   print_str("-------------------------------------------------------------------------------\n");
   for(table_index=0; table_index<PT_SIZE; ++table_index) {
     //For each table element, print address, isolated as before
     current_el = pt[table_index];
     if(current_el == 0) continue;
+    print_hex32(table_index);
+    print_str(" | ");
     address = current_el - (current_el & mask);
     print_hex64(address);
     print_str(" | ");
