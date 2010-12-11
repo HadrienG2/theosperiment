@@ -35,7 +35,7 @@
 // -Sharing of physical memory pages/chunks (adding and removing owners).
 //
 //Later : -Allocating a specific page/chunk in memory
-//        -Removing all traces of a process.
+//        -Removing all traces of a process
 class PhyMemManager {
     private:
         PhyMemMap* phy_mmap; //A map of the whole memory
@@ -52,7 +52,7 @@ class PhyMemManager {
                                    const addr_t size);
         PhyMemMap* contigchunk_allocator(PhyMemMap* map_used, //See alloc_contigchunk()
                                          const PID initial_owner,
-                                         const addr_t size);
+                                         const addr_t requested_size);
         PhyMemMap* chunk_liberator(PhyMemMap* chunk); //See free()
         PhyMemMap* chunk_owneradd(PhyMemMap* chunk,const PID new_owner); //See owneradd()
         PhyMemMap* chunk_ownerdel(PhyMemMap* chunk, const PID former_owner); //See ownerdel()

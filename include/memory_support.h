@@ -37,18 +37,20 @@ struct PhyMemMap {
     uint64_t padding;
     uint64_t padding2;
     PhyMemMap() : location(0),
-                                size(0),
-                                owners(PID_NOBODY),
-                                allocatable(true),
-                                next_buddy(NULL),
-                                next_mapitem(NULL) {};
+                  size(0),
+                  owners(PID_NOBODY),
+                  allocatable(true),
+                  next_buddy(NULL),
+                  next_mapitem(NULL) {};
     //This mirrors the member functions of "owners"
     int add_owner(const PID new_owner) {return owners.add_pid(new_owner);}
     void clear_owners() {owners.clear_pids();}
     void del_owner(const PID old_owner) {owners.del_pid(old_owner);}
     bool has_owner(const PID the_owner) const {return owners.has_pid(the_owner);}
     //Algorithms finding things in or about the map
-    PhyMemMap* find_freechunk(const addr_t size) const;
+    PhyMemMap* find_contigchunk(const addr_t size) const; //The returned chunk, along with its next
+                                                          //neighbours, forms a contiguous chunk
+                                                          //of free memory at least "size" large.
     PhyMemMap* find_thischunk(const addr_t location) const;
     unsigned int length() const;
 } __attribute__((packed));
@@ -67,7 +69,7 @@ struct VirMemMap {
     addr_t size;
     VirMemFlags flags;
     PID owner; //Only here for convenience purpose (less function parameters), can be removed if
-                         //there's a need for room in this class or to faster vmem handling.
+               //there's a need for room in this class or to faster vmem handling.
     PhyMemMap* points_to; //Physical memory chunk this virtual memory chunk points to
     VirMemMap* next_buddy;
     VirMemMap* next_mapitem;
