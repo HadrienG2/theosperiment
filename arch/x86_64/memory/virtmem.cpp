@@ -516,12 +516,10 @@ uint64_t VirMemManager::x86flags(VirMemFlags flags) {
     return result;
 }
 
-VirMemManager::VirMemManager(PhyMemManager& physmem) : free_mapitems(NULL),
-                                                       free_listitems(NULL) {    
-    //Store a pointer to the physical memory manager, for future access.
-    phymem = &physmem;
-    
-    //Allocate some management structures.
+VirMemManager::VirMemManager(PhyMemManager& physmem) : phymem(&physmem),
+                                                       free_mapitems(NULL),
+                                                       free_listitems(NULL) {
+    //Allocate some data storage space.
     alloc_listitems();
     alloc_mapitems();
     

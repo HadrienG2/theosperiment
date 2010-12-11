@@ -150,7 +150,7 @@ PhyMemMap* PhyMemManager::chunk_allocator(PhyMemMap* map_used,
 
 PhyMemMap* PhyMemManager::contigchunk_allocator(PhyMemMap* map_used,
                                                 const PID initial_owner,
-                                                const addr_t size) {
+                                                const addr_t requested_size) {
     addr_t remaining_freemem = 0;
     PhyMemMap *result, *new_chunk;
     
@@ -161,13 +161,16 @@ PhyMemMap* PhyMemManager::contigchunk_allocator(PhyMemMap* map_used,
     
     //Find a large enough chunk of memory (if any)
     if(map_used == phy_highmmap) {
-        result = free_highmem->find_freechunk(size);
+        result = free_highmem->find_contigchunk(requested_size);
     } else {
-        result = free_lowmem->find_freechunk(size);
+        result = free_lowmem->find_contigchunk(requested_size);
     }
     if(!result) return NULL;
+    while(result->size < requested_size) merge_with_next(result); //find_contigchunk finds things,
+                                                                  //but it does not automatically
+                                                                  //remove chunk fragmentation.
     result->add_owner(initial_owner);
-    remaining_freemem = result->size - size;
+    remaining_freemem = result->size - requested_size;
     
     //Check if we allocated too much memory, and if so correct this
     if(remaining_freemem) {
@@ -247,14 +250,22 @@ PhyMemMap* PhyMemManager::chunk_liberator(PhyMemMap* chunk) {
 }
 
 PhyMemMap* PhyMemManager::chunk_owneradd(PhyMemMap* chunk, const PID new_owner) {
-    chunk->add_owner(new_owner);
+    PhyMemMap* current_item = chunk;
+    do {
+        current_item->add_owner(new_owner);
+        current_item = current_item->next_buddy;
+    } while(current_item);
     
     return chunk;
 }
 
 PhyMemMap* PhyMemManager::chunk_ownerdel(PhyMemMap* chunk, const PID former_owner) {
-    chunk->del_owner(former_owner);
-    if(chunk->has_owner(PID_NOBODY)) chunk_liberator(chunk);
+    PhyMemMap* current_item = chunk;
+    do {
+        current_item->del_owner(former_owner);
+        current_item = current_item->next_buddy;
+    } while(current_item);
+    if(chunk->owners[0] == PID_NOBODY) chunk_liberator(chunk);
     
     return chunk;
 }
@@ -390,7 +401,7 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
         if(kmmap[index].location+kmmap[index].size>next_location) {
             //We've reached the end of this chunk. If it is free, add it to the appropriate
             //chunk of free map items.
-            if(current_item->has_owner(PID_NOBODY) && current_item->allocatable) {
+            if(current_item->owners[0] == PID_NOBODY && current_item->allocatable) {
                 if(!free_lowmem) {
                     free_lowmem = current_item;
                 } else {
@@ -450,7 +461,7 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
         }
         if(kmmap[index].location+kmmap[index].size>next_location) {
             //We've reached the end of this chunk. If it is free, add it to the free map item pool.
-            if(current_item->has_owner(PID_NOBODY) && current_item->allocatable) {
+            if(current_item->owners[0] == PID_NOBODY && current_item->allocatable) {
                 if(!free_lowmem) {
                     free_lowmem = current_item;
                 } else {
@@ -494,7 +505,7 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
     //free high memory chunk.
     current_item = phy_mmap;
     while(current_item->location < 0x100000) {
-        if(current_item->has_owner(PID_NOBODY) && current_item->allocatable) {
+        if(current_item->owners[0] == PID_NOBODY && current_item->allocatable) {
             last_free = current_item;
         }
         ++current_item;

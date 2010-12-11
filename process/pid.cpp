@@ -1,6 +1,6 @@
  /* Process identifier definition, along with support classes
- 
-    Copyright (C) 2010  Hadrien Grasland
+
+    Copyright (C) 2010    Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -9,91 +9,110 @@
 
     This program is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.    See the
     GNU General Public License for more details.
 
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA    02110-1301    USA */
  
 #include <pid.h>
 
 void PIDs::copy_from(const PIDs& source) {
-  current_pid = source.current_pid;
-  //Currently, due to lack of memory allocation, there can't be several PIDs in a PIDs structure
-  next_pid = NULL;
+    current_pid = source.current_pid;
+    //Currently, due to lack of memory allocation, there can't be several PIDs in a PIDs structure
+    next_pid = NULL;
 }
 
 void PIDs::free_members() {
-  //Do nothing. There is no memory allocation around right now.
+    //Do nothing. There is no memory allocation around right now.
 }
 
 PIDs& PIDs::operator=(const PIDs& source) {
-  if(&source!=this) {
-    free_members();
-    copy_from(source);
-  }
-  return *this;
+    if(&source!=this) {
+        free_members();
+        copy_from(source);
+    }
+    return *this;
 }
 
 int PIDs::add_pid(const PID new_pid) {
-  if(!current_pid) {
-    current_pid = new_pid;
-    return 0;
-  } else {
-    if(current_pid == new_pid) return 1;
-    else return -1; //We do not have memory allocation at the moment
-  }
+    if(!current_pid) {
+        current_pid = new_pid;
+        return 0;
+    } else {
+        if(current_pid == new_pid) return 1;
+        else return -1; //We do not have memory allocation at the moment
+    }
 }
 
 void PIDs::clear_pids() {
-  current_pid = PID_NOBODY;
-  //We do not have memory allocation at the moment, so this ends here
+    current_pid = PID_NOBODY;
+    //We do not have memory allocation at the moment, so this ends here
 }
 
 void PIDs::del_pid(const PID old_pid) {
-  if(current_pid == old_pid) {
-    current_pid = PID_NOBODY;
-  } else {
-    //We do not have memory allocation at the moment, so nothing to do
-  }
+    if(current_pid == old_pid) {
+        current_pid = PID_NOBODY;
+    } else {
+        //We do not have memory allocation at the moment, so nothing to do
+    }
 }
 
 bool PIDs::has_pid(const PID the_pid) const {
-  if(current_pid == the_pid) {
-    return 1;
-  } else {
-    return 0; //We do not have memory allocation at the moment
-  }
+    if(current_pid == the_pid) {
+        return 1;
+    } else {
+        return 0; //We do not have memory allocation at the moment
+    }
 }
 
+unsigned int PIDs::length() const {
+    PIDs* parser = (PIDs*) this;
+    unsigned int result;
+    
+    for(result = 0; parser; ++result, parser = parser->next_pid);
+    return result;
+}
+
+PID PIDs::operator[](const unsigned int index) const {
+    PIDs* parser = (PIDs*) this;
+    
+    for(unsigned int i = 0; (i<index) && parser; ++i, parser = parser->next_pid);
+    if(parser) {
+        return parser->current_pid;
+    } else {
+        return PID_NOBODY;
+    }
+}
+
+
 bool PIDs::operator==(const PIDs& param) const {
-  PIDs *source, *dest;
-  //This function compares two lists of PIDs, checking if each element of one is present in the other.
-  //(in a *very* inefficient way algorithmically-speaking, but sharing should never occur between more than
-  //~10 processes)
-  
-  source = (PIDs*) this;
-  while(source) {
-    dest = (PIDs*) &param;
-    while(dest) {
-      if(dest->current_pid == source->current_pid) break;
-      dest = dest->next_pid;
+    PIDs *source, *dest;
+    //This function compares two lists of PIDs, checking if each element of one is in the other.
+    //(The algorithm is O(N^2), but sharing should not often occur between more than ~10 processes)
+    
+    source = (PIDs*) this;
+    while(source) {
+        dest = (PIDs*) &param;
+        while(dest) {
+            if(dest->current_pid == source->current_pid) break;
+            dest = dest->next_pid;
+        }
+        if(!dest) return false;
+        source = source->next_pid;
     }
-    if(!dest) return false;
-    source = source->next_pid;
-  }
-  
-  source = (PIDs*) &param;
-  while(source) {
-    dest = (PIDs*) this;
-    while(dest) {
-      if(dest->current_pid == source->current_pid) break;
-      dest = dest->next_pid;
+    
+    source = (PIDs*) &param;
+    while(source) {
+        dest = (PIDs*) this;
+        while(dest) {
+            if(dest->current_pid == source->current_pid) break;
+            dest = dest->next_pid;
+        }
+        if(!dest) return false;
+        source = source->next_pid;
     }
-    if(!dest) return false;
-    source = source->next_pid;
-  }
-  
-  return true;
+    
+    return true;
 }
