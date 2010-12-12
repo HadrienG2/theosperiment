@@ -152,7 +152,7 @@ PhyMemMap* PhyMemManager::contigchunk_allocator(PhyMemMap* map_used,
                                                 const PID initial_owner,
                                                 const addr_t requested_size) {
     addr_t remaining_freemem = 0;
-    PhyMemMap *result, *new_chunk;
+    PhyMemMap *result, *new_chunk = NULL;
     
     //Make sure there's space for storing a new memory map item
     if(!free_mapitems) {
@@ -184,6 +184,13 @@ PhyMemMap* PhyMemManager::contigchunk_allocator(PhyMemMap* map_used,
         new_chunk->next_buddy = result->next_buddy;
         result->next_mapitem = new_chunk;
     }
+    
+    //Update free memory information
+    if(map_used == phy_highmmap) {
+        if(new_chunk) free_highmem = new_chunk; else free_highmem = result->next_buddy;
+    } else {
+        if(new_chunk) free_lowmem = new_chunk; else free_lowmem = result->next_buddy;
+    }
     result->next_buddy = NULL;
     
     return result;
@@ -209,7 +216,7 @@ PhyMemMap* PhyMemManager::chunk_liberator(PhyMemMap* chunk) {
             //Case where the current item belongs to high memory
             if(free_highmem == NULL) {
                 current_item->next_buddy = NULL;
-                free_highmem = (PhyMemMap*) current_item;
+                free_highmem = current_item;
                 continue;
             }
             if(free_highmem->location > current_item->location) {
@@ -279,7 +286,8 @@ PhyMemMap* PhyMemManager::merge_with_next(PhyMemMap* first_item) {
     first_item->next_buddy = next_item->next_buddy;
     
     //Now, trash "next_mapitem" in our free_mapitems structures.
-    next_item->next_mapitem = free_mapitems;
+    *next_item = PhyMemMap();
+    next_item->next_buddy = free_mapitems;
     free_mapitems = next_item;
     
     return first_item;
