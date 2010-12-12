@@ -84,11 +84,22 @@ void load_kernel(KernelInformation* kinfo,
     size -= phdr_table[i].p_filesz;
     memset(dest, 0, size);
     
-    //Now setup paging so that p_vaddr *does* point this address
+    //Now setup paging so that p_vaddr *does* point to load_addr
     for(current_offset=0; current_offset<phdr_table[i].p_memsz; current_offset+=PG_SIZE) {
       setup_pagetranslation(kinfo, cr3_value, phdr_table[i].p_vaddr+current_offset,
         load_addr+current_offset, flags);
     }
+    
+    //These are the sole page translations we'll ever use in the kernel. If we could do otherwise,
+    //we would just ignore them, but making a relocatable kernel binary seems too complex.
+    //As the kernel is small, we can afford losing some memory by mapping the virtual memory region
+    //where the kernel is located as reserved.
+    kmmap_add(kinfo,
+              phdr_table[i].p_vaddr,
+              align_pgup(phdr_table[i].p_memsz),
+              NATURE_RES,
+              "Kernel mapping region");
+    kmmap_update(kinfo);
   }
 }
 

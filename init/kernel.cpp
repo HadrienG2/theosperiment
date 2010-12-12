@@ -15,6 +15,8 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     PhyMemManager phymem(kinfo);
     dbgout << "* Setting up virtual memory management..." << endl;
     VirMemManager virmem(phymem);
+    dbgout << set_window(screen_win);
+    phymem.print_mmap();
     
     return 0;
 }
