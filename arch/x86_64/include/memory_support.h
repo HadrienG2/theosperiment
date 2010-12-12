@@ -23,6 +23,10 @@
 #include <pid.h>
 #include <synchronization.h>
 
+//**************************************************
+//*********** Physical memory management ***********
+//**************************************************
+
 //Represents an item in a map of the physical memory, managed as a chained list at the moment.
 //Size should be a divisor of 0x1000 (current size : 0x40) to ease the early allocation process.
 struct PhyMemMap {
@@ -55,7 +59,11 @@ struct PhyMemMap {
     unsigned int length() const;
 } __attribute__((packed));
 
-//The following flags are available when handling virtual memory
+//**************************************************
+//*********** Virtual memory management ************
+//**************************************************
+
+//The following flags are available when handling virtual memory access permission
 typedef uint32_t VirMemFlags;
 #define VMEM_FLAG_R 1 //Region of virtual memory is readable
 #define VMEM_FLAG_W 2 //...writable
@@ -76,11 +84,12 @@ struct VirMemMap {
     uint64_t padding2;
     uint64_t padding3;
     VirMemMap() : location(0),
-                                size(0),
-                                flags(VMEM_FLAG_P + VMEM_FLAG_R + VMEM_FLAG_W),
-                                owner(PID_NOBODY),
-                                next_buddy(NULL),
-                                next_mapitem(NULL) {};
+                  size(0),
+                  flags(VMEM_FLAG_P + VMEM_FLAG_R + VMEM_FLAG_W),
+                  owner(PID_NOBODY),
+                  points_to(NULL),
+                  next_buddy(NULL),
+                  next_mapitem(NULL) {};
     //Algorithms finding things in or about the map
     VirMemMap* find_thischunk(const addr_t location) const;
     unsigned int length() const;
@@ -93,14 +102,49 @@ struct VirMemMap {
 struct VirMapList {
     PID map_owner;
     VirMemMap* map_pointer;
+    addr_t pml4t_location;
     VirMapList* next_item;
-    uint64_t pml4t_location;
     KernelMutex mutex;
-    uint8_t padding;
     uint16_t padding2;
     VirMapList() : map_owner(PID_NOBODY),
-                                 map_pointer(NULL),
-                                 next_item(NULL) {};
+                   map_pointer(NULL),
+                   next_item(NULL) {};
+} __attribute__((packed));
+
+//**************************************************
+//*************** Memory allocation ****************
+//**************************************************
+
+//VirMemManager and PhyMemManager work on a per-page basis. Memory allocation works on a per-byte
+//basis. KnlMemAllocator was made to address this fundamental incompatibility without allocating a
+//full page when applications only ask for a few bytes. To do that, it maintains two sorted linked
+//lists per process : a list of allocated, but not used yet, "parts of page", and a list of
+//allocated and used parts of pages. Each list uses the following structure.
+//Its size should again be a divisor of 0x1000 (currently : 0x20)
+struct MallocMap {
+    addr_t location;
+    addr_t size;
+    VirMemMap* belongs_to; //The chunk of virtual memory it belongs to.
+    MallocMap* next_item;
+    MallocMap() : location(NULL),
+                  size(NULL),
+                  belongs_to(NULL),
+                  next_item(NULL) {};
+} __attribute__((packed));
+
+//There are two maps per process, and we must keep track of each process. The same assumptions as
+//before apply. The size of this should also be a divisor of 0x1000 (currently : 0x20);
+struct MallocPIDList {
+    PID map_owner;
+    MallocMap* busy_map; //A sorted map of used chunks of memory
+    MallocMap* free_map; //A sorted map of ready-to-use chunks of memory
+    MallocPIDList* next_item;
+    KernelMutex mutex;
+    uint16_t padding;
+    MallocPIDList() : map_owner(PID_NOBODY),
+                      busy_map(NULL),
+                      free_map(NULL),
+                      next_item(NULL) {};
 } __attribute__((packed));
 
 #endif

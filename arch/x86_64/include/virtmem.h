@@ -63,7 +63,7 @@ class VirMemManager {
         addr_t remove_paging(addr_t vir_addr, //Remove paging structures in a virtual address range
                              const addr_t length,
                              addr_t pml4t_location);
-        VirMapList* remove_pid(PID target); //Remove management structures for this PID
+        VirMapList* remove_pid(PID target); //Discards management structures for this PID
         uint64_t x86flags(VirMemFlags flags); //Converts VirMemFlags to x86 paging flags
     public:
         //Constructor gets the current layout of paged memory, setup management structures

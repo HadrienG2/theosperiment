@@ -49,8 +49,8 @@ struct KernelMemoryMap {
   addr_t size;
   uint8_t nature;
   addr_t name; //char* to a string naming the area. For free and reserved memory it's either "Low Mem" or "High Mem".
-                //Bootstrap kernel is called "Bootstrap", its separate parts have a precise naming
-                //Kernel and modules are called by their GRUB modules names
+               //Bootstrap kernel is called "Bootstrap", its separate parts have a precise naming
+               //Kernel and modules are called by their GRUB modules names
 } __attribute__ ((packed));
 
 struct KernelInformation {
