@@ -23,6 +23,8 @@
 #include <pid.h>
 #include <synchronization.h>
 
+typedef struct VirMapList VirMapList;
+
 //**************************************************
 //*********** Physical memory management ***********
 //**************************************************
@@ -76,8 +78,7 @@ struct VirMemMap {
     addr_t location;
     addr_t size;
     VirMemFlags flags;
-    PID owner; //Only here for convenience purpose (less function parameters), can be removed if
-               //there's a need for room in this class or to faster vmem handling.
+    VirMapList* owner;
     PhyMemMap* points_to; //Physical memory chunk this virtual memory chunk points to
     VirMemMap* next_buddy;
     VirMemMap* next_mapitem;
@@ -108,6 +109,7 @@ struct VirMapList {
     uint16_t padding2;
     VirMapList() : map_owner(PID_NOBODY),
                    map_pointer(NULL),
+                   pml4t_location(NULL),
                    next_item(NULL) {};
 } __attribute__((packed));
 
@@ -132,18 +134,30 @@ struct MallocMap {
                   next_item(NULL) {};
 } __attribute__((packed));
 
+//There is a derivative of the previous structure for the kernel, as it has virtual memory disabled.
+struct KnlMallocMap {
+    addr_t location;
+    addr_t size;
+    PhyMemMap* belongs_to; //The chunk of *physical* memory it belongs to.
+    KnlMallocMap* next_item;
+    KnlMallocMap() : location(NULL),
+                     size(NULL),
+                     belongs_to(NULL),
+                     next_item(NULL) {};
+} __attribute__((packed));
+
 //There are two maps per process, and we must keep track of each process. The same assumptions as
 //before apply. The size of this should also be a divisor of 0x1000 (currently : 0x20);
 struct MallocPIDList {
     PID map_owner;
-    MallocMap* busy_map; //A sorted map of used chunks of memory
     MallocMap* free_map; //A sorted map of ready-to-use chunks of memory
+    MallocMap* busy_map; //A sorted map of used chunks of memory
     MallocPIDList* next_item;
     KernelMutex mutex;
     uint16_t padding;
     MallocPIDList() : map_owner(PID_NOBODY),
-                      busy_map(NULL),
                       free_map(NULL),
+                      busy_map(NULL),
                       next_item(NULL) {};
 } __attribute__((packed));
 

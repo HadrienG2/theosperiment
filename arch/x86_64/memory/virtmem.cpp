@@ -35,8 +35,8 @@ addr_t VirMemManager::alloc_mapitems() {
     if(!allocated_chunk) return NULL;
     
     //Fill it with initialized map items
-    current_item = (VirMemMap*) (allocated_chunk->location);
-    free_mapitems = current_item;
+    free_mapitems = (VirMemMap*) (allocated_chunk->location);
+    current_item = free_mapitems;
     for(used_space = sizeof(VirMemMap); used_space < PG_SIZE; used_space+=sizeof(VirMemMap)) {
         *current_item = VirMemMap();
         current_item->next_buddy = current_item+1;
@@ -58,9 +58,9 @@ addr_t VirMemManager::alloc_listitems() {
     allocated_chunk = phymem->alloc_page(PID_KERNEL);
     if(!allocated_chunk) return NULL;
     
-    //Fill it with initialized map items
-    current_item = (VirMapList*) (allocated_chunk->location);
-    free_listitems = current_item;
+    //Fill it with initialized list items
+    free_listitems = (VirMapList*) (allocated_chunk->location);
+    current_item = free_listitems;    
     for(used_space = sizeof(VirMapList); used_space < PG_SIZE; used_space+=sizeof(VirMapList)) {
         *current_item = VirMapList();
         current_item->next_item = current_item+1;
@@ -127,7 +127,7 @@ VirMemMap* VirMemManager::chunk_mapper(const PhyMemMap* phys_chunk, const VirMem
     result = free_mapitems;
     free_mapitems = free_mapitems->next_buddy;
     result->flags = flags;
-    result->owner = target->map_owner;
+    result->owner = target;
     result->points_to = (PhyMemMap*) phys_chunk;
     result->next_buddy = NULL;
     
@@ -345,10 +345,10 @@ VirMapList* VirMemManager::setup_pid(PID target) {
     //Fill them
     result = free_listitems;
     free_listitems = free_listitems->next_item;
-    result->next_item = NULL;
     result->map_owner = target;
     result->pml4t_location = pml4t_chunk->location;
     x86paging::create_pml4t(result->pml4t_location);
+    result->next_item = NULL;
     
     return result;
 }
@@ -482,20 +482,16 @@ addr_t VirMemManager::remove_paging(addr_t vir_addr, const addr_t length, addr_t
 VirMapList* VirMemManager::remove_pid(PID target) {
     VirMapList *result, *previous_item;
     
-    //Remove the PID from the map list
-    if(map_list->map_owner == target) {
-        result = map_list;
-        map_list = map_list->next_item;
-    } else {
-        previous_item = map_list;
-        while(previous_item->next_item) {
-            if(previous_item->next_item->map_owner == target) break;
-            previous_item = previous_item->next_item;
-        }
-        result = previous_item->next_item;
-        previous_item->next_item = previous_item->next_item->next_item;
-        if(!result) return NULL;
+    //target can't be the first item of the map list, as this item is the kernel.
+    //Paging is disabled for the kernel
+    previous_item = map_list;
+    while(previous_item->next_item) {
+        if(previous_item->next_item->map_owner == target) break;
+        previous_item = previous_item->next_item;
     }
+    result = previous_item->next_item;
+    previous_item->next_item = previous_item->next_item->next_item;
+    if(!result) return NULL;
     
     //Free its entry
     phymem->free(result->pml4t_location);
@@ -561,26 +557,16 @@ VirMemMap* VirMemManager::map(const PhyMemMap* phys_chunk,
 }
 
 VirMemMap* VirMemManager::free(VirMemMap* chunk) {
-    VirMapList* list_item;
     VirMemMap* result;
     
-    if(chunk->owner == PID_KERNEL) return NULL; //Paging is disabled for the kernel, fake chunk
+    if(chunk->owner == map_list) return NULL; //Paging is disabled for the kernel, fake chunk
     
-    maplist_mutex.grab_spin();
-    
-        list_item = find_pid(chunk->owner);
-        if(!list_item) {
-            maplist_mutex.release();
-            return NULL;
-        }
-        
-    list_item->mutex.grab_spin();
-    maplist_mutex.release();
+    chunk->owner->mutex.grab_spin();
         
         //Free that chunk
-        result = chunk_liberator(chunk, list_item);
+        result = chunk_liberator(chunk, chunk->owner);
     
-    list_item->mutex.release();
+    chunk->owner->mutex.release();
     
     return result;
 }
@@ -588,26 +574,16 @@ VirMemMap* VirMemManager::free(VirMemMap* chunk) {
 VirMemMap* VirMemManager::adjust_flags(VirMemMap* chunk,
                                        const VirMemFlags flags,
                                        const VirMemFlags mask) {
-    VirMapList* list_item;
     VirMemMap* result;
     
-    if(chunk->owner == PID_KERNEL) return NULL; //Paging is disabled for the kernel, fake chunk
+    if(chunk->owner == map_list) return NULL; //Paging is disabled for the kernel, fake chunk
     
-    maplist_mutex.grab_spin();
-    
-        list_item = find_pid(chunk->owner);
-        if(!list_item) {
-            maplist_mutex.release();
-            return NULL;
-        }
+    chunk->owner->mutex.grab_spin();
         
-    list_item->mutex.grab_spin();
-    maplist_mutex.release();
-        
-        //Change these flags
-        result = flag_adjust(chunk, flags, mask, list_item);
+        //Adjust these flags
+        result = flag_adjust(chunk, flags, mask, chunk->owner);
     
-    list_item->mutex.release();
+    chunk->owner->mutex.release();
     
     return result;
 }

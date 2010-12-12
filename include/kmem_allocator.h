@@ -33,29 +33,38 @@ class MemAllocator {
         MallocPIDList* map_list;
         MallocMap* free_mapitems; //A collection of ready to use memory map items
         MallocPIDList* free_listitems; //A collection of ready to use map list items
-        KernelMutex maplist_mutex; //Hold that mutex when parsing the map list
-                                   //or adding/removing maps from it.
+        KernelMutex maplist_mutex; //Hold that mutex when parsing or modifying the map list
+        //Kernel malloc management data
+        KnlMallocMap* knl_free_map; //A sorted map of ready-to-use chunks of memory for the kernel
+        KnlMallocMap* knl_busy_map; //A sorted map of the chunks of memory used by the kernel
+        KernelMutex knl_mutex; //Hold that mutex when parsing or modifying the kernel maps
         //Support functions
         addr_t alloc_mapitems(); //Get some memory map storage space
         addr_t alloc_listitems(); //Get some map list storage space
-        addr_t mallocator(addr_t size, MallocPIDList* target);
-        addr_t mallocator_knl(addr_t size); //The kernel has paging disabled, so it has special
-                                            //memory allocation routines.
-        void liberator(addr_t location, MallocPIDList* target);
-        VirMapList* find_pid(PID target); //Find the map list entry associated to this PID,
-                                          //return NULL if it does not exist.
-        VirMapList* find_or_create_pid(PID target); //Same as above, but try to create the entry
-                                                    //if it does not exist yet
-        VirMapList* setup_pid(PID target); //Create management structures for a new PID
-        VirMapList* remove_pid(PID target); //Discards management structures for this PID
+        addr_t allocator(addr_t size, MallocPIDList* target);
+        addr_t liberator(addr_t location, MallocPIDList* target);
+        addr_t knl_allocator(addr_t size);     //Variants of the previous functions specifically for
+        addr_t knl_liberator(addr_t location); //the kernel
+        MallocPIDList* find_pid(PID target); //Find the map list entry associated to this PID,
+                                             //return NULL if it does not exist.
+        MallocPIDList* find_or_create_pid(PID target); //Same as above, but try to create the entry
+                                                       //if it does not exist yet
+        MallocPIDList* setup_pid(PID target); //Create management structures for a new PID
+        MallocPIDList* remove_pid(PID target); //Discards management structures for this PID
     public:
-        MemAllocator(PhyMemManager& phymem, VirMemManager& virmem);
+        MemAllocator(PhyMemManager& physmem, VirMemManager& virtmem) : phymem(&physmem),
+                                                                       virmem(&virtmem),
+                                                                       map_list(NULL),
+                                                                       free_mapitems(NULL),
+                                                                       free_listitems(NULL),
+                                                                       knl_free_map(NULL),
+                                                                       knl_busy_map(NULL) {}
         
         //The functions you have always dreamed of
-        addr_t malloc(addr_t size, PID process); //Allocate memory to a process, returns location
-        addr_t free(addr_t location, PID process); //Free previously allocated memory. Returns 0
-                                                   //if location or process does not exist, location
-                                                   //otherwise.
+        addr_t malloc(addr_t size, PID target); //Allocate memory to a process, returns location
+        addr_t free(addr_t location, PID target); //Free previously allocated memory. Returns 0
+                                                  //if location or process does not exist, location
+                                                  //otherwise.
         
         //Shortcuts for use inside of the kernel
         addr_t kalloc(addr_t size) {return malloc(size, PID_KERNEL);}
