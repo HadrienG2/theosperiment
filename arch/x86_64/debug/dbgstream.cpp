@@ -635,37 +635,6 @@ DebugOutput& DebugOutput::operator<<(const PhyMemMap& input) {
     return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(const VirMapList& input) {
-    VirMapList* list = (VirMapList*) &input;
-    bool tmp_padding = padding_on;
-    unsigned int tmp_padsize = padsize;
-    DebugNumberBase tmp = number_base;
-
-    *this << pad_status(true);
-    *this << pad_size(18);
-    *this << numberbase(HEXADECIMAL) << endl;
-    *this << "PID        | Map location       | PML4T location     | Mutex" << endl;
-    *this << "-----------+--------------------+--------------------+-------------------------";
-
-    do {
-        *this << endl << pad_size(10) << list->map_owner;
-        *this << pad_size(0) << " | " << (uint64_t) list->map_pointer << " | ";
-        *this << list->pml4t_location << " | ";
-        if(list->mutex.state()) {
-            *this << "Available";
-        } else {
-            *this << "BUSY";
-        }
-        list = list->next_item;
-    } while(list);
-
-    if(!tmp_padding) *this << pad_status(false);
-    if(tmp_padsize) *this << pad_size(tmp_padsize);
-    *this << numberbase(tmp) << endl;
-
-    return *this;
-}
-
 DebugOutput& DebugOutput::operator<<(const VirMemMap& input) {
     bool tmp_padding = padding_on;
     unsigned int tmp_padsize = padsize;
@@ -714,6 +683,120 @@ DebugOutput& DebugOutput::operator<<(const VirMemMap& input) {
         map = map->next_mapitem;
     } while(map);
   
+    if(!tmp_padding) *this << pad_status(false);
+    if(tmp_padsize) *this << pad_size(tmp_padsize);
+    *this << numberbase(tmp) << endl;
+
+    return *this;
+}
+
+DebugOutput& DebugOutput::operator<<(const VirMapList& input) {
+    VirMapList* list = (VirMapList*) &input;
+    bool tmp_padding = padding_on;
+    unsigned int tmp_padsize = padsize;
+    DebugNumberBase tmp = number_base;
+
+    *this << pad_status(true);
+    *this << pad_size(18);
+    *this << numberbase(HEXADECIMAL) << endl;
+    *this << "PID        | Map location       | PML4T location     | Mutex" << endl;
+    *this << "-----------+--------------------+--------------------+-------------------------";
+
+    do {
+        *this << endl << pad_size(10) << list->map_owner;
+        *this << pad_size(18) << " | " << (uint64_t) list->map_pointer << " | ";
+        *this << list->pml4t_location << " | ";
+        if(list->mutex.state()) {
+            *this << "Available";
+        } else {
+            *this << "BUSY";
+        }
+        list = list->next_item;
+    } while(list);
+
+    if(!tmp_padding) *this << pad_status(false);
+    if(tmp_padsize) *this << pad_size(tmp_padsize);
+    *this << numberbase(tmp) << endl;
+
+    return *this;
+}
+
+DebugOutput& DebugOutput::operator<<(const MallocMap& input) {
+    bool tmp_padding = padding_on;
+    unsigned int tmp_padsize = padsize;
+    MallocMap* map = (MallocMap*) &input;
+    DebugNumberBase tmp = number_base;
+
+    *this << pad_status(true);
+    *this << pad_size(18);
+    *this << numberbase(HEXADECIMAL) << endl;
+    *this << "Location           | Size               | Belongs to" << endl;
+    *this << "-------------------+--------------------+-------------------------------------";
+  
+    do {
+        *this << endl << map->location << " | " << map->size << " | ";
+        if(map->belongs_to) {
+            dbgout << "BEL-" << (uint64_t) map->belongs_to;
+        }
+        map = map->next_item;
+    } while(map);
+  
+    if(!tmp_padding) *this << pad_status(false);
+    if(tmp_padsize) *this << pad_size(tmp_padsize);
+    *this << numberbase(tmp) << endl;
+    return *this;
+}
+
+DebugOutput& DebugOutput::operator<<(const KnlMallocMap& input) {
+    bool tmp_padding = padding_on;
+    unsigned int tmp_padsize = padsize;
+    KnlMallocMap* map = (KnlMallocMap*) &input;
+    DebugNumberBase tmp = number_base;
+
+    *this << pad_status(true);
+    *this << pad_size(18);
+    *this << numberbase(HEXADECIMAL) << endl;
+    *this << "Location           | Size               | Belongs to" << endl;
+    *this << "-------------------+--------------------+-------------------------------------";
+  
+    do {
+        *this << endl << map->location << " | " << map->size << " | ";
+        if(map->belongs_to) {
+            dbgout << "BEL-" << (uint64_t) map->belongs_to;
+        }
+        map = map->next_item;
+    } while(map);
+  
+    if(!tmp_padding) *this << pad_status(false);
+    if(tmp_padsize) *this << pad_size(tmp_padsize);
+    *this << numberbase(tmp) << endl;
+    return *this;
+}
+
+DebugOutput& DebugOutput::operator<<(const MallocPIDList& input) {
+    MallocPIDList* list = (MallocPIDList*) &input;
+    bool tmp_padding = padding_on;
+    unsigned int tmp_padsize = padsize;
+    DebugNumberBase tmp = number_base;
+
+    *this << pad_status(true);
+    *this << pad_size(18);
+    *this << numberbase(HEXADECIMAL) << endl;
+    *this << "PID        | Busy map location  | Free map location  | Mutex" << endl;
+    *this << "-----------+--------------------+--------------------+-------------------------";
+
+    do {
+        *this << endl << pad_size(10) << list->map_owner;
+        *this << pad_size(18) << " | " << (uint64_t) list->busy_map << " | ";
+        *this << (uint64_t) list->free_map << " | ";
+        if(list->mutex.state()) {
+            *this << "Available";
+        } else {
+            *this << "BUSY";
+        }
+        list = list->next_item;
+    } while(list);
+
     if(!tmp_padding) *this << pad_status(false);
     if(tmp_padsize) *this << pad_size(tmp_padsize);
     *this << numberbase(tmp) << endl;

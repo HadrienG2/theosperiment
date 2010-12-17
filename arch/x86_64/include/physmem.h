@@ -27,6 +27,9 @@
 
 #include <dbgstream.h>
 
+#define PHYMEMMANAGER_VERSION   1 //Increase this when deep changes that require a modification of
+                                  //the testing protocol are introduced
+
 //This class takes care of
 // -Mapping which pages of physical memory are in use by processes, which are free
 // -...which PID (Process IDentifier) owns each used page of memory

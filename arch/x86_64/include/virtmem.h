@@ -26,6 +26,9 @@
 #include <pid.h>
 #include <synchronization.h>
 
+#define VIRMEMMANAGER_VERSION   1 //Increase this when deep changes that require a modification of
+                                  //the testing protocol are introduced
+
 //This class is an abstraction of the paging mechanism. It allows...
 //-Page grouping in chunks and management of chunks as a whole
 //-Allocation/miberation of a contiguous chunk of linear addresses pointing to a

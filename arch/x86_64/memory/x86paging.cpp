@@ -54,15 +54,15 @@ namespace x86paging {
         //Determine on how much paging structures the vmem block spreads
         tmp = (uint64_t) align_up(length, 0x1000)/0x1000; //In pages
         const int first_pt_len = min(tmp, PTABLE_LENGTH-pt_index);
-        const int last_pt_len = (tmp-first_pt_len)%PTABLE_LENGTH;
+        const int last_pt_len = (tmp-first_pt_len)%(PTABLE_LENGTH+1);
         tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In page tables
         const int first_pd_len = min(tmp, PTABLE_LENGTH-pd_index);
-        const int last_pd_len = (tmp-first_pd_len)%PTABLE_LENGTH;
+        const int last_pd_len = (tmp-first_pd_len)%(PTABLE_LENGTH+1);
         tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In page directories
         const int first_pdpt_len = min(tmp, PTABLE_LENGTH-pdpt_index);
-        const int last_pdpt_len = (tmp-first_pdpt_len)%PTABLE_LENGTH;
+        const int last_pdpt_len = (tmp-first_pdpt_len)%(PTABLE_LENGTH+1);
         tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In PDPTs
-        pml4t_len = tmp%(PTABLE_LENGTH-pml4t_index);
+        pml4t_len = tmp%(PTABLE_LENGTH-pml4t_index+1);
 
         //Fill paging structures
         for(int pml4t_parser = 0; pml4t_parser < pml4t_len; ++pml4t_parser) { //PML4T parsing
@@ -229,15 +229,15 @@ namespace x86paging {
         //Determine on how much paging structures the vmem block spreads
         tmp = (uint64_t) align_up(length, 0x1000)/0x1000; //In pages
         const int first_pt_len = min(tmp, PTABLE_LENGTH-pt_index);
-        const int last_pt_len = (tmp-first_pt_len)%PTABLE_LENGTH;
+        const int last_pt_len = (tmp-first_pt_len)%(PTABLE_LENGTH+1);
         tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In page tables
         const int first_pd_len = min(tmp, PTABLE_LENGTH-pd_index);
-        const int last_pd_len = (tmp-first_pd_len)%PTABLE_LENGTH;
+        const int last_pd_len = (tmp-first_pd_len)%(PTABLE_LENGTH+1);
         tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In page directories
         const int first_pdpt_len = min(tmp, PTABLE_LENGTH-pdpt_index);
-        const int last_pdpt_len = (tmp-first_pdpt_len)%PTABLE_LENGTH;
+        const int last_pdpt_len = (tmp-first_pdpt_len)%(PTABLE_LENGTH+1);
         tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In PDPTs
-        pml4t_len = tmp%(PTABLE_LENGTH-pml4t_index);
+        pml4t_len = tmp%(PTABLE_LENGTH-pml4t_index+1);
 
         //Fill paging structures
         for(int pml4t_parser = 0; pml4t_parser < pml4t_len; ++pml4t_parser) { //PML4T parsing
