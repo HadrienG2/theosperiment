@@ -188,13 +188,17 @@ class DebugOutput {
     DebugOutput& operator<<(const int64_t input);
     DebugOutput& operator<<(const unsigned int input) {uint64_t tmp=input; *this << tmp; return *this;}
     DebugOutput& operator<<(const uint64_t input);
-    DebugOutput& operator<<(const void* ptr); //HACK WARNING : This is just to make the compiler fail when trying to output a pointer
-    //Functions displaying home-made types
+    DebugOutput& operator<<(const void* ptr); //This is just to make the compiler fail when trying
+                                              //to output a pointer, instead of casting it to bool
+    //Functions displaying memory management's custom types
     DebugOutput& operator<<(const KernelInformation& input); //Displays only the memory map atm
     DebugOutput& operator<<(const KernelMemoryMap& input);
     DebugOutput& operator<<(const PhyMemMap& input);
-    DebugOutput& operator<<(const VirMapList& input);
     DebugOutput& operator<<(const VirMemMap& input);
+    DebugOutput& operator<<(const VirMapList& input);
+    DebugOutput& operator<<(const MallocMap& input);
+    DebugOutput& operator<<(const KnlMallocMap& input);
+    DebugOutput& operator<<(const MallocPIDList& input);
     //Manipulator functions
     DebugOutput& operator<<(const DebugAttributeChanger& manipulator);
     DebugOutput& operator<<(const DebugBreakpoint& manipulator);

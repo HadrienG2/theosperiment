@@ -266,12 +266,12 @@ addr_t VirMemManager::setup_4kpages(addr_t vir_addr, const addr_t length, addr_t
     tmp = (addr_t) align_up(length, 0x1000)/0x1000; //In pages
     tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In page tables
     const int first_pd_len = min(tmp, PTABLE_LENGTH-pd_index);
-    const int last_pd_len = (tmp-first_pd_len)%PTABLE_LENGTH;
+    const int last_pd_len = (tmp-first_pd_len)%(PTABLE_LENGTH+1);
     tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In page directories
     const int first_pdpt_len = min(tmp, PTABLE_LENGTH-pdpt_index);
-    const int last_pdpt_len = (tmp-first_pdpt_len)%PTABLE_LENGTH;
+    const int last_pdpt_len = (tmp-first_pdpt_len)%(PTABLE_LENGTH+1;
     tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In PDPTs
-    pml4t_len = tmp%(PTABLE_LENGTH-pml4t_index);
+    pml4t_len = tmp%(PTABLE_LENGTH-pml4t_index+1);
         
     //Allocate paging structures
     for(int pml4t_parser = 0; pml4t_parser < pml4t_len; ++pml4t_parser) { //PML4T level : allocate PDPTs, parse them to allocate PDs
@@ -377,15 +377,15 @@ addr_t VirMemManager::remove_paging(addr_t vir_addr, const addr_t length, addr_t
     //Determine on how much paging structures the vmem block spreads
     tmp = (addr_t) align_up(length, 0x1000)/0x1000; //In pages
     const int first_pt_len = min(tmp, PTABLE_LENGTH-pt_index);
-    const int last_pt_len = (tmp-first_pt_len)%PTABLE_LENGTH;
+    const int last_pt_len = (tmp-first_pt_len)%(PTABLE_LENGTH+1);
     tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In page tables
     const int first_pd_len = min(tmp, PTABLE_LENGTH-pd_index);
-    const int last_pd_len = (tmp-first_pd_len)%PTABLE_LENGTH;
+    const int last_pd_len = (tmp-first_pd_len)%(PTABLE_LENGTH+1);
     tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In page directories
     const int first_pdpt_len = min(tmp, PTABLE_LENGTH-pdpt_index);
-    const int last_pdpt_len = (tmp-first_pdpt_len)%PTABLE_LENGTH;
+    const int last_pdpt_len = (tmp-first_pdpt_len)%(PTABLE_LENGTH+1);
     tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In PDPTs
-    pml4t_len = tmp%(PTABLE_LENGTH-pml4t_index);
+    pml4t_len = tmp%(PTABLE_LENGTH-pml4t_index+1);
     
     //Free paging structures
     for(int pml4t_parser = 0; pml4t_parser < pml4t_len; ++pml4t_parser) { //PML4T level : parse PDPTs to free PDs, then free them
@@ -493,7 +493,10 @@ VirMapList* VirMemManager::remove_pid(PID target) {
     previous_item->next_item = previous_item->next_item->next_item;
     if(!result) return NULL;
     
-    //Free its entry
+    //Free all its paging structures and its entry
+    remove_paging(0,
+                  (PG_SIZE*PTABLE_LENGTH*PTABLE_LENGTH*PTABLE_LENGTH*PTABLE_LENGTH)-1,
+                  result->pml4t_location);
     phymem->free(result->pml4t_location);
     *result = VirMapList();
     result->next_item = free_listitems;
@@ -553,20 +556,37 @@ VirMemMap* VirMemManager::map(const PhyMemMap* phys_chunk,
     
     list_item->mutex.release();
     
+    if(!result) {
+        maplist_mutex->grab_spin();
+        
+            //If mapping has failed, we might have created a PID without an address space, which is
+            //a waste of precious memory space. Liberate it.
+            if(list_item->map_pointer == NULL) remove_pid(target);
+            
+        maplist_mutex->release();
+    }
+    
     return result;
 }
 
 VirMemMap* VirMemManager::free(VirMemMap* chunk) {
     VirMemMap* result;
-    
-    if(chunk->owner == map_list) return NULL; //Paging is disabled for the kernel, fake chunk
-    
-    chunk->owner->mutex.grab_spin();
         
-        //Free that chunk
-        result = chunk_liberator(chunk, chunk->owner);
+    if(chunk->owner == map_list) return NULL; //Paging is disabled for the kernel
     
-    chunk->owner->mutex.release();
+    VirMapList* chunk_owner = chunk->owner; //We won't have access to this once the chunk is
+                                            //liberated, so better keep a copy around.
+                                            
+    maplist_mutex.grab_spin(); //The map list may be modified too, if the process' item is liberated
+    
+        chunk_owner->mutex.grab_spin();
+        
+            //Free that chunk
+            result = chunk_liberator(chunk, chunk->owner);
+        
+        if(chunk_owner->pml4t_location) chunk_owner->mutex.release();
+        
+    maplist_mutex.release();
     
     return result;
 }
@@ -576,7 +596,7 @@ VirMemMap* VirMemManager::adjust_flags(VirMemMap* chunk,
                                        const VirMemFlags mask) {
     VirMemMap* result;
     
-    if(chunk->owner == map_list) return NULL; //Paging is disabled for the kernel, fake chunk
+    if(chunk->owner == map_list) return NULL; //Paging is disabled for the kernel
     
     chunk->owner->mutex.grab_spin();
         

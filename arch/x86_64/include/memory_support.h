@@ -82,12 +82,12 @@ struct VirMemMap {
     PhyMemMap* points_to; //Physical memory chunk this virtual memory chunk points to
     VirMemMap* next_buddy;
     VirMemMap* next_mapitem;
+    uint32_t padding;
     uint64_t padding2;
-    uint64_t padding3;
     VirMemMap() : location(0),
                   size(0),
                   flags(VMEM_FLAG_P + VMEM_FLAG_R + VMEM_FLAG_W),
-                  owner(PID_NOBODY),
+                  owner(NULL),
                   points_to(NULL),
                   next_buddy(NULL),
                   next_mapitem(NULL) {};
@@ -132,6 +132,9 @@ struct MallocMap {
                   size(NULL),
                   belongs_to(NULL),
                   next_item(NULL) {};
+    MallocMap* find_contigchunk(const addr_t size) const; //Try to find at least "size" contiguous
+                                                          //bytes in this map
+    MallocMap* find_thischunk(const addr_t location) const;
 } __attribute__((packed));
 
 //There is a derivative of the previous structure for the kernel, as it has virtual memory disabled.
@@ -144,6 +147,9 @@ struct KnlMallocMap {
                      size(NULL),
                      belongs_to(NULL),
                      next_item(NULL) {};
+    KnlMallocMap* find_contigchunk(const addr_t size) const; //Try to find at least "size"
+                                                             //contiguous bytes in this map
+    KnlMallocMap* find_thischunk(const addr_t location) const;
 } __attribute__((packed));
 
 //There are two maps per process, and we must keep track of each process. The same assumptions as

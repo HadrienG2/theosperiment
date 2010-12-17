@@ -508,6 +508,8 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
         }
         current_item->next_buddy = NULL;
     }
+    if(!free_mapitems) alloc_mapitems(); //If there are no free map items after initialization,
+                                         //have some ready to use
     
     //Locate the beginning of high memory and separate free low memory chunk from
     //free high memory chunk.
