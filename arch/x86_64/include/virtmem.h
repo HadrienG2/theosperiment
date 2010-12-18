@@ -50,11 +50,15 @@ class VirMemManager {
         addr_t alloc_mapitems(); //Get some memory map storage space
         addr_t alloc_listitems(); //Get some map list storage space
         VirMemMap* chunk_liberator(VirMemMap* chunk, VirMapList* target);
-        VirMemMap* chunk_mapper(const PhyMemMap* phys_chunk, const VirMemFlags flags, VirMapList* target);
+        VirMemMap* chunk_mapper(const PhyMemMap* phys_chunk,
+                                const VirMemFlags flags,
+                                VirMapList* target);
         VirMapList* find_pid(PID target); //Find the map list entry associated to this PID,
                                           //return NULL if it does not exist.
         VirMapList* find_or_create_pid(PID target); //Same as above, but try to create the entry
                                                     //if it does not exist yet
+        VirMapList* setup_pid(PID target); //Create management structures for a new PID
+        VirMapList* remove_pid(PID target); //Discards management structures for this PID
         VirMemMap* flag_adjust(VirMemMap* chunk,        //Adjust the paging flags associated with a
                                const VirMemFlags flags, //chunk.
                                const VirMemFlags mask,
@@ -62,11 +66,10 @@ class VirMemManager {
         addr_t setup_4kpages(addr_t vir_addr,     //Setup paging structures for 4KB x86 paging in
                              const addr_t length, //a virtual address range.
                              addr_t pml4t_location); 
-        VirMapList* setup_pid(PID target); //Create management structures for a new PID
         addr_t remove_paging(addr_t vir_addr, //Remove paging structures in a virtual address range
                              const addr_t length,
                              addr_t pml4t_location);
-        VirMapList* remove_pid(PID target); //Discards management structures for this PID
+        addr_t remove_all_paging(VirMapList* target);
         uint64_t x86flags(VirMemFlags flags); //Converts VirMemFlags to x86 paging flags
     public:
         //Constructor gets the current layout of paged memory, setup management structures

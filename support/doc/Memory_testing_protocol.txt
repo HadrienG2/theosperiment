@@ -295,12 +295,20 @@ III/ MemAllocator
         * Check that everything went well
         * Free everything, check that the memory management system goes back to its initial state
         * Same tests, but allocating objects for the kernel this time
-    8. Multiple process management
+    8. Flags
+        * Repeat previous tests with all combinations of R, W, X, and P flags. Check that
+            -The pages are allocated with the correct flags in VirMemManager for usual PIDs
+            -Allocation fails without a single change to the system's state when kernel is the
+             target and flags are not RW-P. Allocation works properly when kernel is the sender and
+             flags are not RW-P
+        * Try to do sub-page allocation with objects having different flags. Check that they are not
+          allocated together in a single page, but that new pages are created instead.
+    9. Multiple process management
         * Allocate pages for two new processes
         * Check that it works as expected
         * Delete the page of the first process, check that it worked as planned
         * Delete the page of the second process, check that it worked as planned
-    9. Sharing functions
+    a. Sharing functions
         * For a PID which already has a byte allocated, use alloc_shareable() to allocate objects
           more than one page but less than 2 pages long, one page long, and less than one page long.
           Check that in each case, new pages are allocated, and that the remaining space after 
@@ -309,7 +317,7 @@ III/ MemAllocator
           initial process, map its content in the address pace of another process, and put it in the
           busy_map of that other process. Nothing more, nothing less.
         * Same tests, but with the kernel as the allocating process, sender, or recipient
-    a. Internal allocator
+    b. Internal allocator
         * Check that sizeof(MallocMap), sizeof(KnlMallocMap) and sizeof(MallocPIDList) are powers of
           2, and that sizeof(MallocMap) == sizeof(KnlMallocMap) (going from one to the other should
           be a matter of casting a pointer)
