@@ -19,7 +19,7 @@
 #include <align.h>
 #include <physmem.h>
 
-addr_t PhyMemManager::alloc_storage_space() {
+addr_t PhyMemManager::alloc_mapitems() {
     addr_t remaining_freemem, used_space;
     PhyMemMap *allocated_mem, *current_item, *free_mem = NULL;
     
@@ -76,7 +76,7 @@ PhyMemMap* PhyMemManager::chunk_allocator(PhyMemMap* map_used,
     
     //Make sure there's space for storing a new memory map item
     if(!free_mapitems) {
-        if(!alloc_storage_space()) return NULL; //Memory is full
+        if(!alloc_mapitems()) return NULL; //Memory is full
     }
     
     //Allocate a chunk of memory in current_item
@@ -156,7 +156,7 @@ PhyMemMap* PhyMemManager::contigchunk_allocator(PhyMemMap* map_used,
     
     //Make sure there's space for storing a new memory map item
     if(!free_mapitems) {
-        if(!alloc_storage_space()) return NULL; //Memory is full
+        if(!alloc_mapitems()) return NULL; //Memory is full
     }
     
     //Find a large enough chunk of memory (if any)
@@ -257,11 +257,24 @@ PhyMemMap* PhyMemManager::chunk_liberator(PhyMemMap* chunk) {
 }
 
 PhyMemMap* PhyMemManager::chunk_owneradd(PhyMemMap* chunk, const PID new_owner) {
+    unsigned int result;
     PhyMemMap* current_item = chunk;
+    
     do {
-        current_item->add_owner(new_owner);
+        result = current_item->add_owner(new_owner);
+        if(!result) break;
         current_item = current_item->next_buddy;
     } while(current_item);
+    
+    if(!result) {
+        //Revert changes and quit
+        PhyMemMap* parser = chunk;
+        while(parser!=current_item) {
+            parser->del_owner(new_owner);
+            parser = parser->next_buddy;
+        }
+        return NULL;
+    }
     
     return chunk;
 }
@@ -300,7 +313,7 @@ PhyMemMap* PhyMemManager::page_allocator(PhyMemMap* map_used, const PID initial_
 
     //Grab some management structure storage space if needed
     if(!free_mapitems) {
-        if(!alloc_storage_space()) return NULL; //Memory is full
+        if(!alloc_mapitems()) return NULL; //Memory is full
     }
     
     //Find a free region of memory of at least one page (means any free region of memory since
@@ -364,7 +377,7 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
     //benefit in the end.
     phymmap_size = align_pgup((kinfo.kmmap_size+2)*sizeof(PhyMemMap));
     
-    //Find an empty chunk of high memory large enough to store our mess...
+    //Find an empty chunk of high memory large enough to store our mess... We suppose there's one.
     for(index=0; index<kinfo.kmmap_size; ++index) {
         if(kmmap[index].location < 0x100000) continue;
         if(kmmap[index].nature != NATURE_FRE) continue;
@@ -372,18 +385,25 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
             break;
         }
     }
-    //We suppose there's enough space in main memory. At this stade of the boot process,
-    //it's a reasonable assumption.
     storage_index = index;
     phymmap_location = align_pgup(kmmap[index].location);
     
-    //Setup management structures
-    current_location = align_pgup(kmmap[0].location);
-    next_location = align_pgup(kmmap[0].location+kmmap[0].size);
+    //Allocate map items in this space
     phy_mmap = (PhyMemMap*) phymmap_location;
     remaining_space = phymmap_size-sizeof(PhyMemMap);
     current_item = phy_mmap;
+    for(; remaining_space; remaining_space-= sizeof(PhyMemMap)) {
+        *current_item = PhyMemMap();
+        current_item->next_mapitem = current_item+1;
+        ++current_item;
+    }
     *current_item = PhyMemMap();
+    current_item->next_mapitem = NULL;
+    
+    //Setup management structures for the following initialization steps
+    current_location = align_pgup(kmmap[0].location);
+    next_location = align_pgup(kmmap[0].location+kmmap[0].size);
+    current_item = phy_mmap;
     
     //Fill first item
     current_item->location = current_location;
@@ -407,8 +427,7 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
             }
         }
         if(kmmap[index].location+kmmap[index].size>next_location) {
-            //We've reached the end of this chunk. If it is free, add it to the appropriate
-            //chunk of free map items.
+            //We've reached the end of this chunk. If it is free, add it to the free memory pool.
             if(current_item->owners[0] == PID_NOBODY && current_item->allocatable) {
                 if(!free_lowmem) {
                     free_lowmem = current_item;
@@ -421,10 +440,7 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
             current_location = align_pgup(kmmap[index].location);
             next_location = align_pgup(kmmap[index].location+kmmap[index].size);
             if(next_location == current_location) continue;
-            current_item->next_mapitem = current_item+1;
-            ++current_item;
-            remaining_space-=sizeof(PhyMemMap);
-            *current_item = PhyMemMap();
+            current_item = current_item->next_mapitem;
             //Fill this new physical mmap item
             current_item->location = current_location;
             current_item->size = next_location-current_location;
@@ -438,20 +454,14 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
     }
     
     // Insert our freshly allocated map of physical memory
-    current_item->next_mapitem = current_item+1;
-    ++current_item;
-    remaining_space-=sizeof(PhyMemMap);
-    *current_item = PhyMemMap();
+    current_item = current_item->next_mapitem;
     current_item->location = phymmap_location;
     current_item->size = phymmap_size;
     current_item->add_owner(PID_KERNEL);
     next_location = align_pgup(kmmap[storage_index].location+kmmap[storage_index].size);
     //Add up what remains of the storage space being used (if any) in the map
     if(phymmap_location+phymmap_size < kmmap[storage_index].location+kmmap[storage_index].size) {
-        current_item->next_mapitem = current_item+1;
-        ++current_item;
-        remaining_space-=sizeof(PhyMemMap);
-        *current_item = PhyMemMap();
+        current_item = current_item->next_mapitem;
         current_item->location = phymmap_location+phymmap_size;
         current_item->size = next_location-phymmap_location-phymmap_size;
     }
@@ -468,7 +478,7 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
             }
         }
         if(kmmap[index].location+kmmap[index].size>next_location) {
-            //We've reached the end of this chunk. If it is free, add it to the free map item pool.
+            //We've reached the end of this chunk. If it is free, add it to the free memory pool.
             if(current_item->owners[0] == PID_NOBODY && current_item->allocatable) {
                 if(!free_lowmem) {
                     free_lowmem = current_item;
@@ -481,10 +491,7 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
             current_location = align_pgup(kmmap[index].location);
             next_location = align_pgup(kmmap[index].location+kmmap[index].size);
             if(next_location == current_location) continue;
-            current_item->next_mapitem = current_item+1;
-            ++current_item;
-            remaining_space-=sizeof(PhyMemMap);
-            *current_item = PhyMemMap();
+            current_item = current_item->next_mapitem;
             //Fill this new physical mmap item
             current_item->location = current_location;
             current_item->size = next_location-current_location;
@@ -498,15 +505,12 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
     }
     
     //Store remaining memory map items as a chunk in free_mapitems
-    if(remaining_space) {
-        ++current_item;
-        remaining_space-= sizeof(PhyMemMap);
-        free_mapitems = current_item;
-        for(; remaining_space; remaining_space-= sizeof(PhyMemMap)) {
-            current_item->next_buddy = current_item+1;
-            ++current_item;
-        }
-        current_item->next_buddy = NULL;
+    free_mapitems = current_item->next_mapitem;
+    current_item->next_mapitem = NULL;
+    current_item = free_mapitems;
+    while(current_item) {
+        current_item->next_buddy = current_item->next_mapitem;
+        current_item->next_mapitem = NULL;
     }
     if(!free_mapitems) alloc_mapitems(); //If there are no free map items after initialization,
                                          //have some ready to use

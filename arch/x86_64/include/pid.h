@@ -28,22 +28,18 @@ const PID PID_KERNEL = 1;
 class PIDs {
     private:
         PID current_pid;
-        PIDs* next_pid;
-        void copy_from(const PIDs& source); //Make this PIDs a copy of source
+        PIDs* next_item;
         void free_members(); //Free all dynamically allocated data of this PIDs structure
     public:
         //Constructors and destructors
         PIDs() : current_pid(PID_NOBODY),
-                         next_pid(NULL) {}
+                         next_item(NULL) {}
         PIDs(const PID& first) : current_pid(first),
-                                 next_pid(NULL) {}
+                                 next_item(NULL) {}
         ~PIDs() {free_members();}
-        //Copy constructors and allocation operator
-        PIDs(const PIDs& source) {copy_from(source);}
-        PIDs& operator=(const PIDs& source);
         //Various management functions
-        int add_pid(const PID new_pid); //Returns 0 if successful, 1 if it already exists
-                                        //a negative error code in case of allocation failure
+        unsigned int add_pid(const PID new_pid); //Returns 0 if it failed, 1 if it was successful,
+                                        //2 if the item already existed
         void clear_pids();
         void del_pid(const PID old_pid);
         bool has_pid(const PID the_pid) const;

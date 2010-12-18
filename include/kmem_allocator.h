@@ -29,6 +29,8 @@
 
 //The goal of this class is simple : to implement an architecture-independent malloc/free-style
 //functionality on top of the arch-specific [Phy|Vir]MemManager
+//To do later : -Switching address spaces
+//              -Killing processes
 class MemAllocator {
     private:
         PhyMemManager* phymem;
@@ -45,17 +47,20 @@ class MemAllocator {
         //Support functions
         addr_t alloc_mapitems(); //Get some memory map storage space
         addr_t alloc_listitems(); //Get some map list storage space
-        addr_t allocator(addr_t size, MallocPIDList* target);
-        addr_t allocator_shareable(addr_t size, MallocPIDList* target);
-        addr_t liberator(addr_t location, MallocPIDList* target);
-        addr_t sharer(addr_t location, MallocPIDList* source, MallocPIDList* target);
-        addr_t knl_allocator(addr_t size);           //Variants of the previous functions
-        addr_t knl_allocator_shareable(addr_t size); //specifically for the kernel
-        addr_t knl_liberator(addr_t location);
-        addr_t share_from_knl(addr_t location, MallocPIDList* target);
-        addr_t share_to_knl(addr_t location, MallocPIDList* source);
-        MallocPIDList* find_pid(PID target); //Find the map list entry associated to this PID,
-                                             //return NULL if it does not exist.
+        addr_t allocator(const addr_t size, MallocPIDList* target, const VirMemFlags flags);
+        addr_t allocator_shareable(addr_t size, MallocPIDList* target, const VirMemFlags flags);
+        addr_t liberator(const addr_t location, MallocPIDList* target);
+        addr_t share(const addr_t location,
+                     const MallocPIDList* source,
+                     MallocPIDList* target,
+                     const VirMemFlags flags);
+        addr_t knl_allocator(const addr_t size);
+        addr_t knl_allocator_shareable(addr_t size);
+        addr_t knl_liberator(const addr_t location);
+        addr_t share_from_knl(const addr_t location, MallocPIDList* target, const VirMemFlags flags);
+        addr_t share_to_knl(const addr_t location, const MallocPIDList* source);
+        MallocPIDList* find_pid(const PID target); //Find the map list entry associated to this PID,
+                                                   //return NULL if it does not exist.
         MallocPIDList* find_or_create_pid(PID target); //Same as above, but try to create the entry
                                                        //if it does not exist yet
         MallocPIDList* setup_pid(PID target); //Create management structures for a new PID
@@ -63,31 +68,48 @@ class MemAllocator {
     public:
         MemAllocator(PhyMemManager& physmem, VirMemManager& virtmem);
         
-        //The functions you have always dreamed of
-        addr_t malloc(addr_t size, PID target); //Allocate memory to a process, returns location
-        addr_t malloc_shareable(addr_t size, PID target); //Same as above, but the storage space is
-                                                          //alone in its chunk, which allows sharing
-                                                          //data inside with other processes without
-                                                          //giving those access to other data.
-        addr_t free(addr_t location, PID target); //Free previously allocated memory. Returns 0
-                                                  //if location or process does not exist, location
-                                                  //otherwise.
+        //Allocate memory to a process, returns location
+        addr_t malloc(const addr_t size,
+                      PID target,
+                      const VirMemFlags flags);
+                      
+        //Same as above, but the storage space is alone in its chunk, which allows sharing the data
+        //inside with other processes without giving them access to other data
+        addr_t malloc_shareable(addr_t size,
+                                PID target,
+                                const VirMemFlags flags);
+                                
+        //Free previously allocated memory. Returns 0 if location or process does not exist,
+        //location otherwise
+        addr_t free(const addr_t location, PID target);
         
-        //Shortcuts for use inside of the kernel
-        addr_t kalloc(addr_t size) {return malloc(size, PID_KERNEL);}
-        addr_t kfree(addr_t location) {return free(location, PID_KERNEL);}
-        
-        //Sharing functions
-        addr_t owneradd(addr_t location,   //Give another process access to that data. Note that
-                        PID current_owner, //by doing so, the current owner loses property of that
-                        PID new_owner);    //data : free will only remove his right to access it.
-                                           //Also, always allocate data used for this with
-                                           //malloc_shareable if you have security in mind
+        //Give another process access to that data under the limits of "flags".
+        //Note that by doing so, the current owner loses property of that data : free will only
+        //remove his right to access the data, and not the data itself.
+        //Also, always allocate data used for this with malloc_shareable.
+        addr_t owneradd(const addr_t location,
+                        const PID source,
+                        PID target,
+                        const VirMemFlags flags);
         
         //Debug methods. Will go out in final release.
         void print_maplist();
-        void print_busymap(PID owner);
-        void print_freemap(PID owner);
+        void print_busymap(const PID owner);
+        void print_freemap(const PID owner);
 };
+
+//Functions for use inside of the kernel
+void setup_kalloc(MemAllocator& allocator);
+void* kalloc(const addr_t size,
+             PID target = PID_KERNEL,
+             const VirMemFlags flags = VMEM_FLAG_R + VMEM_FLAG_W + VMEM_FLAG_P);
+void* kalloc_shareable(addr_t size,
+                       PID target = PID_KERNEL,
+                       const VirMemFlags flags = VMEM_FLAG_R + VMEM_FLAG_W + VMEM_FLAG_P);
+void* kfree(const void* location, PID target = PID_KERNEL);
+void* kowneradd(const void* location,
+                const PID source,
+                PID target,
+                const VirMemFlags flags = VMEM_FLAG_R + VMEM_FLAG_W + VMEM_FLAG_P);
 
 #endif

@@ -49,7 +49,7 @@ class PhyMemManager {
                                   //ready for use in a memory map
         KernelMutex mmap_mutex;
         //Support methods used by public methods
-        addr_t alloc_storage_space(); //Get some memory map storage space
+        addr_t alloc_mapitems(); //Get some memory map storage space
         PhyMemMap* chunk_allocator(PhyMemMap* map_used,     //See alloc_chunk()
                                    const PID initial_owner,
                                    const addr_t size);

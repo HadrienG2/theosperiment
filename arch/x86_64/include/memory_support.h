@@ -49,7 +49,7 @@ struct PhyMemMap {
                   next_buddy(NULL),
                   next_mapitem(NULL) {};
     //This mirrors the member functions of "owners"
-    int add_owner(const PID new_owner) {return owners.add_pid(new_owner);}
+    unsigned int add_owner(const PID new_owner) {return owners.add_pid(new_owner);}
     void clear_owners() {owners.clear_pids();}
     void del_owner(const PID old_owner) {owners.del_pid(old_owner);}
     bool has_owner(const PID the_owner) const {return owners.has_pid(the_owner);}
@@ -134,6 +134,7 @@ struct MallocMap {
                   next_item(NULL) {};
     MallocMap* find_contigchunk(const addr_t size) const; //Try to find at least "size" contiguous
                                                           //bytes in this map
+    MallocMap* find_contigchunk(const addr_t size, const VirMemFlags flags) const;
     MallocMap* find_thischunk(const addr_t location) const;
 } __attribute__((packed));
 

@@ -55,7 +55,7 @@ PhyMemMap* PhyMemMap::find_thischunk(const addr_t location) const {
     if(current_item->location > location) return NULL;
     
     while(current_item) {
-        if(current_item->location+current_item->size > location) break;
+        if(current_item->location == location) break;
         current_item = current_item->next_mapitem;
     }
     return current_item;
@@ -77,7 +77,7 @@ VirMemMap* VirMemMap::find_thischunk(const addr_t location) const {
     if(current_item->location > location) return NULL;
     
     while(current_item) {
-        if(current_item->location+current_item->size > location) break;
+        if(current_item->location == location) break;
         current_item = current_item->next_mapitem;
     }
     return current_item;
@@ -99,6 +99,18 @@ MallocMap* MallocMap::find_contigchunk(const addr_t requested_size) const {
     
     while(current_item) {
         if(current_item->size >= requested_size) break;
+        current_item = current_item->next_item;
+    }
+    return current_item;
+}
+
+MallocMap* MallocMap::find_contigchunk(const addr_t requested_size, const VirMemFlags flags) const {
+    MallocMap* current_item = (MallocMap*) this;
+    
+    while(current_item) {
+        if((current_item->size >= requested_size) && (current_item->belongs_to->flags == flags)) {
+            break;
+        }
         current_item = current_item->next_item;
     }
     return current_item;

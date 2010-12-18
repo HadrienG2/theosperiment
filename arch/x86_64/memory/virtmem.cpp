@@ -221,6 +221,53 @@ VirMapList* VirMemManager::find_pid(PID target) {
     return list_item;
 }
 
+VirMapList* VirMemManager::setup_pid(PID target) {
+    VirMapList* result;
+    PhyMemMap* pml4t_chunk;
+    
+    //Allocate management structures
+    if(!free_listitems) {
+        alloc_listitems();
+        if(!free_listitems) return NULL;
+    }
+    pml4t_chunk = phymem->alloc_page(PID_KERNEL);
+    if(!pml4t_chunk) return NULL;
+    
+    //Fill them
+    result = free_listitems;
+    free_listitems = free_listitems->next_item;
+    result->map_owner = target;
+    result->pml4t_location = pml4t_chunk->location;
+    x86paging::create_pml4t(result->pml4t_location);
+    result->next_item = NULL;
+    
+    return result;
+}
+
+VirMapList* VirMemManager::remove_pid(PID target) {
+    VirMapList *result, *previous_item;
+    
+    //target can't be the first item of the map list, as this item is the kernel.
+    //Paging is disabled for the kernel
+    previous_item = map_list;
+    while(previous_item->next_item) {
+        if(previous_item->next_item->map_owner == target) break;
+        previous_item = previous_item->next_item;
+    }
+    result = previous_item->next_item;
+    previous_item->next_item = previous_item->next_item->next_item;
+    if(!result) return NULL;
+    
+    //Free all its paging structures and its entry
+    remove_all_paging(result);
+    phymem->free(result->pml4t_location);
+    *result = VirMapList();
+    result->next_item = free_listitems;
+    free_listitems = result;
+    
+    return result;
+}
+
 VirMemMap* VirMemManager::flag_adjust(VirMemMap* chunk,
                                       const VirMemFlags flags,
                                       const VirMemFlags mask,
@@ -269,7 +316,7 @@ addr_t VirMemManager::setup_4kpages(addr_t vir_addr, const addr_t length, addr_t
     const int last_pd_len = (tmp-first_pd_len)%(PTABLE_LENGTH+1);
     tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In page directories
     const int first_pdpt_len = min(tmp, PTABLE_LENGTH-pdpt_index);
-    const int last_pdpt_len = (tmp-first_pdpt_len)%(PTABLE_LENGTH+1;
+    const int last_pdpt_len = (tmp-first_pdpt_len)%(PTABLE_LENGTH+1);
     tmp = align_up(tmp, PTABLE_LENGTH)/PTABLE_LENGTH; //In PDPTs
     pml4t_len = tmp%(PTABLE_LENGTH-pml4t_index+1);
         
@@ -328,29 +375,6 @@ addr_t VirMemManager::setup_4kpages(addr_t vir_addr, const addr_t length, addr_t
     }
     
     return pml4t_location;
-}
-
-VirMapList* VirMemManager::setup_pid(PID target) {
-    VirMapList* result;
-    PhyMemMap* pml4t_chunk;
-    
-    //Allocate management structures
-    if(!free_listitems) {
-        alloc_listitems();
-        if(!free_listitems) return NULL;
-    }
-    pml4t_chunk = phymem->alloc_page(PID_KERNEL);
-    if(!pml4t_chunk) return NULL;
-    
-    //Fill them
-    result = free_listitems;
-    free_listitems = free_listitems->next_item;
-    result->map_owner = target;
-    result->pml4t_location = pml4t_chunk->location;
-    x86paging::create_pml4t(result->pml4t_location);
-    result->next_item = NULL;
-    
-    return result;
 }
 
 addr_t VirMemManager::remove_paging(addr_t vir_addr, const addr_t length, addr_t pml4t_location) {
@@ -479,30 +503,14 @@ addr_t VirMemManager::remove_paging(addr_t vir_addr, const addr_t length, addr_t
     return pml4t_location;
 }
 
-VirMapList* VirMemManager::remove_pid(PID target) {
-    VirMapList *result, *previous_item;
-    
-    //target can't be the first item of the map list, as this item is the kernel.
-    //Paging is disabled for the kernel
-    previous_item = map_list;
-    while(previous_item->next_item) {
-        if(previous_item->next_item->map_owner == target) break;
-        previous_item = previous_item->next_item;
-    }
-    result = previous_item->next_item;
-    previous_item->next_item = previous_item->next_item->next_item;
-    if(!result) return NULL;
-    
-    //Free all its paging structures and its entry
-    remove_paging(0,
-                  (PG_SIZE*PTABLE_LENGTH*PTABLE_LENGTH*PTABLE_LENGTH*PTABLE_LENGTH)-1,
-                  result->pml4t_location);
-    phymem->free(result->pml4t_location);
-    *result = VirMapList();
-    result->next_item = free_listitems;
-    free_listitems = result;
-    
-    return result;
+addr_t VirMemManager::remove_all_paging(VirMapList* target) {
+    using namespace x86paging;
+
+    addr_t total_address_space = PG_SIZE*PTABLE_LENGTH; //Size of a page table
+    total_address_space*= PTABLE_LENGTH; //Size of a PD
+    total_address_space*= PTABLE_LENGTH; //Size of a PDPT
+    total_address_space*= PTABLE_LENGTH; //Size of the whole PML4T
+    return remove_paging(0, total_address_space, target->pml4t_location);
 }
 
 uint64_t VirMemManager::x86flags(VirMemFlags flags) {
@@ -548,23 +556,20 @@ VirMemMap* VirMemManager::map(const PhyMemMap* phys_chunk,
             return NULL;
         }
         
-    list_item->mutex.grab_spin();
-    maplist_mutex.release();
+        list_item->mutex.grab_spin();
         
-        //Map that chunk
-        result = chunk_mapper(phys_chunk, flags, list_item);
-    
-    list_item->mutex.release();
-    
-    if(!result) {
-        maplist_mutex->grab_spin();
-        
-            //If mapping has failed, we might have created a PID without an address space, which is
-            //a waste of precious memory space. Liberate it.
-            if(list_item->map_pointer == NULL) remove_pid(target);
+            //Map that chunk
+            result = chunk_mapper(phys_chunk, flags, list_item);
             
-        maplist_mutex->release();
-    }
+            if(!result) {
+                //If mapping has failed, we might have created a PID without an address space, which is
+                //a waste of precious memory space. Liberate it.
+                if(list_item->map_pointer == NULL) remove_pid(target);
+            }
+        
+        list_item->mutex.release();
+        
+    maplist_mutex.release();
     
     return result;
 }
