@@ -26,24 +26,24 @@ namespace x86paging {
     typedef uint64_t pml4e; //PML4 entry
 
     /* Sensible bits in page tables (read Intel/AMD manuals for mor details) */
-    #define PBIT_PRESENT              1      //Page is present, may be accessed.
-    #define PBIT_WRITABLE             (1<<1) //User-mode software may write data in this page.
-    #define PBIT_USERACCESS           (1<<2) //User-mode software has access to this page.
-    #define PBIT_NOCACHE              (1<<4) //This page cannot be cached by the CPU.
-    #define PBIT_ACCESSED             (1<<5) //Bit set by the CPU : the paging structure
-                                             //has been accessed by software.
-    #define PBIT_DIRTY                (1<<6) //Only present at the page level of hierarchy.
-                                             //Set by the CPU : data has been written in this page.
-    #define PBIT_LARGEPAGE            (1<<7) //Only present at the PDE/PDPE level of hierarchy.
-                                             //Indicates that pages larger than 4KB are being used.
-    #define PBIT_GLOBALPAGE           (1<<8) //Only present at the page level of hierarchy.
+    const uint64_t PBIT_PRESENT = 1; //Page is present, may be accessed.
+    const uint64_t PBIT_WRITABLE = (1<<1); //User-mode software may write data in this page.
+    const uint64_t PBIT_USERACCESS = (1<<2); //User-mode software has access to this page.
+    const uint64_t PBIT_NOCACHE = (1<<4); //This page cannot be cached by the CPU.
+    const uint64_t PBIT_ACCESSED = (1<<5); //Bit set by the CPU : the paging structure
+                                           //has been accessed by software.
+    const uint64_t PBIT_DIRTY = (1<<6); //Only present at the page level of hierarchy.
+                                        //Set by the CPU : data has been written in this page.
+    const uint64_t PBIT_LARGEPAGE = (1<<7); //Only present at the PDE/PDPE level of hierarchy.
+                                            //Indicates that pages larger than 4KB are being used.
+    const uint64_t PBIT_GLOBALPAGE = (1<<8); //Only present at the page level of hierarchy.
                                              //TLB entry not invalidated on context switch.
-    #define PBIT_NOEXECUTE            0x8000000000000000 //Prevents execution of data referenced by
-                                                         //this paging structure.
+    const uint64_t PBIT_NOEXECUTE = 0x8000000000000000; //Prevents execution of data referenced by
+                                                        //this paging structure.
                                                          
     /* Other useful data... */
-    #define PTABLE_LENGTH   512     //Size of a table/directory/... in entries
-    #define PENTRY_SIZE     8       //Size of a paging structure entry in bytes
+    const int PTABLE_LENGTH = 512; //Size of a table/directory/... in entries
+    const int PENTRY_SIZE = 8; //Size of a paging structure entry in bytes
 
     void create_pml4t(uint64_t location); //Create an empty PML4T at that location
     

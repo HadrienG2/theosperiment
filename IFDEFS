@@ -1,5 +1,4 @@
-Use of ifdef/ifndef directives for anything other than header protection is the root of all
-ugly and unreadable C code in the universe. Therefore, to preserve code cleanness, anyone
+Defines are evil, although sometimes necessary. Therefore, to preserve code cleanness, anyone
 adding an ifdef in the code should precise here where, why, and when deleting it will be
 possible.
 

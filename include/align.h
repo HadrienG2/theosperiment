@@ -19,6 +19,8 @@
 #ifndef _ALIGN_H_
 #define _ALIGN_H_
 
+#include <address.h>
+
 #define align_up(quantity, align) (((quantity)%(align)!=0) \
                                     ?(((quantity)/(align) + 1) * (align))\
                                     :(quantity))
@@ -27,4 +29,5 @@
 #define PG_SIZE 0x1000 //Page size is 4KB
 #define align_pgup(quantity) align_up(quantity, PG_SIZE)
 #define align_pgdown(quantity) align_down(quantity, PG_SIZE)
+
 #endif

@@ -869,11 +869,12 @@ MallocPIDList* MemAllocator::remove_pid(PID target) {
             previous_item = previous_item->next_item;
         }
         result = previous_item->next_item;
-        previous_item->next_item = previous_item->next_item->next_item;
         if(!result) return NULL;
+        previous_item->next_item = result->next_item;
     }
     
     //Free its entry
+    while(result->busy_map) liberator(result->busy_map->location, result);
     *result = MallocPIDList();
     result->next_item = free_listitems;
     free_listitems = result;
@@ -1087,6 +1088,12 @@ addr_t MemAllocator::owneradd(const addr_t location,
     }
 
     return result;
+}
+
+void MemAllocator::kill(PID target) {
+    if(target == PID_KERNEL) return; //Find a more constructive way to commit suicide
+    
+    //Stub
 }
 
 void MemAllocator::print_maplist() {

@@ -22,7 +22,7 @@
 #include <txt_videomem.h>
 
 void dbg_print_pd(const uint32_t location) {
-  int table_index;
+  unsigned int table_index;
   uint64_t mask; //Mask used to separate physical addresses from control bits
   pde* pd = (pde*) location;  
   pde current_el;
@@ -54,9 +54,6 @@ void dbg_print_pd(const uint32_t location) {
     if(current_el & PBIT_USERACCESS) {
       print_str("USER ");
     }
-    if(current_el & PBIT_WRITETHROUGH) {
-      print_str("WRTH ");
-    }
     if(current_el & PBIT_NOCACHE) {
       print_str("!CAC ");
     }
@@ -75,7 +72,7 @@ void dbg_print_pd(const uint32_t location) {
 }
 
 void dbg_print_pdpt(const uint32_t location) {
-  int table_index;
+  unsigned int table_index;
   uint64_t mask; //Mask used to separate physical addresses from control bits
   pdpe* pdpt = (pdpe*) location;  
   pdpe current_el;
@@ -107,9 +104,6 @@ void dbg_print_pdpt(const uint32_t location) {
     if(current_el & PBIT_USERACCESS) {
       print_str("USER ");
     }
-    if(current_el & PBIT_WRITETHROUGH) {
-      print_str("WRTH ");
-    }
     if(current_el & PBIT_NOCACHE) {
       print_str("!CAC ");
     }
@@ -128,7 +122,7 @@ void dbg_print_pdpt(const uint32_t location) {
 }
 
 void dbg_print_pml4t(const uint32_t cr3_value) {
-  int table_index;
+  unsigned int table_index;
   const uint64_t mask = PG_SIZE-1+PBIT_NOEXECUTE; //Mask used to eliminate the control bits of CR3
   uint32_t pml4t_location = cr3_value - (cr3_value & mask);
   pml4e* pml4t = (pml4e*) pml4t_location;  
@@ -156,9 +150,6 @@ void dbg_print_pml4t(const uint32_t cr3_value) {
     if(current_el & PBIT_USERACCESS) {
       print_str("USER ");
     }
-    if(current_el & PBIT_WRITETHROUGH) {
-      print_str("WRTH ");
-    }
     if(current_el & PBIT_NOCACHE) {
       print_str("!CAC ");
     }
@@ -174,7 +165,7 @@ void dbg_print_pml4t(const uint32_t cr3_value) {
 }
 
 void dbg_print_pt(const uint32_t location) {
-  int table_index;
+  unsigned int table_index;
   const uint64_t mask = (1<<12)-1+PBIT_NOEXECUTE; //Mask used to separate control bits from adresses
   pte* pt = (pte*) location;  
   pte current_el;
@@ -201,17 +192,11 @@ void dbg_print_pt(const uint32_t location) {
     if(current_el & PBIT_USERACCESS) {
       print_str("USER ");
     }
-    if(current_el & PBIT_WRITETHROUGH) {
-      print_str("WRTH ");
-    }
     if(current_el & PBIT_NOCACHE) {
       print_str("!CAC ");
     }
     if(current_el & PBIT_ACCESSED) {
       print_str("ACSD ");
-    }
-    if(current_el & PBIT_PAGEATTRIBTABLE) {
-      print_str("PATT ");
     }
     if(current_el & PBIT_GLOBALPAGE) {
       print_str("GLOB ");

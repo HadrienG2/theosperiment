@@ -56,15 +56,15 @@ void load_kernel(KernelInformation* kinfo,
     switch(phdr_table[i].p_flags) {
       case PF_R:
         mmap_name = "Kernel R-- segment";
-        flags = PBIT_NOEXECUTE;
+        flags = PBIT_NOEXECUTE + PBIT_GLOBALPAGE;
         break;
       case PF_R+PF_W:
         mmap_name =  "Kernel RW- segment";
-        flags = PBIT_NOEXECUTE + PBIT_WRITABLE;
+        flags = PBIT_NOEXECUTE + PBIT_WRITABLE + PBIT_GLOBALPAGE;
         break;
       case PF_R+PF_X:
         mmap_name =  "Kernel R-X segment";
-        flags = 0;
+        flags = PBIT_GLOBALPAGE;
         break;
       default:
         mmap_name = "";

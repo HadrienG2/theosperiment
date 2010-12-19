@@ -27,10 +27,11 @@
 //BS_KERNEL_INFORMATION.H FILES WHEN THEY EXIST. OTHERWISE, INCONSISTENT BEHAVIOR WILL OCCUR.
 
 //Possible mmap elements nature
-#define NATURE_FRE  0   //0 : Free memory
-#define NATURE_RES  1   //1 : Reserved address range
-#define NATURE_BSK  2   //2 : Bootstrap kernel component
-#define NATURE_KNL  3   //3 : Kernel and modules
+typedef uint8_t KItemNature;
+#define NATURE_FRE 0 //Free memory
+#define NATURE_RES 1 //Reserved address range
+#define NATURE_BSK 2 //Bootstrap kernel component
+#define NATURE_KNL 3 //Kernel and modules
 
 struct KernelCPUInfo {
   uint32_t core_amount; //Indicates how many CPU cores there are on this system
@@ -41,7 +42,7 @@ struct KernelCPUInfo {
 struct KernelMemoryMap {
   addr_t location;
   addr_t size;
-  uint8_t nature;
+  KItemNature nature;
   char* name;   //String naming the area. For free and reserved memory it's either "Low Mem" or "High Mem".
                 //Bootstrap kernel is called "Bootstrap", its separate parts have a precise naming
                 //Kernel and modules are called by their GRUB modules names

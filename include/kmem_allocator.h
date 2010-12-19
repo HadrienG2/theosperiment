@@ -24,13 +24,12 @@
 #include <pid.h>
 #include <virtmem.h>
 
-#define MEMALLOCATOR_VERSION    1 //Increase this when deep changes that require a modification of
-                                  //the testing protocol are introduced
+const int MEMALLOCATOR_VERSION = 1; //Increase this when deep changes require a modification of
+                                    //the testing protocol
 
 //The goal of this class is simple : to implement an architecture-independent malloc/free-style
 //functionality on top of the arch-specific [Phy|Vir]MemManager
 //To do later : -Switching address spaces
-//              -Killing processes
 class MemAllocator {
     private:
         PhyMemManager* phymem;
@@ -91,6 +90,10 @@ class MemAllocator {
                         const PID source,
                         PID target,
                         const VirMemFlags flags);
+                        
+        //Kill a process, more exactly free traces of it in MemAllocator, VirMemManager, and
+        //PhyMemManager
+        void kill(PID target);
         
         //Debug methods. Will go out in final release.
         void print_maplist();

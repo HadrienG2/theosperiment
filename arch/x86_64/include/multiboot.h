@@ -24,16 +24,13 @@
 /* Macros. */
 
 /* The magic number for the Multiboot header. */
-#define MULTIBOOT_HEADER_MAGIC          0x1BADB002
+#define MULTIBOOT_HEADER_MAGIC 0x1BADB002
 
 /* The flags for the Multiboot header. */
-#define MULTIBOOT_HEADER_FLAGS         0x00000007
+#define MULTIBOOT_HEADER_FLAGS 0x00000007
 
 /* The magic number passed by a Multiboot-compliant boot loader. */
-#define MULTIBOOT_BOOTLOADER_MAGIC      0x2BADB002
-
-/* The size of our stack (16KB). */
-#define STACK_SIZE                      0x4000
+#define MULTIBOOT_BOOTLOADER_MAGIC 0x2BADB002
 
 #ifndef ASM
   /* Do not include here in boot.S. */

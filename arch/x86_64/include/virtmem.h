@@ -26,8 +26,8 @@
 #include <pid.h>
 #include <synchronization.h>
 
-#define VIRMEMMANAGER_VERSION   1 //Increase this when deep changes that require a modification of
-                                  //the testing protocol are introduced
+const int VIRMEMMANAGER_VERSION = 1; //Increase this when deep changes require a modification of
+                                     //the testing protocol
 
 //This class is an abstraction of the paging mechanism. It allows...
 //-Page grouping in chunks and management of chunks as a whole
@@ -36,7 +36,7 @@
 //-Interoperability with the physical memory manager
 //-Transparent management of per-process page tables (and hence multiple process management)
 //
-//Later : -Removing all traces of a process from memory (when it's killed or closed), switching processes
+//Later : -Switching processes
 class VirMemManager {
     private:
         PhyMemManager* phymem;
@@ -49,7 +49,7 @@ class VirMemManager {
         //Support methods
         addr_t alloc_mapitems(); //Get some memory map storage space
         addr_t alloc_listitems(); //Get some map list storage space
-        VirMemMap* chunk_liberator(VirMemMap* chunk, VirMapList* target);
+        VirMemMap* chunk_liberator(VirMemMap* chunk);
         VirMemMap* chunk_mapper(const PhyMemMap* phys_chunk,
                                 const VirMemFlags flags,
                                 VirMapList* target);
@@ -79,13 +79,22 @@ class VirMemManager {
         VirMemMap* map(const PhyMemMap* phys_chunk,
                        const PID target,
                        const VirMemFlags flags = VMEM_FLAG_R + VMEM_FLAG_W + VMEM_FLAG_P);
+                       
         //Destroy a chunk of virtual memory
         VirMemMap* free(VirMemMap* chunk);
+        
         //Change a chunk's flags (including in page tables, of course)
         VirMemMap* adjust_flags(VirMemMap* chunk, const VirMemFlags flags, const VirMemFlags mask);
         VirMemMap* set_flags(VirMemMap* chunk, const VirMemFlags flags) {
             return adjust_flags(chunk, flags, ~0);
         }
+        
+        //Remove all traces of a process in VirMemManager. Does not affect physical chunks, prefer
+        //the MemAllocator variant in most cases.
+        void kill(PID target);
+        
+        //Prepare for a context switch by giving the CR3 value to load before jumping
+        void cr3_value(PID target);
         
         //Debug methods. Will go out in final release.
         void print_maplist();
