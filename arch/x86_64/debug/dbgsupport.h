@@ -30,28 +30,31 @@ enum DebugNumberBase {BINARY=2, OCTAL=8, DECIMAL=10, HEXADECIMAL=16};
 
 //A simple rectangle class
 struct DebugRect {
-  int startx;
-  int starty;
-  int endx;
-  int endy;
+  unsigned int startx;
+  unsigned int starty;
+  unsigned int endx;
+  unsigned int endy;
   DebugRect() : startx(0),
                 starty(0),
                 endx(0),
                 endy(0) {}
-  DebugRect(const int x1, const int y1, const int x2, const int y2) : startx(min(x1,x2)),
-                                                                      starty(min(y1,y2)),
-                                                                      endx(max(x1,x2)),
-                                                                      endy(max(y1,y2)) {};
+  DebugRect(const unsigned int x1,
+            const unsigned int y1,
+            const unsigned int x2,
+            const unsigned int y2) : startx(min(x1,x2)),
+                                     starty(min(y1,y2)),
+                                     endx(max(x1,x2)),
+                                     endy(max(y1,y2)) {};
 };
 
 //A window is basically a rectangle with an optional border
 enum DebugWindowBorder {NONE=0, SINGLE, DOUBLE, THICK, BLOCK};
 struct DebugWindow : DebugRect {
   //For some reason, attributes are not inherited, so I rewrite them here
-  int startx;
-  int starty;
-  int endx;
-  int endy;
+  unsigned int startx;
+  unsigned int starty;
+  unsigned int endx;
+  unsigned int endy;
   //New things
   DebugWindowBorder border;
   DebugWindow() : startx(0),
@@ -64,11 +67,15 @@ struct DebugWindow : DebugRect {
                                                                            endx(rect.endx),
                                                                            endy(rect.endy),
                                                                            border(init_border) {};
-  DebugWindow(const int x1, const int y1, const int x2, const int y2, const DebugWindowBorder init_border) : startx(min(x1,x2)),
-                                                                                                             starty(min(y1,y2)),
-                                                                                                             endx(max(x1,x2)),
-                                                                                                             endy(max(y1,y2)),
-                                                                                                             border(init_border) {};
+  DebugWindow(const unsigned int x1,
+              const unsigned int y1,
+              const unsigned int x2,
+              const unsigned int y2,
+              const DebugWindowBorder init_border) : startx(min(x1,x2)),
+                                                     starty(min(y1,y2)),
+                                                     endx(max(x1,x2)),
+                                                     endy(max(y1,y2)),
+                                                     border(init_border) {};
 };
 
 //*******************************************************
@@ -76,14 +83,14 @@ struct DebugWindow : DebugRect {
 //*******************************************************
 
 //Border characters arrays
-#define BOR_LEFT 0
-#define BOR_TOP 1
-#define BOR_RIGHT 2
-#define BOR_BOTTOM 3
-#define BOR_TOPLEFT 4
-#define BOR_TOPRIGHT 5
-#define BOR_BOTTOMLEFT 6
-#define BOR_BOTTOMRIGHT 7
+const unsigned int BOR_LEFT = 0;
+const unsigned int BOR_TOP = 1;
+const unsigned int BOR_RIGHT = 2;
+const unsigned int BOR_BOTTOM = 3;
+const unsigned int BOR_TOPLEFT = 4;
+const unsigned int BOR_TOPRIGHT = 5;
+const unsigned int BOR_BOTTOMLEFT = 6;
+const unsigned int BOR_BOTTOMRIGHT = 7;
 extern const char BOR_SINGLE[8];
 extern const char BOR_DOUBLE[8];
 extern const char BOR_THICK[8];
@@ -91,7 +98,7 @@ extern const char BOR_BLOCK[8];
 const char* border_array(const DebugWindowBorder border); //Find which array you want
 
 //Other litteral constants
-#define endl '\n'
-#define tab '\t'
+const char endl = '\n';
+const char tab = '\t';
 
 #endif

@@ -26,6 +26,7 @@
 //WARNING : ANY CHANGE MADE TO THIS FILE SHOULD BE MIRRORED TO ARCH_SPECIFIC_KINFO.H.
 //OTHERWISE, INCONSISTENT BEHAVIOR WILL OCCUR.
 
+typedef uint8_t Arch;
 #define ARCH_INVALID 0
 #define ARCH_X86_64 1
 
@@ -34,7 +35,7 @@ typedef struct ArchSpecificKInfo ArchSpecificKInfo;
 typedef struct StartupDriveInfo StartupDriveInfo;
 
 struct ArchSpecificCPUInfo { //On x86_64, this is basically the information returned by CPUID
-  uint8_t arch;
+  Arch arch;
   addr_t vendor_string;
   uint8_t family;
   uint8_t model;

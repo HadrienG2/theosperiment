@@ -233,7 +233,7 @@ void DebugOutput::clear_oldwindow(const DebugWindow old_window, const DebugWindo
 }
 
 void DebugOutput::clear_rect(const DebugRect rect) {
-  int col, row, offset;
+  unsigned int col, row, offset;
   
   for(row=rect.starty; row <= rect.endy; ++row) {
     for(col=rect.startx; col<=rect.endx; ++col) {
@@ -244,10 +244,12 @@ void DebugOutput::clear_rect(const DebugRect rect) {
   }
 }
 
-void DebugOutput::copy_rect(const DebugRect rect, const int dest_col, const int dest_row) {
-  int off_col, off_row, source_offset, dest_offset;
-  const int col_length = rect.endx-rect.startx+1;
-  const int row_length = rect.endy-rect.starty+1;
+void DebugOutput::copy_rect(const DebugRect rect,
+                            unsigned int dest_col,
+                            unsigned int dest_row) {
+  unsigned int off_col, off_row, source_offset, dest_offset;
+  const unsigned int col_length = rect.endx-rect.startx+1;
+  const unsigned int row_length = rect.endy-rect.starty+1;
 
   if((dest_row<rect.starty) || ((dest_col<rect.startx) && (dest_row==rect.starty))) {
     //Fill destination region row by row, from top to bottom
@@ -263,7 +265,7 @@ void DebugOutput::copy_rect(const DebugRect rect, const int dest_col, const int 
   
   if(dest_row>rect.starty) {
     //Fill destination region row by row, from bottom to top
-    for(off_row=row_length-1; off_row>=0; --off_row) {
+    for(off_row=row_length-1; off_row<row_length; --off_row) {
       for(off_col=0; off_col < col_length; ++off_col) {
         source_offset = get_offset(rect.startx+off_col, rect.starty+off_row);
         dest_offset = get_offset(dest_col+off_col, dest_row+off_row);
@@ -275,7 +277,7 @@ void DebugOutput::copy_rect(const DebugRect rect, const int dest_col, const int 
   
   if((dest_col>rect.startx) && (dest_row == rect.starty)) {
     //Fill destination region column by column, from right to left
-    for(off_col=col_length-1; off_col>=0; --off_col) {
+    for(off_col=col_length-1; off_col<col_length; --off_col) {
       for(off_row=0; off_row<col_length; ++off_row) {
         source_offset = get_offset(rect.startx+off_col, rect.starty+off_row);
         dest_offset = get_offset(dest_col+off_col, dest_row+off_row);
@@ -365,7 +367,7 @@ void DebugOutput::fill_border(const DebugWindow window) {
 }
 
 void DebugOutput::fill_rect(const DebugRect rect, const char character) {
-    int col, row, offset;
+    unsigned int col, row, offset;
 
     for(row=rect.starty; row <= rect.endy; ++row) {
         for(col=rect.startx; col<=rect.endx; ++col) {
@@ -376,7 +378,7 @@ void DebugOutput::fill_rect(const DebugRect rect, const char character) {
     }
 }
 
-void DebugOutput::scroll(const int amount) {
+void DebugOutput::scroll(const unsigned int amount) {
     if(amount < window.endy-window.starty+1) {
         DebugRect rect(window.startx, window.starty+amount, window.endx, window.endy);
         copy_rect(rect, window.startx, window.starty);

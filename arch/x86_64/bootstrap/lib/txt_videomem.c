@@ -20,6 +20,36 @@
 #include <x86asm.h>
 #include <bs_string.h>
  
+//Text color attributes
+const TxtAttr TXT_BLACK = 0x00;
+const TxtAttr TXT_BLUE = 0x01;
+const TxtAttr TXT_GREEN = 0x02;
+const TxtAttr TXT_TURQUOISE = 0x03;
+const TxtAttr TXT_RED = 0x04;
+const TxtAttr TXT_PURPLE = 0x05;
+const TxtAttr TXT_MARROON = 0x06;
+const TxtAttr TXT_LIGHTGRAY = 0x07;
+const TxtAttr TXT_DARKGRAY = 0x08;
+const TxtAttr TXT_LIGHTBLUE = 0x09;
+const TxtAttr TXT_LIGHTGREEN = 0x0A;
+const TxtAttr TXT_LIGHTCOBALT = 0x0B;
+const TxtAttr TXT_LIGHTRED = 0x0C;
+const TxtAttr TXT_LIGHTPURPLE = 0x0D;
+const TxtAttr TXT_YELLOW = 0x0E;
+const TxtAttr TXT_WHITE = 0x0F;
+
+const TxtAttr TXT_BLINK = 0x80; //Blinking text
+
+//Background color attributes
+const TxtAttr BKG_BLACK = 0x00;
+const TxtAttr BKG_BLUE = 0x10;
+const TxtAttr BKG_GREEN = 0x20;
+const TxtAttr BKG_TURQUOISE = 0x30;
+const TxtAttr BKG_RED = 0x40;
+const TxtAttr BKG_PURPLE = 0x50;
+const TxtAttr BKG_MARROON = 0x60;
+const TxtAttr BKG_LIGHTGRAY = 0x70;
+ 
 //The beginning of the video ram
 static char* const videoram = (char *) 0xb8000;
 //Size of the video ram
@@ -30,7 +60,7 @@ static unsigned int cursor_col = 0;
 static unsigned int cursor_row = 0;
 
 //Current text attribute
-static char attr = TXT_LIGHTGRAY;
+static TxtAttr attr = 0x07; //Initially light gray
 
 void clear_screen() {
   unsigned int i;
@@ -454,6 +484,6 @@ void scroll(const int offset) {
     }
   #endif
 }
-void set_attr(const char new_attr) {
+void set_attr(const TxtAttr new_attr) {
   attr = new_attr;
 }

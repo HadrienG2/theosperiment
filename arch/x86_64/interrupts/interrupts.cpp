@@ -18,8 +18,6 @@
  
 #include <interrupts.h>
 
-InterruptManager interrupt_manager;
-
 InterruptManager::InterruptManager() {
   //Generate an almost empty IDT based on two assumptions
   //  1/We'll only use interrupt gates as they are safer

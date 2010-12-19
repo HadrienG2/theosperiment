@@ -20,6 +20,42 @@
 #include <align.h>
 #include <kinfo_handling.h>
 
+const int SGT32_LIMIT_CHUNK1_SIZE = 16;
+const int SGT32_BASE_CHUNK1_SIZE = 24;
+const uint64_t SGT32_IS_A_TSS = 0x0000090000000000; //Defines the segment as an unused 32-bit TSS
+const uint64_t SGT32_DBIT_ACCESSED = 0x0000010000000000; //Bit 40. For code and data segments
+const uint64_t SGT32_DBIT_READABLE = 0x0000020000000000; //Bit 41. For code segments
+const uint64_t SGT32_DBIT_CONFORMING = 0x0000040000000000; //Bit 42. For code segments.
+                                                           //A lower-privilege task accessing this
+                                                           //segment remains at its PL
+const uint64_t SGT32_DBIT_WRITABLE = 0x0000020000000000; //Bit 41. For data segments
+const uint64_t SGT32_DBIT_EXPANDDOWN = 0x0000040000000000; //Bit 42. For data segments
+const uint64_t SGT32_DBIT_CODEDATA = 0x0000080000000000; //Bit 43. 1 for code, 0 for data
+const uint64_t SGT32_DBIT_SBIT = 0x0000100000000000; //Bit 44. 1 for code/data, 0 for TSS
+const unsigned int SGT32_DPL_BITSHIFT = 45; //How many bits to the left the DPL must be shifted
+const uint64_t SGT32_DPL_USERMODE = 0x0000600000000000; //Segment is accessible from user mode
+const uint64_t SGT32_DBIT_PRESENT = 0x0000800000000000; //Bit 47. The segment is present in memory
+const unsigned int SGT32_LIMIT_CHUNK2_SIZE = 4;
+const uint64_t SGT32_DBIT_DEFAULT_32OPSZ = 0x0040000000000000; //Bit 54. Default operand size is 16
+                                                               //or 32 bit. 1 = 32 bit.
+const uint64_t SGT32_DBIT_GRANULARITY = 0x0080000000000000; //Bit 55. Specifies if limit is in bytes
+                                                            //or pages. Set it for identity mapping
+const unsigned int SGT32_BASE_CHUNK2_SIZE = 8;
+
+const uint64_t SGT64_IS_A_TSS = 0x0000090000000000; //Defines the segment as an unused 64-bit TSS
+const uint64_t SGT64_DBIT_CONFORMING = 0x0000040000000000; //Bit 42. For code segments.
+                                                           //A lower-privilege task accessing this
+                                                           //segment remains at its PL
+const uint64_t SGT64_DBIT_CODEDATA = 0x0000080000000000; //Bit 43. 1 for code, 0 for data
+const uint64_t SGT64_DBIT_SBIT = 0x0000100000000000; //Bit 44. 1 for code/data, 0 for TSS
+const uint64_t SGT64_DPL_USERMODE = 0x0000600000000000; //Segment is accessible from user mode
+const uint64_t SGT64_DBIT_PRESENT = 0x0000800000000000; //Bit 47. The segment is present in memory
+const uint64_t SGT64_DBIT_LONG = 0x0020000000000000; //Bit 53. Defines this as a 64-bit segment
+
+const unsigned int TSS64_SIZE = 0x68; //Size of a 64-bit Task State Segment in bytes
+const unsigned int IOMAP_BASE = 0x68; //Position of the IOPB relative to the TSS (=TSS64_SIZE)
+const unsigned int IOPB64_SIZE = 0x2000; //Maximum size of an IO Permission Bitmap in bytes
+
 const char* GDT_NAME = "Kernel GDT";
 const char* TSS_NAME = "Kernel TSS";
 

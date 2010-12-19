@@ -21,33 +21,36 @@
 
 #include <stdint.h>
 
-//Text attributes
-#define TXT_BLACK 0x00
-#define TXT_BLUE 0x01
-#define TXT_GREEN 0x02
-#define TXT_TURQUOISE 0x03
-#define TXT_RED 0x04
-#define TXT_PURPLE 0x05
-#define TXT_MARROON 0x06
-#define TXT_LIGHTGRAY 0x07
-#define TXT_DARKGRAY 0x08
-#define TXT_LIGHTBLUE 0x09
-#define TXT_LIGHTGREEN 0x0A
-#define TXT_LIGHTCOBALT 0x0B
-#define TXT_LIGHTRED 0x0C
-#define TXT_LIGHTPURPLE 0x0D
-#define TXT_YELLOW 0x0E
-#define TXT_WHITE 0x0F
-#define BLINK 0x80
-//Background attributes
-#define BKG_BLACK 0x00
-#define BKG_BLUE 0x10
-#define BKG_GREEN 0x20
-#define BKG_TURQUOISE 0x30
-#define BKG_RED 0x40
-#define BKG_PURPLE 0x50
-#define BKG_MARROON 0x60
-#define BKG_LIGHTGRAY 0x70
+typedef uint8_t TxtAttr;
+//Text color attributes
+extern const TxtAttr TXT_BLACK;
+extern const TxtAttr TXT_BLUE;
+extern const TxtAttr TXT_GREEN;
+extern const TxtAttr TXT_TURQUOISE;
+extern const TxtAttr TXT_RED;
+extern const TxtAttr TXT_PURPLE;
+extern const TxtAttr TXT_MARROON;
+extern const TxtAttr TXT_LIGHTGRAY;
+extern const TxtAttr TXT_DARKGRAY;
+extern const TxtAttr TXT_LIGHTBLUE;
+extern const TxtAttr TXT_LIGHTGREEN;
+extern const TxtAttr TXT_LIGHTCOBALT;
+extern const TxtAttr TXT_LIGHTRED;
+extern const TxtAttr TXT_LIGHTPURPLE;
+extern const TxtAttr TXT_YELLOW;
+extern const TxtAttr TXT_WHITE;
+
+extern const TxtAttr TXT_BLINK; //Blinking text
+
+//Background color attributes
+extern const TxtAttr BKG_BLACK;
+extern const TxtAttr BKG_BLUE;
+extern const TxtAttr BKG_GREEN;
+extern const TxtAttr BKG_TURQUOISE;
+extern const TxtAttr BKG_RED;
+extern const TxtAttr BKG_PURPLE;
+extern const TxtAttr BKG_MARROON;
+extern const TxtAttr BKG_LIGHTGRAY;
 
 //Fill the screen with blank spaces
 void clear_screen();
@@ -76,6 +79,6 @@ void print_uint32(const uint32_t integer);
 /* Scroll text from "offset" lines (positive offset means scroll upper) */
 void scroll(const int offset);
 //Change text attributes
-void set_attr(const char new_attr);
+void set_attr(const TxtAttr new_attr);
 
 #endif

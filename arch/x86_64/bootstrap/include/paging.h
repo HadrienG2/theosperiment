@@ -23,26 +23,30 @@
 #include <bs_kernel_information.h>
 #include <stdint.h>
 
-/* Page-table entries bits */
-#define PBIT_PRESENT         1
-#define PBIT_WRITABLE        (1<<1)
-#define PBIT_USERACCESS      (1<<2)
-#define PBIT_WRITETHROUGH    (1<<3)  //Slower than writeback, and not useful on a non-distributed system. Avoid it.
-#define PBIT_NOCACHE         (1<<4)
-#define PBIT_ACCESSED        (1<<5)
-#define PBIT_DIRTY           (1<<6)  //Only present at the PTE level of hierarchy
-#define PBIT_LARGEPAGE       (1<<7)  //Only present at the PDE/PDPE level of hierarchy
-#define PBIT_PAGEATTRIBTABLE (1<<7)  //Only present at the PTE level
-#define PBIT_GLOBALPAGE      (1<<8)  //Only present at PTE level, TLB entry not invalidated on context switch by MOV CRn
-#define PBIT_NOEXECUTE       0x8000000000000000 //Prevents execution (can't be written in bitshift form because we still handle 32b data)
+/* Sensible bits in page tables (read Intel/AMD manuals for mor details) */
+extern const uint64_t PBIT_PRESENT; //Page is present, may be accessed.
+extern const uint64_t PBIT_WRITABLE; //User-mode software may write data in this page.
+extern const uint64_t PBIT_USERACCESS; //User-mode software has access to this page.
+extern const uint64_t PBIT_NOCACHE; //This page cannot be cached by the CPU.
+extern const uint64_t PBIT_ACCESSED; //Bit set by the CPU : the paging structure
+                                     //has been accessed by software.
+extern const uint64_t PBIT_DIRTY; //Only present at the page level of hierarchy.
+                                  //Set by the CPU : data has been written in this page.
+extern const uint64_t PBIT_LARGEPAGE; //Only present at the PDE/PDPE level of hierarchy.
+                                      //Indicates that pages larger than 4KB are being used.
+extern const uint64_t PBIT_GLOBALPAGE; //Only present at the page level of hierarchy.
+                                       //TLB entry not invalidated on context switch.
+extern const uint64_t PBIT_NOEXECUTE; //Prevents execution of data referenced by
+                                      //this paging structure.
+                                                     
 /* Some numeric data... */
-#define PML4T_SIZE      512     //Size of a page table/directory/... in entries
-#define PDPT_SIZE       512
-#define PD_SIZE         512
-#define PT_SIZE         512
-#define PENTRY_SIZE     8       //Size of a paging structure entry in bytes
-#define PHYADDR_ALIGN   4096    //All physical addresses in a PT are aligned on a 4KB basis.
-                                //This allows using low-order bits for configuration purposes. 
+#define PML4T_SIZE 512 //Size of a page table/directory/... in entries
+#define PDPT_SIZE 512
+#define PD_SIZE 512
+#define PT_SIZE 512
+#define PENTRY_SIZE 8 //Size of a paging structure entry in bytes
+#define PHYADDR_ALIGN 4096 //Physical addresses in a PT are aligned on a 4KB basis.
+                           //Low-order bits are used for configuration purposes. 
 
 typedef uint64_t pml4e; /* Page-Map Level-4 Entry */
 typedef uint64_t pdpe;  /* Page-Directory Pointer Entry */

@@ -44,8 +44,9 @@ CXX=x86_64-elf-g++
 LD32=i686-elf-ld
 LD=x86_64-elf-ld
 CFLAGS="-Wall -Wextra -Werror -nostdlib -nostartfiles -nodefaultlibs -fno-builtin -std=c99 -ffreestanding"
-CXXFLAGS="-Wall -Wextra -nostdlib -nostartfiles -nodefaultlibs -fno-builtin -fno-exceptions -fno-rtti -fno-stack-protector \
--mno-red-zone -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow -std=c++98"
+CXXFLAGS="-Wall -Wextra -nostdlib -nostartfiles -nodefaultlibs -fno-builtin \
+-fno-exceptions -fno-rtti -fno-stack-protector -std=c++98 -mcmodel=small \
+-mno-red-zone -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow"
 LFLAGS="-s --warn-common --warn-once -zmax-page-size=0x1000" #Maximum page size usable by the kernel (4 KB at the moment).
 INCLUDES="-I../../arch/x86_64/include/ -I../../include/"
 INCLUDES_BST="-I../../arch/x86_64/bootstrap/include "$INCLUDES

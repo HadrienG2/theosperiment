@@ -73,8 +73,9 @@ addr_t VirMemManager::alloc_listitems() {
     return allocated_chunk->location;
 }
 
-VirMemMap* VirMemManager::chunk_liberator(VirMemMap* chunk, VirMapList* target) {
+VirMemMap* VirMemManager::chunk_liberator(VirMemMap* chunk) {
     VirMemMap *current_mapitem, *current_item = chunk, *next_item;
+    VirMapList* target = chunk->owner;
     
     while(current_item) {
         next_item = current_item->next_buddy;
@@ -173,7 +174,7 @@ VirMemMap* VirMemManager::chunk_mapper(const PhyMemMap* phys_chunk, const VirMem
     //If allocation fails, don't forget to restore the map into a clean state before returning NULL.
     tmp = setup_4kpages(result->location, result->size, target->pml4t_location);
     if(!tmp) {
-        chunk_liberator(result, target);
+        chunk_liberator(result);
         return NULL;
     }
     
@@ -255,10 +256,11 @@ VirMapList* VirMemManager::remove_pid(PID target) {
         previous_item = previous_item->next_item;
     }
     result = previous_item->next_item;
-    previous_item->next_item = previous_item->next_item->next_item;
     if(!result) return NULL;
+    previous_item->next_item = result->next_item;
     
     //Free all its paging structures and its entry
+    while(result->map_pointer) chunk_liberator(result->map_pointer);
     remove_all_paging(result);
     phymem->free(result->pml4t_location);
     *result = VirMapList();
@@ -514,11 +516,14 @@ addr_t VirMemManager::remove_all_paging(VirMapList* target) {
 }
 
 uint64_t VirMemManager::x86flags(VirMemFlags flags) {
+    using namespace x86paging;
+
     uint64_t result = PBIT_USERACCESS + PBIT_NOEXECUTE;
     
     if(flags & VMEM_FLAG_P) result+= PBIT_PRESENT;
     if(flags & VMEM_FLAG_W) result+= PBIT_WRITABLE;
     if(flags & VMEM_FLAG_X) result-= PBIT_NOEXECUTE;
+    if(flags & VMEM_FLAG_G) result+= PBIT_GLOBALPAGE;
     
     return result;
 }
@@ -587,7 +592,7 @@ VirMemMap* VirMemManager::free(VirMemMap* chunk) {
         chunk_owner->mutex.grab_spin();
         
             //Free that chunk
-            result = chunk_liberator(chunk, chunk->owner);
+            result = chunk_liberator(chunk);
         
         if(chunk_owner->pml4t_location) chunk_owner->mutex.release();
         
@@ -611,6 +616,14 @@ VirMemMap* VirMemManager::adjust_flags(VirMemMap* chunk,
     chunk->owner->mutex.release();
     
     return result;
+}
+
+void VirMemManager::kill(PID target) {
+    maplist_mutex.grab_spin();
+    
+        remove_pid(target);
+    
+    maplist_mutex.release();
 }
 
 void VirMemManager::print_maplist() {

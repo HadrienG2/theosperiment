@@ -31,43 +31,44 @@
 //***************** TEXT ATTRIBUTE BITS *****************
 //*******************************************************
 
+typedef uint8_t TxtAttr;
 //Text color attributes
-#define TXT_BLACK 0x00
-#define TXT_BLUE 0x01
-#define TXT_GREEN 0x02
-#define TXT_TURQUOISE 0x03
-#define TXT_RED 0x04
-#define TXT_PURPLE 0x05
-#define TXT_MARROON 0x06
-#define TXT_LIGHTGRAY 0x07
-#define TXT_DARKGRAY 0x08
-#define TXT_LIGHTBLUE 0x09
-#define TXT_LIGHTGREEN 0x0A
-#define TXT_LIGHTCOBALT 0x0B
-#define TXT_LIGHTRED 0x0C
-#define TXT_LIGHTPURPLE 0x0D
-#define TXT_YELLOW 0x0E
-#define TXT_WHITE 0x0F
+const TxtAttr TXT_BLACK = 0x00;
+const TxtAttr TXT_BLUE = 0x01;
+const TxtAttr TXT_GREEN = 0x02;
+const TxtAttr TXT_TURQUOISE = 0x03;
+const TxtAttr TXT_RED = 0x04;
+const TxtAttr TXT_PURPLE = 0x05;
+const TxtAttr TXT_MARROON = 0x06;
+const TxtAttr TXT_LIGHTGRAY = 0x07;
+const TxtAttr TXT_DARKGRAY = 0x08;
+const TxtAttr TXT_LIGHTBLUE = 0x09;
+const TxtAttr TXT_LIGHTGREEN = 0x0A;
+const TxtAttr TXT_LIGHTCOBALT = 0x0B;
+const TxtAttr TXT_LIGHTRED = 0x0C;
+const TxtAttr TXT_LIGHTPURPLE = 0x0D;
+const TxtAttr TXT_YELLOW = 0x0E;
+const TxtAttr TXT_WHITE = 0x0F;
 
-#define TXT_BLINK 0x80 //Blinking text
+const TxtAttr TXT_BLINK = 0x80; //Blinking text
 
 //Background color attributes
-#define BKG_BLACK 0x00
-#define BKG_BLUE 0x10
-#define BKG_GREEN 0x20
-#define BKG_TURQUOISE 0x30
-#define BKG_RED 0x40
-#define BKG_PURPLE 0x50
-#define BKG_MARROON 0x60
-#define BKG_LIGHTGRAY 0x70
+const TxtAttr BKG_BLACK = 0x00;
+const TxtAttr BKG_BLUE = 0x10;
+const TxtAttr BKG_GREEN = 0x20;
+const TxtAttr BKG_TURQUOISE = 0x30;
+const TxtAttr BKG_RED = 0x40;
+const TxtAttr BKG_PURPLE = 0x50;
+const TxtAttr BKG_MARROON = 0x60;
+const TxtAttr BKG_LIGHTGRAY = 0x70;
 
 //*******************************************************
 //******************* OTHER CONSTANTS *******************
 //*******************************************************
 
 //Video memory caracteristics
-#define NUMBER_OF_COLS 80
-#define NUMBER_OF_ROWS 25
+const unsigned int NUMBER_OF_COLS = 80;
+const unsigned int NUMBER_OF_ROWS = 25;
 
 //*******************************************************
 //***************** STREAM MANIPULATORS *****************
@@ -79,13 +80,13 @@ class DebugManipulator {};
 //This manipulator is used to change text attributes
 class DebugAttributeChanger : DebugManipulator {
     public:
-        uint8_t new_attr; //New attribute being set
-        uint8_t mask; //Allows one to specify which bits in the new attribute are effective
+        TxtAttr new_attr; //New attribute being set
+        TxtAttr mask; //Allows one to specify which bits in the new attribute are effective
 };
-DebugAttributeChanger& attrset(const uint8_t attribute);
+DebugAttributeChanger& attrset(const TxtAttr attribute);
 DebugAttributeChanger& blink(const bool blink_status);
-DebugAttributeChanger& bkgcolor(const uint8_t attribute);
-DebugAttributeChanger& txtcolor(const uint8_t attribute);
+DebugAttributeChanger& bkgcolor(const TxtAttr attribute);
+DebugAttributeChanger& txtcolor(const TxtAttr attribute);
 
 //This manipulator is used to move the text cursor on screen
 enum DebugCursorMoverType {ABSOLUTE, RELATIVE};
@@ -148,10 +149,10 @@ DebugWindower& set_window(const DebugWindow window);
 class DebugOutput {
     private:
         //Current state
-        uint8_t attribute; //Text attributes (see above)
+        TxtAttr attribute; //Text attributes (see above)
         char* buffer; //The buffer in which text is written
-        int col; //Current cursor position : column...
-        int row; //...and row
+        unsigned int col; //Current cursor position : column...
+        unsigned int row; //...and row
         DebugNumberBase number_base; //Base in which we count : octal, binary, hexa, decimal...
         unsigned int padsize; //Zero padding in digits (see DebugZeroExtender description above)
         unsigned int tab_size; //Tabulation alignment in characters
@@ -165,9 +166,9 @@ class DebugOutput {
                              const DebugWindow new_window); //after a new one has been drawn
         void clear_rect(const DebugRect rect); //Clear the contents of a rectangle on screen
         void clear_window() {clear_rect(window); col=0; row=0;} //Clear the current window
-        void copy_rect(const DebugRect rect, //Copy the contents of a specified rectangle
-                       const int dest_col,   //somewhere else on the screen.
-                       const int dest_row);  //Overlap allowed.
+        void copy_rect(const DebugRect rect,    //Copy the contents of a specified rectangle
+                       unsigned int dest_col,   //somewhere else on the screen.
+                       unsigned int dest_row);  //Overlap allowed.
         void cursor_movabs(const unsigned int acol,  //Move the text cursor at a specified position
                            const unsigned int arow); //on screen.
         void fill_border(const DebugWindow window); //Draw the border of a window
@@ -177,7 +178,7 @@ class DebugOutput {
             return get_offset(col+window.startx, row+window.starty);}
         unsigned int get_offset(const int col, const int row) const {
             return 2*col+2*NUMBER_OF_COLS*row;}
-        void scroll(const int amount);
+        void scroll(const unsigned int amount);
   public:
     DebugOutput(const DebugWindow& window);
     //Functions displaying standard types

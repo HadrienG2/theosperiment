@@ -22,6 +22,22 @@
 #include <kinfo_handling.h>
 #include <paging.h>
 
+/* Sensible bits in page tables (read Intel/AMD manuals for mor details) */
+const uint64_t PBIT_PRESENT = 1; //Page is present, may be accessed.
+const uint64_t PBIT_WRITABLE = (1<<1); //User-mode software may write data in this page.
+const uint64_t PBIT_USERACCESS = (1<<2); //User-mode software has access to this page.
+const uint64_t PBIT_NOCACHE = (1<<4); //This page cannot be cached by the CPU.
+const uint64_t PBIT_ACCESSED = (1<<5); //Bit set by the CPU : the paging structure
+                                       //has been accessed by software.
+const uint64_t PBIT_DIRTY = (1<<6); //Only present at the page level of hierarchy.
+                                    //Set by the CPU : data has been written in this page.
+const uint64_t PBIT_LARGEPAGE = (1<<7); //Only present at the PDE/PDPE level of hierarchy.
+                                        //Indicates that pages larger than 4KB are being used.
+const uint64_t PBIT_GLOBALPAGE = (1<<8); //Only present at the page level of hierarchy.
+                                         //TLB entry not invalidated on context switch.
+const uint64_t PBIT_NOEXECUTE = 0x8000000000000000; //Prevents execution of data referenced by
+                                                    //this paging structure.
+
 const char* PAGE_TABLE_NAME = "Kernel page tables";
 const char* PAGE_DIR_NAME = "Kernel page directories";
 const char* PDPT_NAME = "Kernel page directory pointers";
