@@ -91,7 +91,9 @@ run: all
 
 commit: all
 	@$(MAKE) clean
-	echo "svn test"
+	@echo "Please describe your commit : "
+	@read COMMIT
+	@svn commit -m $COMMIT
 
 floppy: $(BS_GZ) $(KNL_BIN)
 	@rm -f floppy.img
