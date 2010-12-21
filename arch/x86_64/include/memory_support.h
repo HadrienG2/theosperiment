@@ -70,9 +70,11 @@ typedef uint32_t VirMemFlags;
 const VirMemFlags VMEM_FLAG_R = 1; //Region of virtual memory is readable
 const VirMemFlags VMEM_FLAG_W = (1<<1); //...writable
 const VirMemFlags VMEM_FLAG_X = (1<<2); //...executable
-const VirMemFlags VMEM_FLAG_P = (1<<3); //...present (otherwise, accessing it will page fault)
+const VirMemFlags VMEM_FLAG_A = (1<<3); //...absent (accessing it will result in a page fault)
 const VirMemFlags VMEM_FLAG_G = (1<<4); //...global (not invalidated during a context switch,
                                         //used on kernel pages which are common to all processes)
+const VirMemFlags VMEM_FLAGS_RX = VMEM_FLAG_R + VMEM_FLAG_X;
+const VirMemFlags VMEM_FLAGS_RW = VMEM_FLAG_R + VMEM_FLAG_W;
 
 //Represents an item in a map of the virtual memory, managed as a chained list at the moment.
 //Size should be a divisor of 0x1000 (current size : 0x40) to ease the early allocation process.
@@ -88,7 +90,7 @@ struct VirMemMap {
     uint64_t padding2;
     VirMemMap() : location(0),
                   size(0),
-                  flags(VMEM_FLAG_P + VMEM_FLAG_R + VMEM_FLAG_W),
+                  flags(VMEM_FLAGS_RW),
                   owner(NULL),
                   points_to(NULL),
                   next_buddy(NULL),

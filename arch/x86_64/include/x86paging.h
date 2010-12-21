@@ -61,7 +61,7 @@ namespace x86paging {
                                                                //is invalid.
                                                                
     uint64_t get_target(const uint64_t vaddr,         //Get the physical memory address associated
-                      const uint64_t pml4t_location); //with a linear address (if it does exist).
+                        const uint64_t pml4t_location); //with a linear address (if it does exist).
                       
     uint64_t get_pml4t(); //Return address of the current PML4T
     

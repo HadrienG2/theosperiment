@@ -646,8 +646,8 @@ DebugOutput& DebugOutput::operator<<(const VirMemMap& input) {
     *this << pad_status(true);
     *this << pad_size(18);
     *this << numberbase(HEXADECIMAL) << endl;
-    *this << "Location           | Size               | Perm | Target&Misc" << endl;
-    *this << "-------------------+--------------------+------+-------------------------------";
+    *this << "Location           | Size               | Perm. | Target&Misc" << endl;
+    *this << "-------------------+--------------------+-------+------------------------------";
 
     do {
         *this << endl << map->location << " | " << map->size << " | ";
@@ -667,8 +667,13 @@ DebugOutput& DebugOutput::operator<<(const VirMemMap& input) {
         } else {
             *this << '-';
         }
-        if(map->flags & VMEM_FLAG_P) {
-            *this << "P | ";
+        if(map->flags & VMEM_FLAG_A) {
+            *this << 'A';
+        } else {
+            *this << '-';
+        }
+        if(map->flags & VMEM_FLAG_G) {
+            *this << "G | ";
         } else {
             *this << "- | ";
         }

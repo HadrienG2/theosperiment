@@ -22,8 +22,8 @@
 #include <address.h>
 
 #define align_up(quantity, align) (((quantity)%(align)!=0) \
-                                    ?(((quantity)/(align) + 1) * (align))\
-                                    :(quantity))
+                                   ?(((quantity)/(align) + 1) * (align))\
+                                   :(quantity))
 #define align_down(quantity, align) (((quantity)/(align)) * (align))
 
 #define PG_SIZE 0x1000 //Page size is 4KB

@@ -654,6 +654,16 @@ void PhyMemManager::kill(PID target) {
     mmap_mutex.release();
 }
 
+PhyMemMap* PhyMemManager::find_this(addr_t location) {
+    mmap_mutex.grab_spin();
+    
+        PhyMemMap* result = phy_mmap->find_thischunk(location);
+    
+    mmap_mutex.release();
+    
+    return result;
+}
+
 PhyMemMap* PhyMemManager::alloc_lowpage(const PID initial_owner) {
     PhyMemMap *result, *lowmem_end = phy_mmap;
     

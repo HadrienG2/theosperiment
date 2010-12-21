@@ -111,7 +111,11 @@ I/ PhyMemManager
         * Check that adding an owner works properly (owner is added to the owners field of the page,
           nothing else has changed)
         * Remove both owners from the page, check that it is freed properly by re-allocating it
-    9. Internal allocator
+    9. kill() test
+        * Restart one test which allocates some data, try to kill a process, check that all of its
+          data has been liberated.
+        * Same thing, but with the kernel. Check that its data has *not* been liberated.
+    a. Internal allocator
         * Check that sizeof(PhyMemMap) is a power of 2
         * Count the number of spare PhyMemMaps in free_mapitem, allocate as much pages
         * Check that no new page has been allocated by the internal allocator and that free_mapitems
@@ -123,7 +127,7 @@ I/ PhyMemManager
           free_mapitems, check that they are all properly cleaned up before being put in
           free_mapitems
         * Repeat this test with alloc_chunk() and alloc_contigchunk(), using 1-page chunks
-    a. x86_64-specific
+    b. x86_64-specific
         * Check that the separation between low memory and high memory is done properly in the
           memory map and the chunks of free map items
         * Repeat all of the previous tests with the low memory allocators
@@ -151,7 +155,7 @@ II/ VirMemManager
         * Try to map it in a new PID's address space
         * Check the returned result :
             -The pointer should be nonzero
-            -location must be PG_SIZE
+            -location must be nonzero
             -size must be PG_SIZE
             -flags must be RW-P
             -owner must be nonzero
@@ -162,14 +166,16 @@ II/ VirMemManager
             -A single new item, located after that of PID_KERNEL, pointed by the previously
              mentioned "owner" field
             -map_owner must match the PID given as a parameter to map()
-            -map_pointer must map the physical page given as a parameter to map()
+            -map_pointer must map the physical page given as a parameter to map().
+             In that map, there should be a kernel memory-mapped as a global page, too.
             -x86_64 : pml4t_location must be nonzero and point a freshly allocated page of physical
              memory allocated to PID_KERNEL
             -mutex must be available
         * Check paging structures state. For x86_64...
             -PG_SIZE(4KB)-sized paging must be in use
-            -A single page translation, coherent with the previous results, must be present. All
-             other page translations must be zero
+            -A page translation, coherent with the previous results, must be present
+            -The kernel must be properly memory-mapped in the process' address space
+            -Everything else must be zero
     4. Freeing and process data cleanup
         * Free the previously mapped page
         * Check that the result is a nonzero pointer
@@ -178,14 +184,14 @@ II/ VirMemManager
         * Check that paging structures have been fully zeroed-out before liberation
     5. Chunk mapping
         * Do the following successive allocation test, checking the results of each operation
-            -Allocate page 1 (Awaited location : 0x1000)
-            -Allocate page 2 (Aw. loc. : 0x2000)
-            -Free page 1 (Page translation must be zeroed out)
-            -Allocate page 3 (Aw. loc. : 0x1000)
-            -Allocate page 4 (Aw. loc. : 0x3000)
-            -Free page 2 (Page translation must be zeroed out)
-            -Allocate page 5 (Aw. loc. : 0x2000)
-            -Free pages 3, 4, 5 (Process must have disappeared)
+            -Allocate page 1
+            -Allocate page 2
+            -Free page 1
+            -Allocate page 3
+            -Allocate page 4
+            -Free page 2
+            -Allocate page 5
+            -Free pages 3, 4, 5
         * Allocate a chunk which is larger than a page and map it
         * Check VirMemManager state, page translations, and result, like in 3.
         * Free, check the result like in 4.
@@ -212,7 +218,11 @@ II/ VirMemManager
         * Check that it worked
         * Free the mapped page for the second process
         * Check that it worked
-    9. Internal allocator
+    9. kill() test
+        * Restart one test which allocates some data, try to kill a process, check that all of its
+          data has been liberated.
+        * Same thing, but with the kernel. Check that nothing happens
+    a. Internal allocator
         * Check that sizeof(VirMemMap) and sizeof(VirMapList) are powers of 2
         * Count the number of free_mapitems
         * Map a page that amount of times to a single process
@@ -223,7 +233,7 @@ II/ VirMemManager
           free_mapitems
         * Same test with a new PID for each mapped page, to test the management of free_listitems.
           Remember that paging structures are allocated for each new process, too
-    a. x86_64-specific
+    b. x86_64-specific
         * Try to allocate data crossing the boundary between two PTs, then between two PDs, then
           between two PDPTs. Check that the result is correct and that the paging structures are
           all zeroed out and freed when their time has come
@@ -317,7 +327,11 @@ III/ MemAllocator
           initial process, map its content in the address pace of another process, and put it in the
           busy_map of that other process. Nothing more, nothing less.
         * Same tests, but with the kernel as the allocating process, sender, or recipient
-    b. Internal allocator
+    b. kill() test
+        * Restart one test which allocates some data, try to kill a process, check that all of its
+          data has been liberated.
+        * Same thing, but with the kernel. Check that its data has *not* been liberated.
+    c. Internal allocator
         * Check that sizeof(MallocMap), sizeof(KnlMallocMap) and sizeof(MallocPIDList) are powers of
           2, and that sizeof(MallocMap) == sizeof(KnlMallocMap) (going from one to the other should
           be a matter of casting a pointer)
