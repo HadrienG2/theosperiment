@@ -111,13 +111,19 @@ VirMemMap* VirMemManager::chunk_liberator(VirMemMap* chunk) {
     return chunk;
 }
 
-VirMemMap* VirMemManager::chunk_mapper(const PhyMemMap* phys_chunk, const VirMemFlags flags, VirMapList* target) {
+VirMemMap* VirMemManager::chunk_mapper(const PhyMemMap* phys_chunk,
+                                       const VirMemFlags flags,
+                                       VirMapList* target,
+                                       addr_t location) {
     //We have two goals here :
     // -To map that chunk of physical memory in the virtual memory map of the target.
     // -To put it in its virtual address space, too.
+    //The location parameter is optional. By default, it is NULL, meaning that the chunk may be
+    //mapped at any location. If it is not NULL, it means that the chunk must be mapped at this
+    //precise location, and that allocation will fail if that is not doable.
     
     addr_t total_size, offset, tmp;
-    VirMemMap *result, *map_parser, *last_item;
+    VirMemMap *result, *map_parser = NULL, *last_item;
     PhyMemMap *chunk_parser;
     
     //Allocate the new memory map item
@@ -127,6 +133,7 @@ VirMemMap* VirMemManager::chunk_mapper(const PhyMemMap* phys_chunk, const VirMem
     }
     result = free_mapitems;
     free_mapitems = free_mapitems->next_buddy;
+    result->location = location;
     result->flags = flags;
     result->owner = target;
     result->points_to = (PhyMemMap*) phys_chunk;
@@ -141,31 +148,86 @@ VirMemMap* VirMemManager::chunk_mapper(const PhyMemMap* phys_chunk, const VirMem
     }
     result->size = total_size;
     
-    //Find virtual chunk location and put it in the map
-    if(target->map_pointer == NULL) {
-        result->location = PG_SIZE; //First page should not be used : it includes the NULL pointer.
-        target->map_pointer = result;
-    } else {
-        if(target->map_pointer->location >= total_size+PG_SIZE) {
-            result->location = target->map_pointer->location-total_size;
-            result->next_mapitem = target->map_pointer;
+    //Put the chunk in the map
+    if(!location) {
+        //Find a location where the chunk should be put
+        if(target->map_pointer == NULL) {
+            result->location = PG_SIZE; //First page includes the NULL pointer. Not to be used.
             target->map_pointer = result;
         } else {
-            last_item = target->map_pointer;
-            map_parser = target->map_pointer->next_mapitem;
-            while(map_parser) {
-                if(map_parser->location-last_item->location-last_item->size >= total_size) {
-                    result->location = map_parser->location-total_size;
+            if(target->map_pointer->location >= total_size+PG_SIZE) {
+                result->location = target->map_pointer->location-total_size;
+                result->next_mapitem = target->map_pointer;
+                target->map_pointer = result;
+            } else {
+                last_item = target->map_pointer;
+                map_parser = target->map_pointer->next_mapitem;
+                while(map_parser) {
+                    if(map_parser->location-last_item->location-last_item->size >= total_size) {
+                        result->location = map_parser->location-total_size;
+                        result->next_mapitem = map_parser;
+                        last_item->next_mapitem = result;
+                        break;
+                    }
+                    last_item = map_parser;
+                    map_parser = map_parser->next_mapitem;
+                }
+                if(!map_parser) {
+                    result->location = last_item->location + last_item->size;
+                    last_item->next_mapitem = result;
+                }
+            }
+        }
+    } else {
+        //We know where we want to put our chunk.
+        //Just find the place in the map and check that there's nothing there.
+        if(target->map_pointer == NULL) {
+            //Chunk should be inserted as the first item of the map
+            target->map_pointer = result;
+        } else {
+            if(target->map_pointer->location >= location) {
+                //Chunk should be inserted before the first item of the map.
+                //Check collisions with it
+                if(target->map_pointer->location < location+total_size) {
+                    //Required location is not available
+                    *result = VirMemMap();
+                    result->next_buddy = free_mapitems;
+                    free_mapitems = result;
+                    return NULL;
+                }
+                result->next_mapitem = target->map_pointer;
+                target->map_pointer = result; 
+            } else {
+                last_item = target->map_pointer;
+                map_parser = last_item->next_mapitem;
+                while(map_parser) {
+                    if(map_parser->location >= location) break;
+                    last_item = map_parser;
+                    map_parser = map_parser->next_mapitem;
+                }
+                //At this point, we've found where the chunk should be inserted.
+                //Check collisions with the item before it
+                if(last_item->location+last_item->size > location) {
+                    //Required location is not available
+                    *result = VirMemMap();
+                    result->next_buddy = free_mapitems;
+                    free_mapitems = result;
+                    return NULL;
+                }
+                //Check collisions with the item after it, if there's any
+                if(map_parser) {
+                    if(map_parser->location < location + total_size) {
+                        //Required location is not available
+                        *result = VirMemMap();
+                        result->next_buddy = free_mapitems;
+                        free_mapitems = result;
+                        return NULL;
+                    }
                     result->next_mapitem = map_parser;
                     last_item->next_mapitem = result;
-                    break;
+                } else {
+                    last_item->next_mapitem = result;
                 }
-                last_item = map_parser;
-                map_parser = map_parser->next_mapitem;
-            }
-            if(!map_parser) {
-                result->location = last_item->location + last_item->size;
-                last_item->next_mapitem = result;
             }
         }
     }
@@ -210,7 +272,7 @@ VirMapList* VirMemManager::find_or_create_pid(PID target) {
     return list_item;
 }
 
-VirMapList* VirMemManager::find_pid(PID target) {
+VirMapList* VirMemManager::find_pid(const PID target) {
     VirMapList* list_item;
     
     list_item = map_list;
@@ -241,6 +303,27 @@ VirMapList* VirMemManager::setup_pid(PID target) {
     result->pml4t_location = pml4t_chunk->location;
     x86paging::create_pml4t(result->pml4t_location);
     result->next_item = NULL;
+    
+    //Map the kernel in the process' user space
+    VirMemMap* tmp;
+    tmp = chunk_mapper(phy_knl_rx,
+                       VMEM_FLAGS_RX + VMEM_FLAG_G,
+                       result,
+                       knl_rx_loc);
+    if(tmp) tmp = chunk_mapper(phy_knl_r,
+                               VMEM_FLAG_R + VMEM_FLAG_G,
+                               result,
+                               knl_r_loc);
+    if(tmp) tmp = chunk_mapper(phy_knl_rw,
+                               VMEM_FLAGS_RW + VMEM_FLAG_G,
+                               result,
+                               knl_rw_loc);
+    if(!tmp) {
+        result->next_item = map_list->next_item;
+        map_list->next_item = result;
+        remove_pid(result->map_owner);
+        return NULL;
+    }
     
     return result;
 }
@@ -518,9 +601,9 @@ addr_t VirMemManager::remove_all_paging(VirMapList* target) {
 uint64_t VirMemManager::x86flags(VirMemFlags flags) {
     using namespace x86paging;
 
-    uint64_t result = PBIT_USERACCESS + PBIT_NOEXECUTE;
+    uint64_t result = PBIT_PRESENT + PBIT_USERACCESS + PBIT_NOEXECUTE;
     
-    if(flags & VMEM_FLAG_P) result+= PBIT_PRESENT;
+    if(flags & VMEM_FLAG_A) result-= PBIT_PRESENT;
     if(flags & VMEM_FLAG_W) result+= PBIT_WRITABLE;
     if(flags & VMEM_FLAG_X) result-= PBIT_NOEXECUTE;
     if(flags & VMEM_FLAG_G) result+= PBIT_GLOBALPAGE;
@@ -531,6 +614,8 @@ uint64_t VirMemManager::x86flags(VirMemFlags flags) {
 VirMemManager::VirMemManager(PhyMemManager& physmem) : phymem(&physmem),
                                                        free_mapitems(NULL),
                                                        free_listitems(NULL) {
+    using namespace x86paging;
+    
     //Allocate some data storage space.
     alloc_listitems();
     alloc_mapitems();
@@ -543,6 +628,16 @@ VirMemManager::VirMemManager(PhyMemManager& physmem) : phymem(&physmem),
                                   //insanely complicated for a small benefit in the end)
     map_list->next_item = NULL;
     map_list->pml4t_location = x86paging::get_pml4t();
+    
+    //Know where the kernel is in the physical and virtual address space
+    extern char knl_rx_start, knl_r_start, knl_rw_start;
+    knl_rx_loc = (addr_t) &knl_rx_start;
+    knl_r_loc = (addr_t) &knl_r_start;
+    knl_rw_loc = (addr_t) &knl_rw_start;
+    addr_t kernel_pml4t = get_pml4t();
+    phy_knl_rx = phymem->find_this(get_target(knl_rx_loc, kernel_pml4t));
+    phy_knl_r = phymem->find_this(get_target(knl_r_loc, kernel_pml4t));
+    phy_knl_rw = phymem->find_this(get_target(knl_rw_loc, kernel_pml4t));
 }
 
 VirMemMap* VirMemManager::map(const PhyMemMap* phys_chunk,
@@ -624,6 +719,19 @@ void VirMemManager::kill(PID target) {
         remove_pid(target);
     
     maplist_mutex.release();
+}
+
+uint64_t VirMemManager::cr3_value(const PID target) {
+    uint64_t result = NULL;
+    
+    maplist_mutex.grab_spin();
+    
+        VirMapList* list_item = find_pid(target);
+        if(list_item) result = list_item->pml4t_location;
+    
+    maplist_mutex.release();
+    
+    return result;
 }
 
 void VirMemManager::print_maplist() {

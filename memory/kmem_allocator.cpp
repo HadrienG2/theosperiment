@@ -899,7 +899,7 @@ addr_t MemAllocator::malloc(const addr_t size, PID target, const VirMemFlags fla
     
     if(target == PID_KERNEL) {
         //Kernel does not support paging, so only default flags are supported
-        if(flags != VMEM_FLAG_R+VMEM_FLAG_W+VMEM_FLAG_P) return NULL;
+        if(flags != VMEM_FLAGS_RW) return NULL;
         knl_mutex.grab_spin();
         
             result = knl_allocator(size);
@@ -931,7 +931,7 @@ addr_t MemAllocator::malloc_shareable(addr_t size, PID target, const VirMemFlags
     
     if(target == PID_KERNEL) {
         //Kernel does not support paging, so only default flags are supported
-        if(flags != VMEM_FLAG_R+VMEM_FLAG_W+VMEM_FLAG_P) return NULL;
+        if(flags != VMEM_FLAGS_RW) return NULL;
         knl_mutex.grab_spin();
         
             //Allocate that chunk (special kernel case)
@@ -1035,7 +1035,7 @@ addr_t MemAllocator::owneradd(const addr_t location,
         //PID source shares something with kernel
         
         //Kernel does not support paging, so only default flags are supported
-        if(flags != VMEM_FLAG_R+VMEM_FLAG_W+VMEM_FLAG_P) return NULL;
+        if(flags != VMEM_FLAGS_RW) return NULL;
         maplist_mutex.grab_spin();
             
             source_item = find_pid(source);
@@ -1093,7 +1093,7 @@ addr_t MemAllocator::owneradd(const addr_t location,
 void MemAllocator::kill(PID target) {
     if(target == PID_KERNEL) return; //Find a more constructive way to commit suicide
     
-    //Stub
+    remove_pid(target);
 }
 
 void MemAllocator::print_maplist() {

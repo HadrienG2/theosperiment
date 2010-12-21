@@ -46,15 +46,23 @@ class VirMemManager {
         VirMapList* free_listitems; //A collection of ready to use map list items
         KernelMutex maplist_mutex; //Hold that mutex when parsing the map list
                                    //or adding/removing maps from it.
+        //Location of the kernel in the physical memory map and virtual address space
+        PhyMemMap* phy_knl_rx;
+        PhyMemMap* phy_knl_r;
+        PhyMemMap* phy_knl_rw;
+        addr_t knl_rx_loc;
+        addr_t knl_r_loc;
+        addr_t knl_rw_loc;
         //Support methods
         addr_t alloc_mapitems(); //Get some memory map storage space
         addr_t alloc_listitems(); //Get some map list storage space
         VirMemMap* chunk_liberator(VirMemMap* chunk);
         VirMemMap* chunk_mapper(const PhyMemMap* phys_chunk,
                                 const VirMemFlags flags,
-                                VirMapList* target);
-        VirMapList* find_pid(PID target); //Find the map list entry associated to this PID,
-                                          //return NULL if it does not exist.
+                                VirMapList* target,
+                                addr_t location = NULL);
+        VirMapList* find_pid(const PID target); //Find the map list entry associated to this PID,
+                                                //return NULL if it does not exist.
         VirMapList* find_or_create_pid(PID target); //Same as above, but try to create the entry
                                                     //if it does not exist yet
         VirMapList* setup_pid(PID target); //Create management structures for a new PID
@@ -78,7 +86,7 @@ class VirMemManager {
         //Map a non-contiguous chunk of physical memory as a contiguous chunk of the target's virtual memory
         VirMemMap* map(const PhyMemMap* phys_chunk,
                        const PID target,
-                       const VirMemFlags flags = VMEM_FLAG_R + VMEM_FLAG_W + VMEM_FLAG_P);
+                       const VirMemFlags flags = VMEM_FLAGS_RW);
                        
         //Destroy a chunk of virtual memory
         VirMemMap* free(VirMemMap* chunk);
@@ -93,8 +101,9 @@ class VirMemManager {
         //the MemAllocator variant in most cases.
         void kill(PID target);
         
+        //x86_64 specific.
         //Prepare for a context switch by giving the CR3 value to load before jumping
-        void cr3_value(PID target);
+        uint64_t cr3_value(const PID target);
         
         //Debug methods. Will go out in final release.
         void print_maplist();

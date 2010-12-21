@@ -86,6 +86,9 @@ class PhyMemManager {
         void kill(PID target); //Removes all traces of a PID in PhyMemManager (slow method, prefer
                                //the higher-level version from MemAllocator when possible)
         
+        //Finding a chunk in the map
+        PhyMemMap* find_this(addr_t location);
+        
         //x86_64-specific methods
         PhyMemMap* alloc_lowpage(const PID initial_owner); //Allocate a page of low memory (<1MB)
         PhyMemMap* alloc_lowchunk(const addr_t size, //Allocate a chunk of low memory
