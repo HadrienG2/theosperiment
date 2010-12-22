@@ -307,15 +307,15 @@ VirMapList* VirMemManager::setup_pid(PID target) {
     //Map the kernel in the process' user space
     VirMemMap* tmp;
     tmp = chunk_mapper(phy_knl_rx,
-                       VMEM_FLAGS_RX + VMEM_FLAG_G,
+                       VMEM_FLAGS_RX + VMEM_FLAG_K,
                        result,
                        knl_rx_loc);
     if(tmp) tmp = chunk_mapper(phy_knl_r,
-                               VMEM_FLAG_R + VMEM_FLAG_G,
+                               VMEM_FLAG_R + VMEM_FLAG_K,
                                result,
                                knl_r_loc);
     if(tmp) tmp = chunk_mapper(phy_knl_rw,
-                               VMEM_FLAGS_RW + VMEM_FLAG_G,
+                               VMEM_FLAGS_RW + VMEM_FLAG_K,
                                result,
                                knl_rw_loc);
     if(!tmp) {
@@ -606,7 +606,10 @@ uint64_t VirMemManager::x86flags(VirMemFlags flags) {
     if(flags & VMEM_FLAG_A) result-= PBIT_PRESENT;
     if(flags & VMEM_FLAG_W) result+= PBIT_WRITABLE;
     if(flags & VMEM_FLAG_X) result-= PBIT_NOEXECUTE;
-    if(flags & VMEM_FLAG_G) result+= PBIT_GLOBALPAGE;
+    if(flags & VMEM_FLAG_K) {
+        result+= PBIT_GLOBALPAGE;
+        result-= PBIT_USERACCESS;
+    }
     
     return result;
 }
