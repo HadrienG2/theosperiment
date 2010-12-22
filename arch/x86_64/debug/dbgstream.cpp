@@ -672,8 +672,8 @@ DebugOutput& DebugOutput::operator<<(const VirMemMap& input) {
         } else {
             *this << '-';
         }
-        if(map->flags & VMEM_FLAG_G) {
-            *this << "G | ";
+        if(map->flags & VMEM_FLAG_K) {
+            *this << "K | ";
         } else {
             *this << "- | ";
         }

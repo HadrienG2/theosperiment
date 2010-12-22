@@ -31,7 +31,7 @@ I/ PhyMemManager
             -Locations and sizes must be page-aligned (aligned on a PG_SIZE boundary)
             -Map items should not overlap
             -Locations must be sorted properly
-        * All items of kinfo->kmmap must be integrated in phy_mmap
+        * Check integration of kmmap in phy_mmap
             -Map items with a page-aligned version of the beginning and the end must be present
             -kmmap items which are not of nature NATURE_RES must be marked allocatable, items of
              nature NATURE_RES must be marked non-allocatable

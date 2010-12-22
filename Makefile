@@ -60,7 +60,7 @@ CXX=$(ARCH)-elf-g++
 LD=$(ARCH)-elf-ld
 CXX_WARNINGS=-Wall -Wextra
 CXX_LIBS=-nostdlib -nostartfiles -nodefaultlibs -fno-builtin
-CXX_FEATURES=-fno-exceptions -fno-rtti -fno-stack-protector
+CXX_FEATURES=-fno-exceptions -fno-rtti -fno-stack-protector -fno-threadsafe-statics
 CXX_STD=-std=c++98
 CXXFLAGS=$(CXX_WARNINGS) $(CXX_LIBS) $(CXX_FEATURES) $(CXX_ARCH) $(CXX_STD)
 ifeq ($(Fdebug),1)
@@ -89,12 +89,6 @@ run: all
 	@nice -n 7 bochsdbg -qf support/bochsrc.txt -rc comm_test
 	@rm -f comm_test
 
-commit: all
-	@$(MAKE) clean
-	@echo "Please describe your commit : "
-	@read COMMIT
-	@svn commit -m $COMMIT
-
 floppy: $(BS_GZ) $(KNL_BIN)
 	@rm -f floppy.img
 	@cp support/grub_floppy.img floppy.img
@@ -116,13 +110,13 @@ $(KNL_BIN): $(KNL_ASM_OBJ) $(KNL_CPP_OBJ) $(HEADERS)
 %.bsasm.o: %.s
 	@$(AS32) $< -o $@
 
-%.bsc.o: %.c
+%.bsc.o: %.c $(BS_HEADERS)
 	@$(CC32) -o $@ -c $< $(CFLAGS) $(BS_INCLUDES)
 
 %.knlasm.o: %.s
 	@$(AS) $< -o $@
 
-%.knlcpp.o: %.cpp
+%.knlcpp.o: %.cpp $(HEADERS)
 	@$(CXX) -o $@ -c $< $(CXXFLAGS) $(INCLUDES)
 
 %.bin.gz: %.bin

@@ -5,8 +5,7 @@
 #include <virtmem.h>
 
 #include <dbgstream.h>
-#include <display_paging.h>
-
+#include <memory_test.h>
 
 extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << txtcolor(TXT_LIGHTRED) << "Kernel loaded : " << kinfo.cpu_info.core_amount;
@@ -18,7 +17,8 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << "* Setting up memory allocator..." << endl;
     MemAllocator mallocator(phymem, virmem);
     setup_kalloc(mallocator);
-    dbgout << "Kernel initialized !";
+    dbgout << set_window(screen_win);
+    MemTest::test_memory(kinfo);
     
     return 0;
 }

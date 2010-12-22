@@ -19,6 +19,37 @@
 #ifndef _MEMORY_TEST_H_
 #define _MEMORY_TEST_H_
 
-void dummy();
+#include <kmem_allocator.h>
+#include <physmem.h>
+#include <virtmem.h>
+
+namespace MemTest {
+    const int PHYMEM_TEST_VERSION = 1;
+    const int VIRMEM_TEST_VERSION = 1;
+    const int MALLOC_TEST_VERSION = 1;
+
+    //Global memory management regression test
+    void test_memory(const KernelInformation& kinfo);
+    
+    //Regression tests of specific parts of memory management
+    PhyMemManager* test_phymem(const KernelInformation& kinfo);
+    VirMemManager* test_virmem(PhyMemManager& phymem);
+    MemAllocator* test_mallocator(PhyMemManager& phymem, VirMemManager& virmem);
+    
+    //PhyMemManager tests
+    struct PhyMemState { //The internal state of a PhyMemManager, as described in physmem.h
+        PhyMemMap* phy_mmap;
+        PhyMemMap* phy_highmmap;
+        PhyMemMap* free_lowmem;
+        PhyMemMap* free_highmem;
+        PhyMemMap* free_mapitems;
+        KernelMutex mmap_mutex;
+    };
+    bool phy_test1_meta();
+    PhyMemManager* phy_test2_init(const KernelInformation& kinfo);
+    
+    //Helper functions
+    
+}
 
 #endif
