@@ -22,7 +22,7 @@
     These tests are supposed to be run after each class has just been initialized. They can
     initialize their own copies of each class if it's more suitable
 
-I/ PhyMemManager
+I/  PhyMemManager
     1. Meta (testing the test itself)
         * Check that we're testing the good version of PhyMemManager (PHYMEMMANAGER_VERSION)
     2. Initial state
@@ -31,18 +31,21 @@ I/ PhyMemManager
             -Locations and sizes must be page-aligned (aligned on a PG_SIZE boundary)
             -Map items should not overlap
             -Locations must be sorted properly
-        * Check integration of kmmap in phy_mmap
+        * Check that kmmap is properly mapped in phy_mmap
             -Map items with a page-aligned version of the beginning and the end must be present
             -kmmap items which are not of nature NATURE_RES must be marked allocatable, items of
              nature NATURE_RES must be marked non-allocatable
             -Regions of phy_mmap including NATURE_BSK or NATURE_KNL items must be marked as
              allocated to the kernel, others must be marked as free (apart from the exception below)
-        * Check that there are no other map items in phy_mmap, except a part of initially free
-          memory which is allocated by PhyMemMap to store its management structures
-        * Check that all map items are properly allocated before use
-        * Check that all allocated map items are either in free_mmap or free_mapitems (ie that there
-          are no memory leaks)
-        * Check that all chunks in free_mapitems are properly initialized
+        * Sole accepted difference is a part of initially free memory which is allocated by
+          PhyMemMap to store its management structures. Check that it is allocated properly, though
+        * Check that all map items are allocated before use, without leaks
+            -The items of phy_mmap, must be stacked at the beginning of the allocated space
+            -What remains of the allocated space must be put in free_mapitems
+        * Check that free_mapitems are initialized properly (all parameters equal to their initial
+          value, except for next_buddy which is the next item or zero at the end of the list)
+        * x86_64 : Check that phy_highmmap, free_lowmem and free_highmem have a good value and that
+          linking via next_buddy is done properly
     3. Page allocation
         * Save PhyMemManager state
         * Allocate a page to some PID using alloc_page()
@@ -167,7 +170,8 @@ II/ VirMemManager
              mentioned "owner" field
             -map_owner must match the PID given as a parameter to map()
             -map_pointer must map the physical page given as a parameter to map().
-             In that map, there should be a kernel memory-mapped as a global page, too.
+             In that map, there should be a kernel memory-mapped as a global page, too. With
+             VMEM_FLAG_K for protection.
             -x86_64 : pml4t_location must be nonzero and point a freshly allocated page of physical
              memory allocated to PID_KERNEL
             -mutex must be available
@@ -238,7 +242,7 @@ II/ VirMemManager
           between two PDPTs. Check that the result is correct and that the paging structures are
           all zeroed out and freed when their time has come
 
-III/ MemAllocator
+III/MemAllocator
     1. Meta
         * Check that we're testing the good version of MemAllocator (MEMALLOCATOR_VERSION)
     2. Initial state

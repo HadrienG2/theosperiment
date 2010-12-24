@@ -18,10 +18,10 @@ KNL_CPP_SRC += $(wildcard arch/$(ARCH)/synchronization/*.cpp init/*.cpp memory/*
 KNL_CPP_SRC += $(wildcard process/*.cpp)
 ifeq ($(Fdebug),1)
     BS_C_SRC += $(wildcard arch/$(ARCH)/bootstrap/debug/*.c)
-    KNL_CPP_SRC += $(wildcard arch/$(ARCH)/debug/*.cpp)
+    KNL_CPP_SRC += $(wildcard arch/$(ARCH)/debug/*.cpp debug/*.cpp)
 endif
 ifeq ($(Ftests),1)
-    KNL_CPP_SRC += $(wildcard tests/memory/*.cpp arch/$(ARCH)/tests/*.cpp)
+    KNL_CPP_SRC += $(wildcard tests/memory/*.cpp arch/$(ARCH)/tests/memory/*.cpp)
 endif
 
 #Headers go there (Yeah, duplication sucks. If you know how to avoid it...)

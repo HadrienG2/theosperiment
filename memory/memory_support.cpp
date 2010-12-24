@@ -72,6 +72,16 @@ unsigned int PhyMemMap::length() const {
     return result;
 }
 
+bool PhyMemMap::operator==(const PhyMemMap& param) const {
+    if(location != param.location) return false;
+    if(size != param.size) return false;
+    if(owners != param.owners) return false;
+    if(allocatable != param.allocatable) return false;
+    if(next_buddy != param.next_buddy) return false;
+    if(next_mapitem != param.next_mapitem) return false;
+    return true;
+}
+
 VirMemMap* VirMemMap::find_thischunk(const addr_t location) const {
     VirMemMap* current_item = (VirMemMap*) this;
     if(current_item->location > location) return NULL;

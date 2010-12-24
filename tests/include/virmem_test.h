@@ -1,4 +1,4 @@
- /* Function used to kill the kernel
+ /* Virtual memory management testing routines
 
       Copyright (C) 2010  Hadrien Grasland
 
@@ -16,9 +16,17 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef _PANIC_H_
-#define _PANIC_H_
+#ifndef _VIRMEM_TEST_H_
+#define _VIRMEM_TEST_H_
 
-void panic();
+#include <physmem.h>
+#include <virtmem.h>
 
-#endif 
+namespace MemTest {
+    const int VIRMEM_TEST_VERSION = 1;
+
+    //Main test
+    VirMemManager* test_virmem(PhyMemManager& phymem);
+}
+
+#endif

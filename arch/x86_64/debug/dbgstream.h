@@ -132,6 +132,14 @@ class DebugPadder : DebugManipulator {
 DebugPadder& pad_status(const bool padding_status);
 DebugPadder& pad_size(unsigned int padsize);
 
+//This manipulator is used to scroll on-screen text
+class DebugScroller : DebugManipulator {
+    public:
+        unsigned int amount;
+};
+DebugScroller& cls();
+DebugScroller& scroll(unsigned int amount);
+
 //This manipulator is used to restrict debug I/O to a specific
 //region of the screen (called a window). Content will be kept
 //around as long as resizing the window does not make it move out.
@@ -205,8 +213,9 @@ class DebugOutput {
     DebugOutput& operator<<(const DebugBreakpoint& manipulator);
     DebugOutput& operator<<(const DebugCursorMover& manipulator);
     DebugOutput& operator<<(const DebugNumberBaseChanger& manipulator);
-    DebugOutput& operator<<(const DebugWindower& manipulator);
     DebugOutput& operator<<(const DebugPadder& manipulator);
+    DebugOutput& operator<<(const DebugScroller& manipulator);
+    DebugOutput& operator<<(const DebugWindower& manipulator);
 };
 
 //*******************************************************

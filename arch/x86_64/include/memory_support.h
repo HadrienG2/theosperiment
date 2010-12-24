@@ -59,6 +59,10 @@ struct PhyMemMap {
                                                           //of free memory at least "size" large.
     PhyMemMap* find_thischunk(const addr_t location) const;
     unsigned int length() const;
+    //Comparing map items is fairly straightforward and should be done by default
+    //by the C++ compiler, but well...
+    bool operator==(const PhyMemMap& param) const;
+    bool operator!=(const PhyMemMap& param) const {return !(*this==param);}
 } __attribute__((packed));
 
 //**************************************************

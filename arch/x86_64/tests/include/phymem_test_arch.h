@@ -1,4 +1,4 @@
- /* Memory management testing routines
+ /* Physical memory management testing routines (arch-specific part)
 
       Copyright (C) 2010  Hadrien Grasland
 
@@ -16,25 +16,29 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef _MEMORY_TEST_H_
-#define _MEMORY_TEST_H_
+#ifndef _PHYMEM_TEST_ARCH_H_
+#define _PHYMEM_TEST_ARCH_H_
 
 #include <kernel_information.h>
-#include <kmem_allocator.h>
 #include <physmem.h>
-#include <virtmem.h>
 
 namespace MemTest {
-    //Main test
-    void test_memory(const KernelInformation& kinfo);
+    //The internal state of a PhyMemManager, as described in physmem.h
+    struct PhyMemState {
+        PhyMemMap* phy_mmap;
+        PhyMemMap* phy_highmmap;
+        PhyMemMap* free_lowmem;
+        PhyMemMap* free_highmem;
+        PhyMemMap* free_mapitems;
+        KernelMutex mmap_mutex;
+    };
+
+    //Arch-specific PhyMemManager tests
+    PhyMemManager* phy_test2_init_arch(PhyMemManager& phymem);
     
     //Helper functions
-    void reset_title();
-    void reset_sub_title();
-    void test_title(const char* title);
-    void subtest_title(const char* title);
-    void item_title(const char* title);
-    void test_failure(const char* message); //Displays an error message
+    PhyMemState* save_phymem_state(PhyMemManager& phymem);
+    void discard_phymem_state(PhyMemState* saved_state);
 }
 
 #endif

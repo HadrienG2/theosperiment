@@ -17,98 +17,81 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include <align.h>
+#include <malloc_test.h>
 #include <memory_test.h>
+#include <phymem_test.h>
+#include <virmem_test.h>
 
 #include <dbgstream.h>
 
 namespace MemTest {
     void test_memory(const KernelInformation& kinfo) {
         dbgout << endl << "Beginning tests..." << endl;
-        dbgout << "I/ PhyMemManager" << endl;
+        reset_title();
+        test_title("PhyMemManager");
         PhyMemManager* phymem = test_phymem(kinfo);
         if(!phymem) return;
-        dbgout << "II/ VirMemManager" << endl;
+        test_title("VirMemManager");
         VirMemManager* virmem = test_virmem(*phymem);
         if(!virmem) return;
-        dbgout << "III/ MemAllocator" << endl;
+        test_title("MemAllocator");
         MemAllocator* mallocator = test_mallocator(*phymem, *virmem);
         if(!mallocator) return;
         dbgout << "All tests were successfully completed !" << endl;
     }
     
-    PhyMemManager* test_phymem(const KernelInformation& kinfo) {
-        dbgout << "  1. Meta (testing the test itself)" << endl;
-        if(!phy_test1_meta()) return NULL;
-        dbgout << "  2. Initial state" << endl;
-        PhyMemManager* phymem = phy_test2_init(kinfo);
-        if(!phymem) return NULL;
-        return phymem;
+    static int title_count;
+    static int sub_title_count;
+    
+    void reset_title() {
+        title_count = 0;
     }
     
-    bool phy_test1_meta() {
-        dbgout << "    * Check PhyMemManager version" << endl;
-        if(PHYMEM_TEST_VERSION != PHYMEMMANAGER_VERSION) {
-            dbgout << txtcolor(TXT_RED) << "  Error : Test version (" << PHYMEM_TEST_VERSION;
-            dbgout << ") and PhyMemManager version (" << PHYMEMMANAGER_VERSION;
-            dbgout << ") mismatch." << txtcolor(TXT_LIGHTGRAY) << endl;
-            return false;
-        }
-        return true;
+    void reset_sub_title() {
+        sub_title_count = 0;
     }
     
-    PhyMemManager* phy_test2_init(const KernelInformation& kinfo) {
-        dbgout << "    * Initialize PhyMemManager" << endl;
-        static PhyMemManager phymem(kinfo);
-        
-        dbgout << "    * Check availability of mmap_mutex" << endl;
-        PhyMemState* phymem_state = (PhyMemState*) &phymem;
-        if(!(phymem_state->mmap_mutex.state())) {
-            dbgout << txtcolor(TXT_RED) << "  Error : mmap_mutex is not available in a ";
-            dbgout << "freshly initialized PhyMemManager" << txtcolor(TXT_LIGHTGRAY) << endl;
-            return NULL;
+    void test_title(const char* title) {
+        ++title_count;
+        switch(title_count) {
+            case 1:
+                dbgout << "I/  ";
+                break;
+            case 2:
+                dbgout << "II/ ";
+                break;
+            case 3:
+                dbgout << "III/";
+                break;
+            case 4:
+                dbgout << "IV/ ";
+                break;
+            case 5:
+                dbgout << "V/  ";
+                break;
+            case 6:
+                dbgout << "VI/ ";
+                break;
+            case 7:
+                dbgout << "VII/";
+                break;
+            default:
+                dbgout << "?/  ";
         }
-        
-        dbgout << "    * Check that the assumptions about phy_mmap are respected" << endl;
-        PhyMemMap* map_parser = phymem_state->phy_mmap;
-        while(map_parser) {
-            if(map_parser->location%PG_SIZE) {
-                dbgout << txtcolor(TXT_RED) << "  Error : Map items aren't always on a ";
-                dbgout << "page-aligned location" << txtcolor(TXT_LIGHTGRAY) << endl;
-                return NULL;
-            }
-            if(map_parser->size%PG_SIZE) {
-                dbgout << txtcolor(TXT_RED) << "  Error : Map items don't always have a ";
-                dbgout << "page-aligned size" << txtcolor(TXT_LIGHTGRAY) << endl;
-                return NULL;
-            }
-            if(map_parser->next_mapitem) {
-                if(map_parser->location > map_parser->next_mapitem->location) {
-                    dbgout << txtcolor(TXT_RED) << "  Error : Map items are not sorted";
-                    dbgout << txtcolor(TXT_LIGHTGRAY) << endl;
-                }
-                if(map_parser->location+map_parser->size > map_parser->next_mapitem->location) {
-                    dbgout << txtcolor(TXT_RED) << "  Error : Map items overlap";
-                    dbgout << txtcolor(TXT_LIGHTGRAY) << endl;
-                }
-            }
-            map_parser = map_parser->next_mapitem;
-        }
-        
-        dbgout << "    * Check integration of kmmap in phy_mmap" << endl;
-        //TODO
-        
-        return &phymem;
+        dbgout << title << endl;
     }
     
-    VirMemManager* test_virmem(PhyMemManager& phymem) {
-        dbgout << txtcolor(TXT_RED) << "  Not implemented yet. Aborting...";
+    void subtest_title(const char* title) {
+        ++sub_title_count;
+        dbgout << "  " << sub_title_count << ". " << title << endl;
+    }
+    
+    void item_title(const char* title) {
+        dbgout << "    * " << title << endl;
+    }
+    
+    void test_failure(const char* message) {
+        dbgout << txtcolor(TXT_RED) << "  Error : " << message;
         dbgout << txtcolor(TXT_LIGHTGRAY) << endl;
-        return NULL;
-    }
-    
-    MemAllocator* test_mallocator(PhyMemManager& phymem, VirMemManager& virmem) {
-        dbgout << txtcolor(TXT_RED) << "  Not implemented yet. Aborting...";
-        dbgout << txtcolor(TXT_LIGHTGRAY) << endl;
-        return NULL;
     }
 }

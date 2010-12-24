@@ -29,6 +29,7 @@ class PIDs {
     private:
         PID current_pid;
         PIDs* next_item;
+        PIDs& copy_pids(const PIDs& source); //Copy the contents of a PIDs in there
         void free_members(); //Free all dynamically allocated data of this PIDs structure
     public:
         //Constructors and destructors
@@ -36,6 +37,7 @@ class PIDs {
                          next_item(NULL) {}
         PIDs(const PID& first) : current_pid(first),
                                  next_item(NULL) {}
+        PIDs(const PIDs& source) {copy_pids(source);}
         ~PIDs() {free_members();}
         //Various management functions
         unsigned int add_pid(const PID new_pid); //Returns 0 if it failed, 1 if it was successful,
@@ -46,6 +48,9 @@ class PIDs {
         unsigned int length() const;
         PID operator[](const unsigned int index) const; //Accessing the contents in an
                                                         //implementation-independent, read-only way.
+        
+        //Duplicate a PIDs
+        PIDs& operator=(const PIDs& source) {return copy_pids(source);}
         //Comparison of PIDs
         bool operator==(const PIDs& param) const;
         bool operator!=(const PIDs& param) const {return !(*this==param);}

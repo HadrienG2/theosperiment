@@ -19,6 +19,23 @@
 #include <pid.h>
 #include <kmem_allocator.h>
 
+PIDs& PIDs::copy_pids(const PIDs& source) {
+    current_pid = source.current_pid;
+
+    PIDs* source_parser = source.next_item;
+    PIDs* dest_parser = this;
+    while(source_parser) {
+        if(dest_parser->next_item == NULL) {
+            dest_parser->next_item = (PIDs*) kalloc(sizeof(PIDs), PID_KERNEL, VMEM_FLAGS_RW, true);
+        }
+        dest_parser = dest_parser->next_item;
+        dest_parser->current_pid = source_parser->current_pid;
+        source_parser = source_parser->next_item;
+    }
+    
+    return *this;
+}
+
 void PIDs::free_members() {
     PIDs *to_delete = next_item, *following_one;
     

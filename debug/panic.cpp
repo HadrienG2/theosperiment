@@ -1,6 +1,6 @@
- /* Memory management testing routines
+ /* Function used to kill the kernel
 
-      Copyright (C) 2010  Hadrien Grasland
+    Copyright (C) 2010  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -15,26 +15,18 @@
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
+ 
+#include <panic.h>
+#include <dbgstream.h>
 
-#ifndef _MEMORY_TEST_H_
-#define _MEMORY_TEST_H_
+const char* PANIC_TITLE = "Oh my god, it sounds like the kernel just died !";
+const char* PANIC_SHARING_NONEXISTENT = "MemAllocator : Cannot share non-existent object";
+const char* PANIC_OUT_OF_MEMORY = "MemAllocator : Out of memory";
 
-#include <kernel_information.h>
-#include <kmem_allocator.h>
-#include <physmem.h>
-#include <virtmem.h>
-
-namespace MemTest {
-    //Main test
-    void test_memory(const KernelInformation& kinfo);
-    
-    //Helper functions
-    void reset_title();
-    void reset_sub_title();
-    void test_title(const char* title);
-    void subtest_title(const char* title);
-    void item_title(const char* title);
-    void test_failure(const char* message); //Displays an error message
+void panic(const char* error_message) {
+    dbgout << bkgcolor(BKG_PURPLE);
+    dbgout << cls();
+    dbgout << txtcolor(TXT_WHITE) << PANIC_TITLE << endl << endl;
+    dbgout << txtcolor(TXT_YELLOW) << error_message;
+    while(1) __asm__("hlt");
 }
-
-#endif
