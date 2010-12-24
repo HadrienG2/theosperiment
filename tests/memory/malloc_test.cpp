@@ -1,6 +1,6 @@
- /* Memory management testing routines
+ /* Memory allocation testing routines
 
-      Copyright (C) 2010  Hadrien Grasland
+    Copyright (C) 2010  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,25 +16,12 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef _MEMORY_TEST_H_
-#define _MEMORY_TEST_H_
-
-#include <kernel_information.h>
-#include <kmem_allocator.h>
-#include <physmem.h>
-#include <virtmem.h>
+#include <malloc_test.h>
+#include <memory_test.h>
 
 namespace MemTest {
-    //Main test
-    void test_memory(const KernelInformation& kinfo);
-    
-    //Helper functions
-    void reset_title();
-    void reset_sub_title();
-    void test_title(const char* title);
-    void subtest_title(const char* title);
-    void item_title(const char* title);
-    void test_failure(const char* message); //Displays an error message
+    MemAllocator* test_mallocator(PhyMemManager& phymem, VirMemManager& virmem) {
+        test_failure("Not implemented yet");
+        return NULL;
+    }
 }
-
-#endif

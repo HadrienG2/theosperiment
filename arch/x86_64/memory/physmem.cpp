@@ -424,8 +424,10 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
     current_item = phy_mmap;
     current_item->location = current_location;
     current_item->size = next_location-current_location;
-    current_item->allocatable = !(kmmap[0].nature == NATURE_RES);
     switch(kmmap[0].nature) {
+        case NATURE_RES:
+            current_item->allocatable = false;
+            break;
         case NATURE_BSK:
         case NATURE_KNL:
             current_item->add_owner(PID_KERNEL);
@@ -435,15 +437,22 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
     for(index=1; index<storage_index; ++index) {
         if(kmmap[index].location<next_location) {
             //Update memory map chunk
-            if(kmmap[index].nature == NATURE_RES) current_item->allocatable = false;
             switch(kmmap[index].nature) {
+                case NATURE_RES:
+                    current_item->allocatable = false;
+                    break;
                 case NATURE_BSK:
                 case NATURE_KNL:
                     current_item->add_owner(PID_KERNEL);
             }
         }
         if(kmmap[index].location+kmmap[index].size>next_location) {
-            //We've reached the end of this chunk. If it is free, add it to the free memory pool.
+            //End of the chunk reached !
+            //Prepare the next chunk to be filled, skipping chunks of zero size in the way
+            current_location = align_pgup(kmmap[index].location);
+            next_location = align_pgup(kmmap[index].location+kmmap[index].size);
+            if(next_location == current_location) continue;
+            //If the previous chunk is free, add it to the free memory pool.
             if(current_item->owners[0] == PID_NOBODY && current_item->allocatable) {
                 if(!free_lowmem) {
                     free_lowmem = current_item;
@@ -452,10 +461,6 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
                 }
                 last_free = current_item;
             }
-            //Prepare the next chunk to be filled
-            current_location = align_pgup(kmmap[index].location);
-            next_location = align_pgup(kmmap[index].location+kmmap[index].size);
-            if(next_location == current_location) continue;
             //Fill this new physical mmap item
             current_item = current_item->next_mapitem;
             current_item->location = current_location;
@@ -486,15 +491,22 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
     for(index=storage_index+1; index<kinfo.kmmap_size; ++index) {
         if(kmmap[index].location<next_location) {
             //Update memory map chunk
-            if(kmmap[index].nature == NATURE_RES) current_item->allocatable = false;
             switch(kmmap[index].nature) {
+                case NATURE_RES:
+                    current_item->allocatable = false;
+                    break;
                 case NATURE_BSK:
                 case NATURE_KNL:
                     current_item->add_owner(PID_KERNEL);
             }
         }
         if(kmmap[index].location+kmmap[index].size>next_location) {
-            //We've reached the end of this chunk. If it is free, add it to the free memory pool.
+            //End of the chunk reached !
+            //Prepare the next chunk to be filled, skipping chunks of zero size in the way
+            current_location = align_pgup(kmmap[index].location);
+            next_location = align_pgup(kmmap[index].location+kmmap[index].size);
+            if(next_location == current_location) continue;
+            //If the previous chunk is free, add it to the free memory pool.
             if(current_item->owners[0] == PID_NOBODY && current_item->allocatable) {
                 if(!free_lowmem) {
                     free_lowmem = current_item;
@@ -503,10 +515,6 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
                 }
                 last_free = current_item;
             }
-            //Prepare the next chunk to be filled
-            current_location = align_pgup(kmmap[index].location);
-            next_location = align_pgup(kmmap[index].location+kmmap[index].size);
-            if(next_location == current_location) continue;
             //Fill this new physical mmap item
             current_item = current_item->next_mapitem;
             current_item->location = current_location;

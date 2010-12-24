@@ -46,22 +46,34 @@ class MemAllocator {
         //Support functions
         addr_t alloc_mapitems(); //Get some memory map storage space
         addr_t alloc_listitems(); //Get some map list storage space
-        addr_t allocator(const addr_t size, MallocPIDList* target, const VirMemFlags flags);
-        addr_t allocator_shareable(addr_t size, MallocPIDList* target, const VirMemFlags flags);
+        addr_t allocator(const addr_t size,
+                         MallocPIDList* target,
+                         const VirMemFlags flags,
+                         const bool force);
+        addr_t allocator_shareable(addr_t size,
+                                   MallocPIDList* target,
+                                   const VirMemFlags flags,
+                                   const bool force);
+        void liberate_memory(); //An allocation function with the "force" flag on has failed.
+                                //Liberate some memory for another attempt or panic the kernel.
         addr_t liberator(const addr_t location, MallocPIDList* target);
         addr_t share(const addr_t location,
                      const MallocPIDList* source,
                      MallocPIDList* target,
-                     const VirMemFlags flags);
-        addr_t knl_allocator(const addr_t size);
-        addr_t knl_allocator_shareable(addr_t size);
+                     const VirMemFlags flags,
+                     const bool force);
+        addr_t knl_allocator(const addr_t size, const bool force);
+        addr_t knl_allocator_shareable(addr_t size, const bool force);
         addr_t knl_liberator(const addr_t location);
-        addr_t share_from_knl(const addr_t location, MallocPIDList* target, const VirMemFlags flags);
-        addr_t share_to_knl(const addr_t location, const MallocPIDList* source);
+        addr_t share_from_knl(const addr_t location,
+                              MallocPIDList* target,
+                              const VirMemFlags flags,
+                              const bool force);
+        addr_t share_to_knl(const addr_t location, const MallocPIDList* source, const bool force);
         MallocPIDList* find_pid(const PID target); //Find the map list entry associated to this PID,
                                                    //return NULL if it does not exist.
-        MallocPIDList* find_or_create_pid(PID target); //Same as above, but try to create the entry
-                                                       //if it does not exist yet
+        MallocPIDList* find_or_create_pid(PID target,        //Same as above, but try to create the
+                                          const bool force); //entry if it does not exist yet
         MallocPIDList* setup_pid(PID target); //Create management structures for a new PID
         MallocPIDList* remove_pid(PID target); //Discards management structures for this PID
     public:
@@ -70,13 +82,15 @@ class MemAllocator {
         //Allocate memory to a process, returns location
         addr_t malloc(const addr_t size,
                       PID target = PID_KERNEL,
-                      const VirMemFlags flags = VMEM_FLAGS_RW);
+                      const VirMemFlags flags = VMEM_FLAGS_RW,
+                      const bool force = false);
                       
         //Same as above, but the storage space is alone in its chunk, which allows sharing the data
         //inside with other processes without giving them access to other data
         addr_t malloc_shareable(addr_t size,
                                 PID target = PID_KERNEL,
-                                const VirMemFlags flags = VMEM_FLAGS_RW);
+                                const VirMemFlags flags = VMEM_FLAGS_RW,
+                                const bool force = false);
                                 
         //Free previously allocated memory. Returns 0 if location or process does not exist,
         //location otherwise
@@ -89,7 +103,8 @@ class MemAllocator {
         addr_t owneradd(const addr_t location,
                         const PID source,
                         PID target,
-                        const VirMemFlags flags = VMEM_FLAGS_RW);
+                        const VirMemFlags flags = VMEM_FLAGS_RW,
+                        const bool force = false);
                         
         //Kill a process, more exactly free traces of it in MemAllocator, VirMemManager, and
         //PhyMemManager
@@ -108,14 +123,17 @@ class MemAllocator {
 void setup_kalloc(MemAllocator& allocator);
 void* kalloc(const addr_t size,
              PID target = PID_KERNEL,
-             const VirMemFlags flags = VMEM_FLAGS_RW);
+             const VirMemFlags flags = VMEM_FLAGS_RW,
+             const bool force = false);
 void* kalloc_shareable(addr_t size,
                        PID target = PID_KERNEL,
-                       const VirMemFlags flags = VMEM_FLAGS_RW);
+                       const VirMemFlags flags = VMEM_FLAGS_RW,
+                       const bool force = false);
 void* kfree(const void* location, PID target = PID_KERNEL);
 void* kowneradd(const void* location,
                 const PID source,
                 PID target,
-                const VirMemFlags flags = VMEM_FLAGS_RW);
+                const VirMemFlags flags = VMEM_FLAGS_RW,
+                const bool force = false);
 
 #endif

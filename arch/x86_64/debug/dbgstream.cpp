@@ -40,8 +40,9 @@ static DebugAttributeChanger attrchg_buff;
 static DebugBreakpoint bp_buff;
 static DebugCursorMover cursmov_buff;
 static DebugNumberBaseChanger numchg_buff;
-static DebugWindower windower_buff;
 static DebugPadder padder_buff;
+static DebugScroller scroller_buff;
+static DebugWindower windower_buff;
 
 DebugAttributeChanger& attrset(const uint8_t attribute) {
   attrchg_buff.new_attr = (uint8_t) attribute;
@@ -111,6 +112,18 @@ DebugPadder& pad_size(unsigned int padsize) {
   padder_buff.padsize = padsize;
   
   return padder_buff;
+}
+
+DebugScroller& cls() {
+    scroller_buff.amount = NUMBER_OF_ROWS;
+    
+    return scroller_buff;
+}
+
+DebugScroller& scroll(unsigned int amount) {
+    scroller_buff.amount = amount;
+    
+    return scroller_buff;
 }
 
 DebugWindower& set_window(const DebugWindow window) {
@@ -848,6 +861,19 @@ DebugOutput& DebugOutput::operator<<(const DebugNumberBaseChanger& manipulator) 
     return *this;
 }
 
+DebugOutput& DebugOutput::operator<<(const DebugPadder& manipulator) {
+    padding_on = manipulator.padding_on;
+    if(manipulator.padsize>=0) padsize = manipulator.padsize;
+  
+    return *this;
+}
+
+DebugOutput& DebugOutput::operator<<(const DebugScroller& manipulator) {
+    scroll(manipulator.amount);
+    
+    return *this;
+}
+
 DebugOutput& DebugOutput::operator<<(const DebugWindower& manipulator) { 
     int col_size, row_size;
 
@@ -883,12 +909,5 @@ DebugOutput& DebugOutput::operator<<(const DebugWindower& manipulator) {
     window.endy = manipulator.window.endy;
     window.border = manipulator.window.border;
 
-    return *this;
-}
-
-DebugOutput& DebugOutput::operator<<(const DebugPadder& manipulator) {
-    padding_on = manipulator.padding_on;
-    if(manipulator.padsize>=0) padsize = manipulator.padsize;
-  
     return *this;
 }

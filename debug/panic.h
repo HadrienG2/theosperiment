@@ -1,4 +1,4 @@
- /* Memory management testing routines
+ /* Function used to kill the kernel
 
       Copyright (C) 2010  Hadrien Grasland
 
@@ -16,25 +16,13 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef _MEMORY_TEST_H_
-#define _MEMORY_TEST_H_
+#ifndef _PANIC_H_
+#define _PANIC_H_
 
-#include <kernel_information.h>
-#include <kmem_allocator.h>
-#include <physmem.h>
-#include <virtmem.h>
+extern const char* PANIC_SHARING_NONEXISTENT; //Someone attempted to force sharing of a 
+                                              //non-existent object in MemAllocator
+extern const char* PANIC_OUT_OF_MEMORY; //MemAllocator runs out of memory
 
-namespace MemTest {
-    //Main test
-    void test_memory(const KernelInformation& kinfo);
-    
-    //Helper functions
-    void reset_title();
-    void reset_sub_title();
-    void test_title(const char* title);
-    void subtest_title(const char* title);
-    void item_title(const char* title);
-    void test_failure(const char* message); //Displays an error message
-}
+void panic(const char* error_message);
 
-#endif
+#endif 
