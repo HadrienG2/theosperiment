@@ -32,10 +32,6 @@ namespace x86paging {
     const PagingLevel LVL_DECREMENT = 9; //Substract this from the current level to go to the next
                                          //level
 
-    static uint64_t offset = 0; //This variable can be used as a counter by item handlers and is
-                                //guaranteed to be reset to zero by paging_parser each time it
-                                //encounters a new PML4T.
-
     uint64_t paging_parser(uint64_t vaddr,
                            const uint64_t size,
                            const PagingLevel level,
@@ -46,9 +42,6 @@ namespace x86paging {
                                                     uint64_t &table_item,
                                                     uint64_t* additional_params),
                            uint64_t* additional_params) {
-        //Reset the offset variable
-        if(level == PML4T_LEVEL) offset = 0;
-
         //The size of the virtual address space covered by each item of our table.
         const uint64_t ITEM_SIZE = 1 << level;
 
@@ -135,9 +128,10 @@ namespace x86paging {
         switch(level) {
             case PT_LEVEL:
                 //We've reached the page table level, setup a page translation.
-                table_item = (additional_params[0]&0x000ffffffffff000) + offset   //Physical address
-                             + additional_params[1];                              //Flags
-                offset+= 0x1000; //Make the counter move one 4KB page forward
+                table_item = (additional_params[0]&0x000ffffffffff000)      //Physical base address
+                             + additional_params[2]                         //Offset
+                             + additional_params[1];                        //Flags
+                additional_params[2]+= 0x1000; //Make "offset" move one 4KB page forward
                 return 1;
             default:
                 //Move to the next level of paging

@@ -41,10 +41,14 @@ namespace x86paging {
     //    failed. If item_handler returns anything else, paging_parser returns the value returned by
     //    the last item_handler.
     //
-    //To do anything serious, item_hander requires more parameters than just the page table item.
+    //To do anything serious, item handlers requires more parameters than just the page table item.
     //These additional parameters are provided in the form of an array of 64-bit unsigned integers,
     //additional_params, which is passed to the paging_parser function and just transmitted as is to
-    //item_hander.
+    //item handers.
+    //
+    //Item handlers also have access to an "offset" global variable, which they may use as a
+    //counter. It is guaranteed that paging_parser will set this variable to zero each time it is
+    //fed a new PML4T.
     uint64_t paging_parser(uint64_t vaddr,
                            const uint64_t size,
                            const PagingLevel level,
@@ -77,6 +81,8 @@ namespace x86paging {
     //additional_params contents :
     //  0 - Beginning of the block of physical addresses to be mapped
     //  1 - Flags to be used at the page table level when mapping it
+    //  2 - "offset" integer, initially set to zero and incremented by the handler as time
+    //      passes to keep track of where it is.
     uint64_t fill_4kpaging_handler(uint64_t vaddr,
                                    const uint64_t size,
                                    const PagingLevel level,
