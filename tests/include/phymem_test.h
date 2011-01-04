@@ -1,6 +1,6 @@
  /* Physical memory management testing routines
 
-      Copyright (C) 2010  Hadrien Grasland
+      Copyright (C) 2010-2011  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -24,10 +24,10 @@
 
 namespace MemTest {
     const int PHYMEM_TEST_VERSION = 1;
-    
+
     //Main test
     PhyMemManager* test_phymem(const KernelInformation& kinfo);
-    
+
     //PhyMemManager tests
     bool phy_test1_meta();
     PhyMemManager* phy_test2_init(const KernelInformation& kinfo);

@@ -1,6 +1,6 @@
  /* Physical memory management testing routines (arch-specific part)
 
-    Copyright (C) 2010  Hadrien Grasland
+    Copyright (C) 2010-2011  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -83,44 +83,117 @@ namespace MemTest {
             test_failure("free_highmem is not set up properly");
             return NULL;
         }
-        
+
         return &phymem;
     }
-    
+
     PhyMemState* save_phymem_state(PhyMemManager& phymem) {
         PhyMemState* phymem_state = (PhyMemState*) &phymem;
-        
+
         //Allocate storage space
         PhyMemState* result = (PhyMemState*) kalloc(sizeof(PhyMemState));
         if(!result) {
             test_failure("Could not allocate storage space");
             return NULL;
-        }        
+        }
         result->phy_mmap = (PhyMemMap*) kalloc(sizeof(PhyMemMap)*phymem_state->phy_mmap->length());
         if(result->phy_mmap == NULL) {
             kfree(result);
             test_failure("Could not allocate storage space");
             return NULL;
         }
-        result->free_mapitems = (PhyMemMap*) kalloc(sizeof(PhyMemMap)*
-                                                    phymem_state->free_mapitems->length());
-        if(result->free_mapitems == NULL) {
-            kfree(result);
-            kfree(result->phy_mmap);
-            test_failure("Could not allocate storage space");
-            return NULL;
+
+        //Parse phymem's memory map and make a copy of it. Set up phy_highmmap, free_lowmem,
+        //and free_highmem in the way. Manage buddies in the simplest case where only free map items
+        //use buddies, sorted in the original map's order
+        PhyMemMap* last_buddy_source = NULL;
+        PhyMemMap* last_buddy_dest = NULL;
+        bool more_buddies = false; //Whether more complex buddy management is needed.
+        PhyMemMap* source_parser = phymem_state->phy_mmap;
+        PhyMemMap* dest_parser = result->phy_mmap;
+        while(source_parser) {
+            //Manage phy_highmmap, free_lowmem, and free_highmem
+            if(phymem_state->phy_highmmap == source_parser) {
+                result->phy_highmmap = dest_parser;
+            }
+            if(phymem_state->free_lowmem == source_parser) {
+                result->free_lowmem = dest_parser;
+            }
+            if(phymem_state->free_highmem == source_parser) {
+                result->free_highmem = dest_parser;
+            }
+            //Manage buddies in the simplest case (only free_*mem uses buddies)
+            if((last_buddy_source) && (last_buddy_source->next_buddy == source_parser)) {
+                last_buddy_dest->next_buddy = dest_parser;
+                last_buddy_source = NULL;
+            }
+            if(source_parser->next_buddy) {
+                if(last_buddy_source) {
+                    more_buddies = true;
+                } else {
+                    last_buddy_source = source_parser;
+                    last_buddy_dest = dest_parser;
+                }
+            }
+            //Fill the chunk's properties
+            dest_parser->location = source_parser->location;
+            dest_parser->size = source_parser->size;
+            dest_parser->owners = source_parser->owners;
+            dest_parser->allocatable = source_parser->allocatable;
+            dest_parser->next_buddy = NULL;
+            dest_parser->next_mapitem = dest_parser+1;
+            //Move to the next item
+            source_parser = source_parser->next_mapitem;
+            if(source_parser) dest_parser = dest_parser->next_mapitem;
         }
-        
-        //TODO Parse phymem's memory map and make a copy of it. Set up phy_highmmap, free_lowmem,
-        //and free_highmem in the way.
-        
-        //TODO Parse phymem's memory map a second time, checking that there are no forgotten buddies
-        //TODO Make a copy of free_mapitems
-        
+        dest_parser->next_mapitem = NULL;
+        if(last_buddy_source) more_buddies = true;
+
+        //Introduce more fine-grained buddy management, if needed
+        if(more_buddies) {
+            //Parse the source and dest map, looking for unmanaged buddies.
+            source_parser = phymem_state->phy_mmap;
+            dest_parser = result->phy_mmap;
+            while(source_parser) {
+                if((source_parser->next_buddy) && !(dest_parser->next_buddy)) {
+                    //A missing buddy was found !
+                    //Parse the source and dest map a second time, looking for the missing buddy
+                    PhyMemMap* buddy_parser_source = phymem_state->phy_mmap;
+                    PhyMemMap* buddy_parser_dest = result->phy_mmap;
+                    while(buddy_parser_source) {
+                        if(source_parser->next_buddy == buddy_parser_source) break;
+                        buddy_parser_source = buddy_parser_source->next_mapitem;
+                        buddy_parser_dest = buddy_parser_dest->next_mapitem;
+                    }
+                    dest_parser->next_buddy = buddy_parser_dest;
+                }
+                source_parser = source_parser->next_mapitem;
+                dest_parser = dest_parser->next_mapitem;
+            }
+        }
+
+        //Count the amount of items in free_mapitems
+        source_parser = phymem_state->free_mapitems;
+        addr_t free_count = 0;
+        while(source_parser) {
+            //Move to the next item
+            ++free_count;
+            source_parser = source_parser->next_buddy;
+        }
+        result->free_mapitems = (PhyMemMap*) free_count;
+
         return result;
     }
-    
+
     void discard_phymem_state(PhyMemState* saved_state) {
-        //TODO : Free the saved state
+        //Free the saved state. This is easier than you may think, thank to phy_mmap being
+        //allocated as a single big block of memory. We must be careful with the map owners, though.
+        PhyMemMap* map_parser = saved_state->phy_mmap;
+        while(map_parser) {
+            map_parser->clear_owners();
+            map_parser = map_parser->next_mapitem;
+        }
+        kfree(saved_state->phy_mmap);
+        kfree(saved_state);
     }
 }

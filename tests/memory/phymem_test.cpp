@@ -1,6 +1,6 @@
  /* Physical memory management testing routines
 
-    Copyright (C) 2010  Hadrien Grasland
+    Copyright (C) 2010-2011  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -26,18 +26,18 @@ namespace MemTest {
         reset_sub_title();
         subtest_title("Meta (testing the test itself)");
         if(!phy_test1_meta()) return NULL;
-        
+
         subtest_title("Initial state");
         PhyMemManager* phymem_ptr = phy_test2_init(kinfo);
         if(!phymem_ptr) return NULL;
         PhyMemManager& phymem = *phymem_ptr;
-        
+
         subtest_title("Page allocation");
         if(!phy_test3_pagealloc(phymem)) return NULL;
-        
+
         return &phymem;
     }
-    
+
     bool phy_test1_meta() {
         item_title("Check PhyMemManager version");
         if(PHYMEM_TEST_VERSION != PHYMEMMANAGER_VERSION) {
@@ -46,18 +46,18 @@ namespace MemTest {
         }
         return true;
     }
-    
+
     PhyMemManager* phy_test2_init(const KernelInformation& kinfo) {
         item_title("Initialize PhyMemManager");
         static PhyMemManager phymem(kinfo);
-        
+
         item_title("Check availability of mmap_mutex");
         PhyMemState* phymem_state = (PhyMemState*) &phymem;
         if(!(phymem_state->mmap_mutex.state())) {
             test_failure("mmap_mutex not available in a freshly initialized PhyMemManager");
             return NULL;
         }
-        
+
         item_title("Check that the assumptions about phy_mmap are respected");
         PhyMemMap* map_parser = phymem_state->phy_mmap;
         while(map_parser) {
@@ -81,7 +81,7 @@ namespace MemTest {
             }
             map_parser = map_parser->next_mapitem;
         }
-        
+
         item_title("Check that kmmap is properly mapped in phy_mmap");
         PhyMemMap storage_space;
         PhyMemMap* stored_data = NULL;
@@ -159,7 +159,7 @@ namespace MemTest {
             test_failure("Mapping has failed");
             return NULL;
         }
-        
+
         item_title("Check that the storage space of PhyMemManager is properly allocated");
         if(storage_space.location != stored_data->location) {
             test_failure("Mapping or storage space allocation has failed");
@@ -175,7 +175,7 @@ namespace MemTest {
                 return NULL;
             }
         }
-        
+
         item_title("Check that all map items are allocated before use, without leaks");
         map_parser = phymem_state->phy_mmap;
         PhyMemMap* should_be_ptr = (PhyMemMap*) (stored_data->location);
@@ -208,7 +208,7 @@ namespace MemTest {
             test_failure("Storage space overflow");
             return NULL;
         }
-        
+
         item_title("Check that free_mapitems is initialized properly");
         should_be = PhyMemMap();
         map_parser = phymem_state->free_mapitems;
@@ -226,12 +226,12 @@ namespace MemTest {
             }
             map_parser = map_parser->next_buddy;
         }
-        
+
         if(!phy_test2_init_arch(phymem)) return NULL;
-        
+
         return &phymem;
     }
-    
+
     PhyMemManager* phy_test3_pagealloc(PhyMemManager& phymem) {
         test_failure("Not implemented yet");
         return NULL;
