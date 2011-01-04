@@ -34,7 +34,7 @@ namespace x86paging {
                        const uint64_t size,
                        uint64_t flags,
                        const uint64_t pml4t_location) {
-        uint64_t additional_params[2] = {phy_addr, flags};
+        uint64_t additional_params[3] = {phy_addr, flags, 0};
         paging_parser(vir_addr,
                       size,
                       PML4T_LEVEL,
