@@ -1,6 +1,6 @@
  /* Paging-related helper functions and defines
 
-      Copyright (C) 2010  Hadrien Grasland
+      Copyright (C) 2010-2011  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -40,35 +40,35 @@ namespace x86paging {
                                              //TLB entry not invalidated on context switch.
     const uint64_t PBIT_NOEXECUTE = 0x8000000000000000; //Prevents execution of data referenced by
                                                         //this paging structure.
-                                                         
+
     /* Other useful data... */
     const int PTABLE_LENGTH = 512; //Size of a table/directory/... in entries
     const int PENTRY_SIZE = 8; //Size of a paging structure entry in bytes
 
     void create_pml4t(uint64_t location); //Create an empty PML4T at that location
-    
+
     void fill_4kpaging(const uint64_t phy_addr,        //Have "length" bytes of physical memory,
                        uint64_t vir_addr,              //starting at phy_addr, be mapped in the
-                       const uint64_t length,          //virtual address space of a process,
+                       const uint64_t size,          //virtual address space of a process,
                        uint64_t flags,                 //starting at vir_addr.
                        const uint64_t pml4t_location); //(This function assumes that paging
                                                        //structures are already allocated and
                                                        //set up for 4k paging.)
-                                                       
+
     uint64_t find_lowestpaging(const uint64_t vaddr,           //Find the lowest level of paging
                                const uint64_t pml4t_location); //structures associated with a linear
                                                                //address, return 0 if that address
                                                                //is invalid.
-                                                               
+
     uint64_t get_target(const uint64_t vaddr,         //Get the physical memory address associated
                         const uint64_t pml4t_location); //with a linear address (if it does exist).
-                      
+
     uint64_t get_pml4t(); //Return address of the current PML4T
-    
-    void set_flags(uint64_t vaddr,             //Sets a whole linear address block's paging flags to
-                     const uint64_t length,    //"flags"
-                     uint64_t flags,
-                     uint64_t pml4t_location);
+
+    void set_flags(uint64_t vaddr,         //Sets a whole linear address block's paging flags to
+                   const uint64_t size,    //"flags"
+                   uint64_t flags,
+                   uint64_t pml4t_location);
 }
 
 #endif

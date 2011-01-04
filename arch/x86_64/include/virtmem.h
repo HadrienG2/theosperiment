@@ -1,7 +1,7 @@
  /* Virtual memory management, ie managing contiguous chunks of virtual memory
     (allocation, permission management...)
 
-      Copyright (C) 2010  Hadrien Grasland
+      Copyright (C) 2010-2011  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -73,7 +73,7 @@ class VirMemManager {
                                VirMapList* target);
         addr_t setup_4kpages(addr_t vir_addr,     //Setup paging structures for 4KB x86 paging in
                              const addr_t length, //a virtual address range.
-                             addr_t pml4t_location); 
+                             addr_t pml4t_location);
         addr_t remove_paging(addr_t vir_addr, //Remove paging structures in a virtual address range
                              const addr_t length,
                              addr_t pml4t_location);
@@ -82,29 +82,29 @@ class VirMemManager {
     public:
         //Constructor gets the current layout of paged memory, setup management structures
         VirMemManager(PhyMemManager& physmem);
-        
+
         //Map a non-contiguous chunk of physical memory as a contiguous chunk of the target's virtual memory
         VirMemMap* map(const PhyMemMap* phys_chunk,
                        const PID target,
                        const VirMemFlags flags = VMEM_FLAGS_RW);
-                       
+
         //Destroy a chunk of virtual memory
         VirMemMap* free(VirMemMap* chunk);
-        
+
         //Change a chunk's flags (including in page tables, of course)
         VirMemMap* adjust_flags(VirMemMap* chunk, const VirMemFlags flags, const VirMemFlags mask);
         VirMemMap* set_flags(VirMemMap* chunk, const VirMemFlags flags) {
             return adjust_flags(chunk, flags, ~0);
         }
-        
+
         //Remove all traces of a process in VirMemManager. Does not affect physical chunks, prefer
         //the MemAllocator variant in most cases.
         void kill(PID target);
-        
+
         //x86_64 specific.
         //Prepare for a context switch by giving the CR3 value to load before jumping
         uint64_t cr3_value(const PID target);
-        
+
         //Debug methods. Will go out in final release.
         void print_maplist();
         void print_mmap(PID owner);

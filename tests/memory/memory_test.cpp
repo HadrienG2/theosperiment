@@ -1,6 +1,6 @@
  /* Memory management testing routines
 
-    Copyright (C) 2010  Hadrien Grasland
+    Copyright (C) 2010-2011  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -39,18 +39,18 @@ namespace MemTest {
         if(!mallocator) return;
         dbgout << "All tests were successfully completed !" << endl;
     }
-    
+
     static int title_count;
     static int sub_title_count;
-    
+
     void reset_title() {
         title_count = 0;
     }
-    
+
     void reset_sub_title() {
         sub_title_count = 0;
     }
-    
+
     void test_title(const char* title) {
         ++title_count;
         switch(title_count) {
@@ -80,16 +80,16 @@ namespace MemTest {
         }
         dbgout << title << endl;
     }
-    
+
     void subtest_title(const char* title) {
         ++sub_title_count;
         dbgout << "  " << sub_title_count << ". " << title << endl;
     }
-    
+
     void item_title(const char* title) {
         dbgout << "    * " << title << endl;
     }
-    
+
     void test_failure(const char* message) {
         dbgout << txtcolor(TXT_RED) << "  Error : " << message;
         dbgout << txtcolor(TXT_LIGHTGRAY) << endl;
