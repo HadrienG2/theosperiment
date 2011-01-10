@@ -19,10 +19,13 @@
 #include <memory_test.h>
 #include <phymem_test_arch.h>
 
+#include <dbgstream.h>
+
 namespace MemTest {
     PhyMemManager* phy_test2_init_arch(PhyMemManager& phymem) {
         item_title("x86_64 : Checking free_highmmap, free_lowmem and free_highmem");
         PhyMemState* phymem_state = (PhyMemState*) &phymem;
+
         //Find the first free and allocatable item in phy_mmap. Check it's set up properly
         PhyMemMap* map_parser = phymem_state->phy_mmap;
         while(map_parser) {
@@ -90,13 +93,13 @@ namespace MemTest {
     PhyMemState* save_phymem_state(PhyMemManager& phymem) {
         PhyMemState* phymem_state = (PhyMemState*) &phymem;
 
-        //Allocate storage space
+        //Allocate storage space.
         PhyMemState* result = (PhyMemState*) kalloc(sizeof(PhyMemState));
         if(!result) {
             test_failure("Could not allocate storage space");
             return NULL;
         }
-        result->phy_mmap = (PhyMemMap*) kalloc(sizeof(PhyMemMap)*phymem_state->phy_mmap->length());
+        result->phy_mmap = (PhyMemMap*) kalloc(sizeof(PhyMemMap)*(phymem_state->phy_mmap->length()));
         if(result->phy_mmap == NULL) {
             kfree(result);
             test_failure("Could not allocate storage space");

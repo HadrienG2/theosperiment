@@ -25,8 +25,6 @@
 #include <pid.h>
 #include <synchronization.h>
 
-#include <dbgstream.h>
-
 const int PHYMEMMANAGER_VERSION = 1; //Increase this when changes require a modification of
                                      //the testing protocol
 
@@ -49,7 +47,7 @@ class PhyMemManager {
         KernelMutex mmap_mutex;
         //Support methods used by public methods
         addr_t alloc_mapitems(); //Get some memory map storage space
-        PhyMemMap* page_allocator(const PID initial_owner, PhyMemMap* map_used); 
+        PhyMemMap* page_allocator(const PID initial_owner, PhyMemMap* map_used);
         PhyMemMap* chunk_allocator(const addr_t size,
                                    const PID initial_owner,
                                    PhyMemMap* map_used);
@@ -75,26 +73,26 @@ class PhyMemManager {
                                    const PID initial_owner); //memory, if it is not allocated yet
         PhyMemMap* free(PhyMemMap* chunk); //Free a chunk of memory (fast version)
         PhyMemMap* free(addr_t chunk_beginning); //Same as above, but slower and easier to use
-        
+
         //Sharing functions
         PhyMemMap* owneradd(PhyMemMap* chunk, const PID new_owner); //Add owners to a chunk
         PhyMemMap* ownerdel(PhyMemMap* chunk, const PID former_owner); //Remove owners from a chunk
                                                                        //(delete it if he has no
                                                                        //longer any owner)
-        
+
         //Cleanup functions
         void kill(PID target); //Removes all traces of a PID in PhyMemManager (slow method, prefer
                                //the higher-level version from MemAllocator when possible)
-        
+
         //Finding a chunk in the map
         PhyMemMap* find_this(addr_t location);
-        
+
         //x86_64-specific methods
         PhyMemMap* alloc_lowpage(const PID initial_owner); //Allocate a page of low memory (<1MB)
         PhyMemMap* alloc_lowchunk(const addr_t size, //Allocate a chunk of low memory
                                   const PID initial_owner);
         PhyMemMap* alloc_lowcontigchunk(const addr_t size, const PID initial_owner);
-        
+
         //Debug methods. Will go out in a final release.
         void print_highmmap(); //Print a map of high memory (>=1MB)
         void print_lowmmap(); //Print a map of low memory (<1MB)

@@ -219,8 +219,6 @@ namespace MemTest {
                 should_be.next_buddy = NULL;
             }
             if(should_be != *map_parser) {
-                dbgout << should_be;
-                dbgout << *map_parser;
                 test_failure("free_mapitems is not initialized properly");
                 return NULL;
             }
@@ -233,6 +231,47 @@ namespace MemTest {
     }
 
     PhyMemManager* phy_test3_pagealloc(PhyMemManager& phymem) {
+        item_title("Save PhyMemManager state");
+        PhyMemState* saved_state = save_phymem_state(phymem);
+        if(!saved_state) return NULL;
+
+        item_title("Allocate a page to some PID using alloc_page()");
+        PhyMemMap* allocd_page = phymem.alloc_page(PID_KERNEL);
+
+        item_title("Check that the returned result is correct");
+        if(!allocd_page) {
+            test_failure("The pointer returned by alloc_page is NULL");
+            return NULL;
+        }
+        if((allocd_page->location) % PG_SIZE) {
+            test_failure("The returned chunk's location is not page-aligned");
+            return NULL;
+        }
+        if(allocd_page->size != PG_SIZE) {
+            test_failure("The returned chunk is not a page");
+            return NULL;
+        }
+        if(allocd_page->has_owner(PID_KERNEL) == false) {
+            test_failure("The returned chunk's owner does not include the specified PID");
+            return NULL;
+        }
+        if(allocd_page->owners[1] != PID_NOBODY) {
+            test_failure("The returned chunk has more than one owner");
+            return NULL;
+        }
+        if(allocd_page->allocatable == false) {
+            test_failure("The returned chunk is not allocatable");
+            return NULL;
+        }
+        if(allocd_page->next_buddy) {
+            test_failure("The returned chunk has buddies");
+            return NULL;
+        }
+        if(allocd_page->next_mapitem == NULL) {
+            test_failure("The returned chunk has not been inserted properly in the memory map");
+            return NULL;
+        }
+
         test_failure("Not implemented yet");
         return NULL;
     }

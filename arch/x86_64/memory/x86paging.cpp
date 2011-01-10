@@ -16,9 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include <align.h>
 #include <hack_stdint.h>
-#include <kmaths.h>
 #include <x86paging.h>
 #include <x86paging_parser.h>
 #include <x86asm.h>
@@ -33,7 +31,7 @@ namespace x86paging {
                        uint64_t vir_addr,
                        const uint64_t size,
                        uint64_t flags,
-                       const uint64_t pml4t_location) {
+                       uint64_t pml4t_location) {
         uint64_t additional_params[3] = {phy_addr, flags, 0};
         paging_parser(vir_addr,
                       size,
@@ -129,6 +127,32 @@ namespace x86paging {
         uint64_t cr3;
         rdcr3(cr3);
         return cr3 & 0x000ffffffffff000;
+    }
+
+    uint64_t remove_paging(uint64_t vir_addr,
+                           const uint64_t size,
+                           uint64_t pml4t_location,
+                           PhyMemManager* phymem) {
+        uint64_t additional_params[1] = {(uint64_t) phymem};
+        return paging_parser(vir_addr,
+                            size,
+                            PML4T_LEVEL,
+                            (uint64_t*) pml4t_location,
+                            &remove_paging_handler,
+                            additional_params);
+    }
+
+    uint64_t setup_4kpages(uint64_t vir_addr,
+                           const uint64_t size,
+                           uint64_t pml4t_location,
+                           PhyMemManager* phymem) {
+        uint64_t additional_params[1] = {(uint64_t) phymem};
+        return paging_parser(vir_addr,
+                            size,
+                            PML4T_LEVEL,
+                            (uint64_t*) pml4t_location,
+                            &setup_4kpages_handler,
+                            additional_params);
     }
 
     void set_flags(uint64_t vaddr, const uint64_t size, uint64_t flags, uint64_t pml4t_location) {

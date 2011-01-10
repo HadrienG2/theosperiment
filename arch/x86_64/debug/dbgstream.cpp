@@ -47,7 +47,7 @@ static DebugWindower windower_buff;
 DebugAttributeChanger& attrset(const uint8_t attribute) {
   attrchg_buff.new_attr = (uint8_t) attribute;
   attrchg_buff.mask = 0xff;
-  
+
   return attrchg_buff;
 }
 
@@ -55,21 +55,21 @@ DebugAttributeChanger& blink(const bool blink_status) {
   if(blink_status) attrchg_buff.new_attr = TXT_BLINK;
   else attrchg_buff.new_attr = 0;
   attrchg_buff.mask = TXT_BLINK;
-  
+
   return attrchg_buff;
 }
 
 DebugAttributeChanger& bkgcolor(const uint8_t attribute) {
   attrchg_buff.new_attr = (uint8_t) attribute;
   attrchg_buff.mask = 0x70;
-  
+
   return attrchg_buff;
 }
 
 DebugAttributeChanger& txtcolor(const uint8_t attribute) {
   attrchg_buff.new_attr = (uint8_t) attribute;
   attrchg_buff.mask = 0x0f;
-  
+
   return attrchg_buff;
 }
 
@@ -82,7 +82,7 @@ DebugBreakpoint& bp_streg(const uint64_t rax, const uint64_t rbx, const uint64_t
   bp_buff.rbx = (uint64_t) rbx;
   bp_buff.rcx = (uint64_t) rcx;
   bp_buff.rdx = (uint64_t) rdx;
-  
+
   return bp_buff;
 }
 
@@ -90,39 +90,39 @@ DebugCursorMover& movxy(const unsigned int x, const unsigned int y) {
   cursmov_buff.type = ABSOLUTE;
   cursmov_buff.col_off = (unsigned int) x;
   cursmov_buff.row_off = (unsigned int) y;
-  
+
   return cursmov_buff;
 }
 
 DebugNumberBaseChanger& numberbase(const DebugNumberBase new_base) {
   numchg_buff.new_base = (DebugNumberBase) new_base;
-  
+
   return numchg_buff;
 }
 
 DebugPadder& pad_status(const bool padding_status) {
   padder_buff.padding_on = (bool) padding_status;
   padder_buff.padsize = -1; //Do not change padding
-  
+
   return padder_buff;
 }
 
 DebugPadder& pad_size(unsigned int padsize) {
   if(padsize > NUMBER_OF_COLS) padsize = NUMBER_OF_COLS; //More digits than the number of cols is probably an error.
   padder_buff.padsize = padsize;
-  
+
   return padder_buff;
 }
 
 DebugScroller& cls() {
     scroller_buff.amount = NUMBER_OF_ROWS;
-    
+
     return scroller_buff;
 }
 
 DebugScroller& scroll(unsigned int amount) {
     scroller_buff.amount = amount;
-    
+
     return scroller_buff;
 }
 
@@ -132,7 +132,7 @@ DebugWindower& set_window(const DebugWindow window) {
   windower_buff.window.endx = min(max(0, max(window.startx, window.endx)), NUMBER_OF_COLS-1);
   windower_buff.window.endy = min(max(0, max(window.starty, window.endy)), NUMBER_OF_COLS-1);
   windower_buff.window.border = window.border;
-  
+
   return windower_buff;
 }
 
@@ -159,7 +159,7 @@ void DebugOutput::clear_border(const DebugWindow window) {
       if(window.endy<NUMBER_OF_ROWS-1) ++border_line.endy; //Remove bottomleft corner too
       clear_rect(border_line);
     }
-    
+
     //Top border
     if(window.starty>0) {
       border_line.startx=window.startx;
@@ -169,7 +169,7 @@ void DebugOutput::clear_border(const DebugWindow window) {
       border_line.endy=window.starty-1;
       clear_rect(border_line);
     }
-    
+
     //Right border
     if(window.endx<NUMBER_OF_COLS-1) {
       border_line.startx=window.endx+1;
@@ -179,7 +179,7 @@ void DebugOutput::clear_border(const DebugWindow window) {
       if(window.endy<NUMBER_OF_ROWS-1) ++border_line.endy; //Remove bottomright corner too
       clear_rect(border_line);
     }
-    
+
     //Bottom border
     if(window.endy<NUMBER_OF_ROWS-1) {
       border_line.startx=window.startx;
@@ -205,7 +205,7 @@ void DebugOutput::clear_oldwindow(const DebugWindow old_window, const DebugWindo
     vert_overlap=1;
   }
   overlap = horz_overlap && vert_overlap;
-  
+
   if(!overlap) {
     //If there's no overlap, just fill the old window.
     rect.startx = old_window.startx;
@@ -221,21 +221,21 @@ void DebugOutput::clear_oldwindow(const DebugWindow old_window, const DebugWindo
     rect.endx = new_window.startx-1;
     rect.endy = old_window.endy;
     clear_rect(rect);
-    
+
     //  * Top + Topright parts
     rect.startx = new_window.startx;
     rect.starty = old_window.starty;
     rect.endx = old_window.endx;
     rect.endy = new_window.starty-1;
     clear_rect(rect);
-    
+
     //  * Right + Bottomright parts
     rect.startx = new_window.endx+1;
     rect.starty = new_window.starty;
     rect.endx = old_window.endx;
     rect.endy = old_window.endy;
     clear_rect(rect);
-    
+
     //  * Bottom part
     rect.startx = new_window.startx;
     rect.starty = new_window.endy+1;
@@ -247,7 +247,7 @@ void DebugOutput::clear_oldwindow(const DebugWindow old_window, const DebugWindo
 
 void DebugOutput::clear_rect(const DebugRect rect) {
   unsigned int col, row, offset;
-  
+
   for(row=rect.starty; row <= rect.endy; ++row) {
     for(col=rect.startx; col<=rect.endx; ++col) {
       offset = get_offset(col,row);
@@ -275,7 +275,7 @@ void DebugOutput::copy_rect(const DebugRect rect,
       }
     }
   }
-  
+
   if(dest_row>rect.starty) {
     //Fill destination region row by row, from bottom to top
     for(off_row=row_length-1; off_row<row_length; --off_row) {
@@ -287,7 +287,7 @@ void DebugOutput::copy_rect(const DebugRect rect,
       }
     }
   }
-  
+
   if((dest_col>rect.startx) && (dest_row == rect.starty)) {
     //Fill destination region column by column, from right to left
     for(off_col=col_length-1; off_col<col_length; --off_col) {
@@ -311,7 +311,7 @@ void DebugOutput::fill_border(const DebugWindow window) {
   DebugRect border_line;
   const char* border_characters = border_array(window.border);
   int offset;
-  
+
   if(window.border) {
     //Left border
     if(window.startx>0) {
@@ -320,14 +320,14 @@ void DebugOutput::fill_border(const DebugWindow window) {
       border_line.endx=window.startx-1;
       border_line.endy=window.endy;
       fill_rect(border_line, border_characters[BOR_LEFT]);
-      
+
       //Topleft corner
       if(window.starty>0) {
         offset = get_offset(window.startx-1, window.starty-1);
         buffer[offset] = border_characters[BOR_TOPLEFT];
         buffer[offset+1] = attribute;
       }
-      
+
       //Bottomleft corner
       if(window.endy<NUMBER_OF_ROWS-1) {
         offset = get_offset(window.startx-1, window.endy+1);
@@ -335,7 +335,7 @@ void DebugOutput::fill_border(const DebugWindow window) {
         buffer[offset+1] = attribute;
       }
     }
-    
+
     //Top border
     if(window.starty>0) {
       border_line.startx=window.startx;
@@ -343,7 +343,7 @@ void DebugOutput::fill_border(const DebugWindow window) {
       border_line.endx=window.endx;
       border_line.endy=window.starty-1;
       fill_rect(border_line, border_characters[BOR_TOP]);
-      
+
       //Topright corner
       if(window.endx<NUMBER_OF_COLS-1) {
         offset = get_offset(window.endx+1, window.starty-1);
@@ -351,7 +351,7 @@ void DebugOutput::fill_border(const DebugWindow window) {
         buffer[offset+1] = attribute;
       }
     }
-    
+
     //Right border
     if(window.endx<NUMBER_OF_COLS-1) {
       border_line.startx=window.endx+1;
@@ -359,7 +359,7 @@ void DebugOutput::fill_border(const DebugWindow window) {
       border_line.endx=window.endx+1;
       border_line.endy=window.endy;
       fill_rect(border_line, border_characters[BOR_RIGHT]);
-      
+
       //Bottomright corner
       if(window.endy<NUMBER_OF_ROWS-1) {
         offset = get_offset(window.endx+1, window.endy+1);
@@ -367,7 +367,7 @@ void DebugOutput::fill_border(const DebugWindow window) {
         buffer[offset+1] = attribute;
       }
     }
-    
+
     //Bottom border
     if(window.endy<NUMBER_OF_ROWS-1) {
       border_line.startx=window.startx;
@@ -505,7 +505,7 @@ DebugOutput& DebugOutput::operator<<(const uint64_t input) {
         buffer_reverse[0]='0';
         length=1;
     }
-  
+
     //Add a prefix to the final string if needed
     offset = 0;
     switch(number_base) {
@@ -527,12 +527,12 @@ DebugOutput& DebugOutput::operator<<(const uint64_t input) {
         default:
             break;
     }
-  
+
     //Get the string in the right order
     for(index=offset; index<length+offset; ++index) {
         buffer_direct[index]=buffer_reverse[length+offset-index-1];
     }
-    
+
     //Add up blank spaces if required
     if(padding_on) {
         unsigned int limit = offset;
@@ -558,36 +558,36 @@ DebugOutput& DebugOutput::operator<<(const uint64_t input) {
         }
         for(; index<limit; ++index) buffer_direct[index]=' ';
     }
-    
+
     //Add the terminating NULL
     buffer_direct[index]=0;
-  
+
     //Display the string
     *this << buffer_direct;
-  
+
     return *this;
 }
 
 DebugOutput& DebugOutput::operator<<(const KernelInformation& input) {
     unsigned int index;
     DebugNumberBase tmp = number_base;
-  
+
     *this << numberbase(HEXADECIMAL) << endl;
     *this << "Location           | Size               | Nat | Misc" << endl;
     *this << "-------------------+--------------------+-----+-------------------------------";
-  
+
     for(index=0; index<input.kmmap_size; ++index) {
         *this << endl << input.kmmap[index];
     }
     *this << numberbase(tmp);
-  
+
     return *this;
 }
 
 DebugOutput& DebugOutput::operator<<(const KernelMemoryMap& input) {
     bool tmp_padding = padding_on;
     unsigned int tmp_padsize = padsize;
-  
+
     *this << pad_status(true);
     *this << pad_size(18);
     *this << input.location << " | " << input.size;
@@ -607,7 +607,7 @@ DebugOutput& DebugOutput::operator<<(const KernelMemoryMap& input) {
             break;
     }
     *this << input.name;
-  
+
     if(!tmp_padding) *this << pad_status(false);
     if(tmp_padsize) *this << pad_size(tmp_padsize);
     return *this;
@@ -624,7 +624,7 @@ DebugOutput& DebugOutput::operator<<(const PhyMemMap& input) {
     *this << numberbase(HEXADECIMAL) << endl;
     *this << "Location           | Size               | Own. | Misc" << endl;
     *this << "-------------------+--------------------+------+------------------------------";
-  
+
     do {
         *this << endl << map->location << " | " << map->size;
         if(map->has_owner(PID_KERNEL)) {
@@ -643,7 +643,7 @@ DebugOutput& DebugOutput::operator<<(const PhyMemMap& input) {
         }
         map = map->next_mapitem;
     } while(map);
-  
+
     if(!tmp_padding) *this << pad_status(false);
     if(tmp_padsize) *this << pad_size(tmp_padsize);
     *this << numberbase(tmp) << endl;
@@ -664,7 +664,7 @@ DebugOutput& DebugOutput::operator<<(const VirMemMap& input) {
 
     do {
         *this << endl << map->location << " | " << map->size << " | ";
-        
+
         if(map->flags & VMEM_FLAG_R) {
             *this << 'R';
         } else {
@@ -690,7 +690,7 @@ DebugOutput& DebugOutput::operator<<(const VirMemMap& input) {
         } else {
             *this << "- | ";
         }
-        
+
         if(map->points_to) {
             *this << pad_status(false) << (uint64_t) map->points_to;
             *this << pad_status(true);
@@ -699,10 +699,10 @@ DebugOutput& DebugOutput::operator<<(const VirMemMap& input) {
             *this << " BUD-" << pad_status(false) << (uint64_t) map->next_buddy;
             *this << pad_status(true);
         }
-        
+
         map = map->next_mapitem;
     } while(map);
-  
+
     if(!tmp_padding) *this << pad_status(false);
     if(tmp_padsize) *this << pad_size(tmp_padsize);
     *this << numberbase(tmp) << endl;
@@ -752,7 +752,7 @@ DebugOutput& DebugOutput::operator<<(const MallocMap& input) {
     *this << numberbase(HEXADECIMAL) << endl;
     *this << "Location           | Size               | Belongs to" << endl;
     *this << "-------------------+--------------------+-------------------------------------";
-  
+
     do {
         *this << endl << map->location << " | " << map->size << " | ";
         if(map->belongs_to) {
@@ -760,7 +760,7 @@ DebugOutput& DebugOutput::operator<<(const MallocMap& input) {
         }
         map = map->next_item;
     } while(map);
-  
+
     if(!tmp_padding) *this << pad_status(false);
     if(tmp_padsize) *this << pad_size(tmp_padsize);
     *this << numberbase(tmp) << endl;
@@ -778,7 +778,7 @@ DebugOutput& DebugOutput::operator<<(const KnlMallocMap& input) {
     *this << numberbase(HEXADECIMAL) << endl;
     *this << "Location           | Size               | Belongs to" << endl;
     *this << "-------------------+--------------------+-------------------------------------";
-  
+
     do {
         *this << endl << map->location << " | " << map->size << " | ";
         if(map->belongs_to) {
@@ -786,7 +786,7 @@ DebugOutput& DebugOutput::operator<<(const KnlMallocMap& input) {
         }
         map = map->next_item;
     } while(map);
-  
+
     if(!tmp_padding) *this << pad_status(false);
     if(tmp_padsize) *this << pad_size(tmp_padsize);
     *this << numberbase(tmp) << endl;
@@ -864,17 +864,17 @@ DebugOutput& DebugOutput::operator<<(const DebugNumberBaseChanger& manipulator) 
 DebugOutput& DebugOutput::operator<<(const DebugPadder& manipulator) {
     padding_on = manipulator.padding_on;
     if(manipulator.padsize>=0) padsize = manipulator.padsize;
-  
+
     return *this;
 }
 
 DebugOutput& DebugOutput::operator<<(const DebugScroller& manipulator) {
     scroll(manipulator.amount);
-    
+
     return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(const DebugWindower& manipulator) { 
+DebugOutput& DebugOutput::operator<<(const DebugWindower& manipulator) {
     int col_size, row_size;
 
     //Erase old border (if any)

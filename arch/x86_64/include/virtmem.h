@@ -71,12 +71,6 @@ class VirMemManager {
                                const VirMemFlags flags, //chunk.
                                const VirMemFlags mask,
                                VirMapList* target);
-        addr_t setup_4kpages(addr_t vir_addr,     //Setup paging structures for 4KB x86 paging in
-                             const addr_t length, //a virtual address range.
-                             addr_t pml4t_location);
-        addr_t remove_paging(addr_t vir_addr, //Remove paging structures in a virtual address range
-                             const addr_t length,
-                             addr_t pml4t_location);
         addr_t remove_all_paging(VirMapList* target);
         uint64_t x86flags(VirMemFlags flags); //Converts VirMemFlags to x86 paging flags
     public:

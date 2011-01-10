@@ -25,7 +25,9 @@
 #include <virtmem.h>
 
 namespace MemTest {
-    //Main test
+    //Main memory management test.
+    //As all tests which affect core features of the kernel, it should be run before initialization
+    //of the feature it's testing, to prevent internal kernel configuration smashing.
     void test_memory(const KernelInformation& kinfo);
 
     //Helper functions

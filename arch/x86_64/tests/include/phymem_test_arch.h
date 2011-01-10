@@ -40,8 +40,8 @@ namespace MemTest {
     PhyMemManager* phy_test2_init_arch(PhyMemManager& phymem);
 
     //Helper functions
-    PhyMemState* save_phymem_state(PhyMemManager& phymem);
-    void discard_phymem_state(PhyMemState* saved_state);
+    PhyMemState* save_phymem_state(PhyMemManager& phymem); //Only one saved state at a time in this
+    void discard_phymem_state(PhyMemState* saved_state);   //version of the test suite.
 }
 
 #endif

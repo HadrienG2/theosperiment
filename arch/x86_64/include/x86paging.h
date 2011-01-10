@@ -19,6 +19,8 @@
 #ifndef _X86PAGING_H_
 #define _X86PAGING_H_
 
+#include <physmem.h>
+
 namespace x86paging {
     typedef uint64_t pte; //Page table entry
     typedef uint64_t pde; //Page directory entry
@@ -47,13 +49,13 @@ namespace x86paging {
 
     void create_pml4t(uint64_t location); //Create an empty PML4T at that location
 
-    void fill_4kpaging(const uint64_t phy_addr,        //Have "length" bytes of physical memory,
-                       uint64_t vir_addr,              //starting at phy_addr, be mapped in the
-                       const uint64_t size,          //virtual address space of a process,
-                       uint64_t flags,                 //starting at vir_addr.
-                       const uint64_t pml4t_location); //(This function assumes that paging
-                                                       //structures are already allocated and
-                                                       //set up for 4k paging.)
+    void fill_4kpaging(const uint64_t phy_addr,     //Have "length" bytes of physical memory,
+                       uint64_t vir_addr,           //starting at phy_addr, be mapped in the
+                       const uint64_t size,         //virtual address space of a process,
+                       uint64_t flags,              //starting at vir_addr.
+                       uint64_t pml4t_location);    //(This function assumes that paging
+                                                    //structures are already allocated and
+                                                    //set up for 4k paging.)
 
     uint64_t find_lowestpaging(const uint64_t vaddr,           //Find the lowest level of paging
                                const uint64_t pml4t_location); //structures associated with a linear
@@ -64,6 +66,16 @@ namespace x86paging {
                         const uint64_t pml4t_location); //with a linear address (if it does exist).
 
     uint64_t get_pml4t(); //Return address of the current PML4T
+
+    uint64_t remove_paging(uint64_t vir_addr,  //Remove page translations in a virtual address range
+                           const uint64_t size,
+                           uint64_t pml4t_location,
+                           PhyMemManager* phymem);
+
+    uint64_t setup_4kpages(uint64_t vir_addr,          //Setup paging structures for 4KB paging in
+                           const uint64_t size,        //a virtual address range.
+                           uint64_t pml4t_location,
+                           PhyMemManager* phymem);
 
     void set_flags(uint64_t vaddr,         //Sets a whole linear address block's paging flags to
                    const uint64_t size,    //"flags"

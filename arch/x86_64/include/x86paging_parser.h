@@ -19,6 +19,8 @@
 #ifndef _X86_PAGING_PARSER_H_
 #define _X86_PAGING_PARSER_H_
 
+#include <hack_stdint.h>
+
 namespace x86paging {
     //This special integer type is used to describe at which level of the paging hierarchy we are.
     typedef int PagingLevel;
@@ -45,10 +47,6 @@ namespace x86paging {
     //These additional parameters are provided in the form of an array of 64-bit unsigned integers,
     //additional_params, which is passed to the paging_parser function and just transmitted as is to
     //item handers.
-    //
-    //Item handlers also have access to an "offset" global variable, which they may use as a
-    //counter. It is guaranteed that paging_parser will set this variable to zero each time it is
-    //fed a new PML4T.
     uint64_t paging_parser(uint64_t vaddr,
                            const uint64_t size,
                            const PagingLevel level,
@@ -70,8 +68,6 @@ namespace x86paging {
                            const PagingLevel level,
                            uint64_t &table_item,
                            uint64_t* additional_params);
-
-    //Other item handles follow.
 
     //fill_4kpaging item handler : Maps a block of physical addresses at a designated area of the
     //virtual address space of a process, using 4KB paging.
@@ -98,6 +94,29 @@ namespace x86paging {
                                const PagingLevel level,
                                uint64_t &table_item,
                                uint64_t* additional_params);
+
+    //setup_4kpages item handler : Sets up a range of virtual addresses in a process' address space
+    //for 4KB paging, so that there's only physical addresses and flags at PT level left to fill.
+    //Allocates paging structures when they're not allocated yet.
+    //
+    //additional_params contents :
+    //  0 - Pointer to a PhyMemManager, used to allocate the nonexistent pages
+    uint64_t setup_4kpages_handler(uint64_t vaddr,
+                                   const uint64_t size,
+                                   const PagingLevel level,
+                                   uint64_t &table_item,
+                                   uint64_t* additional_params);
+
+    //remove_paging item handler : Removes all address translations in a range of virtual addresses,
+    //freeing paging structures if they're not used anymore.
+    //
+    //additional_params contents :
+    //  0 - Pointer to a PhyMemManager, used to free the useless paging structures
+    uint64_t remove_paging_handler(uint64_t vaddr,
+                                   const uint64_t size,
+                                   const PagingLevel level,
+                                   uint64_t &table_item,
+                                   uint64_t* additional_params);
 }
 
 #endif

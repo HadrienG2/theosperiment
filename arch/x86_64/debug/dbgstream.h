@@ -181,7 +181,7 @@ class DebugOutput {
                            const unsigned int arow); //on screen.
         void fill_border(const DebugWindow window); //Draw the border of a window
         void fill_rect(const DebugRect rect,  //Fill a rectangle with the specified character
-                       const char character); 
+                       const char character);
         unsigned int get_offset() const { //Returns the offset in character buffer corresponding to current col/row
             return get_offset(col+window.startx, row+window.starty);}
         unsigned int get_offset(const int col, const int row) const {
