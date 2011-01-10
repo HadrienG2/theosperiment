@@ -13,19 +13,20 @@
     Several parts of the protocol require the testing code to have access to the internal state of
     the VirMemManager, PhyMemManager, and MemAllocator classes. This should be done by using a
     structure which mimicks their internal organization and some form of casting.
-    
+
     Please that note that we're testing internal kernel components here, which are only directly
     accessed by trusted kernel code and never by user process. Therefore, it is futile to implement
     full parameter checking at this level. It has not been done, and it should not be tested except
     in directly specified cases.
-    
-    These tests are supposed to be run after each class has just been initialized. They can
-    initialize their own copies of each class if it's more suitable
+
+    These tests are supposed to be run before memory management has been initialized. Otherwise,
+    they might smash its internal data, which would result in them malfunctioning
 
 I/  PhyMemManager
     1. Meta (testing the test itself)
         * Check that we're testing the good version of PhyMemManager (PHYMEMMANAGER_VERSION)
     2. Initial state
+        * Initialize a PhyMemManager object
         * Check that mmap_mutex is available
         * Check that the fundamental assumptions about phy_mmap are respected
             -Locations and sizes must be page-aligned (aligned on a PG_SIZE boundary)
@@ -34,18 +35,18 @@ I/  PhyMemManager
         * Check that kmmap is properly mapped in phy_mmap
             -Map items with a page-aligned version of the beginning and the end must be present
             -kmmap items which are not of nature NATURE_RES must be marked allocatable, items of
-             nature NATURE_RES must be marked non-allocatable
+                nature NATURE_RES must be marked non-allocatable
             -Regions of phy_mmap including NATURE_BSK or NATURE_KNL items must be marked as
-             allocated to the kernel, others must be marked as free (apart from the exception below)
+                allocated to the kernel, others must be marked as free (apart from the exception below)
         * Sole accepted difference is a part of initially free memory which is allocated by
-          PhyMemMap to store its management structures. Check that it is allocated properly, though
+            PhyMemMap to store its management structures. Check that it is allocated properly, though
         * Check that all map items are allocated before use, without leaks
             -The items of phy_mmap, must be stacked at the beginning of the allocated space
             -What remains of the allocated space must be put in free_mapitems
         * Check that free_mapitems are initialized properly (all parameters equal to their initial
-          value, except for next_buddy which is the next item or zero at the end of the list)
+            value, except for next_buddy which is the next item or zero at the end of the list)
         * x86_64 : Check that phy_highmmap, free_lowmem and free_highmem have a good value and that
-          linking via next_buddy is done properly
+            linking via next_buddy is done properly
     3. Page allocation
         * Save PhyMemManager state
         * Allocate a page to some PID using alloc_page()
@@ -54,6 +55,7 @@ I/  PhyMemManager
             -location must be page-aligned
             -size must be PG_SIZE
             -owners must include exclusively the previously used PID
+            -allocatable must be true
             -next_buddy must be NULL
             -next_mapitem must be nonzero
         * Check modifications to the PhyMemManager's state
@@ -134,13 +136,12 @@ I/  PhyMemManager
         * Check that the separation between low memory and high memory is done properly in the
           memory map and the chunks of free map items
         * Repeat all of the previous tests with the low memory allocators
-        
+
 II/ VirMemManager
-    1. Meta (testing the test itself)
+    1. Meta
         * Check that we're testing the good version of VirMemManager (VIRMEMMANAGER_VERSION)
     2. Initial state
-        * Save a copy of the post-constructor states of PhyMemManager and VirMemManager. We will
-          need it at 4.
+        * Initialize a VirMemManager object
         * Check that the phymem pointer is correct and that 2 physical pages have been allocated
           during initialization
         * Check the state of map_list
@@ -152,6 +153,7 @@ II/ VirMemManager
         * Check that maplist_mutex is free
         * Check that the content of free_mapitems and free_listitems is properly allocated
     3. Basic paging
+        * Save VirMemManager and PhyMemManager state
         * Allocate a page with phymem
         * Try to map it in PID_KERNEL's address space
         * Check that it fails and that the state of phymem and VirMemManager is left unchanged
@@ -246,6 +248,7 @@ III/MemAllocator
     1. Meta
         * Check that we're testing the good version of MemAllocator (MEMALLOCATOR_VERSION)
     2. Initial state
+        * Initialize a MemAllocator object
         * Check that phymem and virmem are properly initialized and that two physical pages are
           being allocated by the kernel during initialization
         * Check that map_list, knl_free_mem and knl_busy_mem are all NULL
@@ -325,7 +328,7 @@ III/MemAllocator
     a. Sharing functions
         * For a PID which already has a byte allocated, use alloc_shareable() to allocate objects
           more than one page but less than 2 pages long, one page long, and less than one page long.
-          Check that in each case, new pages are allocated, and that the remaining space after 
+          Check that in each case, new pages are allocated, and that the remaining space after
           allocation is not put in free_map.
         * Check that owneradd() works properly. It should take a chunk of the busy_map of the
           initial process, map its content in the address pace of another process, and put it in the

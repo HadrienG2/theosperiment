@@ -26,7 +26,8 @@
 
 namespace MemTest {
     void test_memory(const KernelInformation& kinfo) {
-        dbgout << endl << "Beginning tests..." << endl;
+        dbgout << set_window(screen_win);
+        dbgout << endl << "Beginning memory management testing..." << endl;
         reset_title();
         test_title("PhyMemManager");
         PhyMemManager* phymem = test_phymem(kinfo);
