@@ -26,11 +26,11 @@
 #include <memory_test.h>
 
 extern "C" int kmain(const KernelInformation& kinfo) {
-    dbgout << txtcolor(TXT_LIGHTRED) << "Kernel loaded : " << kinfo.cpu_info.core_amount;
+    dbgout << txtcolor(TXT_LIGHTGREEN) << "Kernel loaded : " << kinfo.cpu_info.core_amount;
     dbgout << " CPU core(s) around."  << txtcolor(TXT_LIGHTGRAY) << endl;
 
     //Put test suite here, as otherwise it will smash the work of already initialized components
-    MemTest::test_memory(kinfo);
+    Tests::test_memory(kinfo);
     dbgout << bp();
 
     dbgout << "* Setting up physical memory management..." << endl;

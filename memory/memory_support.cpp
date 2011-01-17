@@ -63,8 +63,19 @@ PhyMemMap* PhyMemMap::find_thischunk(const addr_t location) const {
     return current_item;
 }
 
+unsigned int PhyMemMap::buddy_length() const {
+    unsigned int result = 0;
+    PhyMemMap* current_item = (PhyMemMap*) this;
+
+    while(current_item) {
+        ++result;
+        current_item = current_item->next_buddy;
+    }
+    return result;
+}
+
 unsigned int PhyMemMap::length() const {
-    unsigned int result;
+    unsigned int result = 0;
     PhyMemMap* current_item = (PhyMemMap*) this;
 
     while(current_item) {
@@ -106,6 +117,26 @@ unsigned int VirMemMap::length() const {
     return result;
 }
 
+bool VirMemMap::operator==(const VirMemMap& param) const {
+    if(location != param.location) return false;
+    if(size != param.size) return false;
+    if(flags != param.flags) return false;
+    if(owner != param.owner) return false;
+    if(points_to != param.points_to) return false;
+    if(next_buddy != param.next_buddy) return false;
+    if(next_mapitem != param.next_mapitem) return false;
+    return true;
+}
+
+bool VirMapList::operator==(const VirMapList& param) const {
+    if(map_owner != param.map_owner) return false;
+    if(map_pointer != param.map_pointer) return false;
+    if(pml4t_location != param.pml4t_location) return false;
+    if(next_item != param.next_item) return false;
+    if(mutex != param.mutex) return false;
+    return true;
+}
+
 MallocMap* MallocMap::find_contigchunk(const addr_t requested_size) const {
     MallocMap* current_item = (MallocMap*) this;
 
@@ -138,6 +169,14 @@ MallocMap* MallocMap::find_thischunk(const addr_t location) const {
     return current_item;
 }
 
+bool MallocMap::operator==(const MallocMap& param) const {
+    if(location != param.location) return false;
+    if(size != param.size) return false;
+    if(belongs_to != param.belongs_to) return false;
+    if(next_item != param.next_item) return false;
+    return true;
+}
+
 KnlMallocMap* KnlMallocMap::find_contigchunk(const addr_t requested_size) const {
     KnlMallocMap* current_item = (KnlMallocMap*) this;
 
@@ -156,4 +195,21 @@ KnlMallocMap* KnlMallocMap::find_thischunk(const addr_t location) const {
         current_item = current_item->next_item;
     }
     return current_item;
+}
+
+bool KnlMallocMap::operator==(const KnlMallocMap& param) const {
+    if(location != param.location) return false;
+    if(size != param.size) return false;
+    if(belongs_to != param.belongs_to) return false;
+    if(next_item != param.next_item) return false;
+    return true;
+}
+
+bool MallocPIDList::operator==(const MallocPIDList& param) const {
+    if(map_owner != param.map_owner) return false;
+    if(free_map != param.free_map) return false;
+    if(busy_map != param.busy_map) return false;
+    if(next_item != param.next_item) return false;
+    if(mutex != param.mutex) return false;
+    return true;
 }

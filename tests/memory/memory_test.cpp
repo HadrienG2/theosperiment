@@ -20,79 +20,49 @@
 #include <malloc_test.h>
 #include <memory_test.h>
 #include <phymem_test.h>
+#include <test_display.h>
 #include <virmem_test.h>
 
 #include <dbgstream.h>
 
-namespace MemTest {
+namespace Tests {
     void test_memory(const KernelInformation& kinfo) {
         dbgout << set_window(screen_win);
         dbgout << endl << "Beginning memory management testing..." << endl;
+
         reset_title();
+        test_title("Initialization");
+
+        reset_sub_title();
+        subtest_title("Meta (testing the test itself)");
+        if(!meta_phymem()) return;
+        if(!meta_virmem()) return;
+        if(!meta_mallocator()) return;
+        subtest_title("PhyMemManager initialization");
+        PhyMemManager* phymem_ptr = init_phymem(kinfo);
+        if(!phymem_ptr) return;
+        PhyMemManager& phymem = *phymem_ptr;
+        subtest_title("VirMemManager initialization");
+        VirMemManager* virmem_ptr = init_virmem(phymem);
+        if(!virmem_ptr) return;
+        VirMemManager& virmem = *virmem_ptr;
+        subtest_title("MemAllocator initialization");
+        MemAllocator* mallocator_ptr = init_mallocator(phymem, virmem);
+        if(!mallocator_ptr) return;
+        MemAllocator& mallocator = *mallocator_ptr;
+
         test_title("PhyMemManager");
-        PhyMemManager* phymem = test_phymem(kinfo);
-        if(!phymem) return;
+        phymem_ptr = test_phymem(phymem);
+        if(!phymem_ptr) return;
+
         test_title("VirMemManager");
-        VirMemManager* virmem = test_virmem(*phymem);
-        if(!virmem) return;
+        virmem_ptr = test_virmem(virmem);
+        if(!virmem_ptr) return;
+
         test_title("MemAllocator");
-        MemAllocator* mallocator = test_mallocator(*phymem, *virmem);
-        if(!mallocator) return;
+        mallocator_ptr = test_mallocator(mallocator);
+        if(!mallocator_ptr) return;
+
         dbgout << "All tests were successfully completed !" << endl;
-    }
-
-    static int title_count;
-    static int sub_title_count;
-
-    void reset_title() {
-        title_count = 0;
-    }
-
-    void reset_sub_title() {
-        sub_title_count = 0;
-    }
-
-    void test_title(const char* title) {
-        ++title_count;
-        switch(title_count) {
-            case 1:
-                dbgout << "I/  ";
-                break;
-            case 2:
-                dbgout << "II/ ";
-                break;
-            case 3:
-                dbgout << "III/";
-                break;
-            case 4:
-                dbgout << "IV/ ";
-                break;
-            case 5:
-                dbgout << "V/  ";
-                break;
-            case 6:
-                dbgout << "VI/ ";
-                break;
-            case 7:
-                dbgout << "VII/";
-                break;
-            default:
-                dbgout << "?/  ";
-        }
-        dbgout << title << endl;
-    }
-
-    void subtest_title(const char* title) {
-        ++sub_title_count;
-        dbgout << "  " << sub_title_count << ". " << title << endl;
-    }
-
-    void item_title(const char* title) {
-        dbgout << "    * " << title << endl;
-    }
-
-    void test_failure(const char* message) {
-        dbgout << txtcolor(TXT_RED) << "  Error : " << message;
-        dbgout << txtcolor(TXT_LIGHTGRAY) << endl;
     }
 }

@@ -20,13 +20,20 @@
 #define _VIRMEM_TEST_H_
 
 #include <physmem.h>
+#include <virmem_test_arch.h>
 #include <virtmem.h>
 
-namespace MemTest {
+namespace Tests {
     const int VIRMEM_TEST_VERSION = 1;
 
-    //Main test
-    VirMemManager* test_virmem(PhyMemManager& phymem);
+    //Main tests
+    bool meta_virmem(); //Check VirMemManager version
+    VirMemManager* init_virmem(PhyMemManager& phymem);
+    VirMemManager* test_virmem(VirMemManager& virmem);
+
+    //Auxiliary functions
+    bool virinit_check_mapitems(VirMemState* virmem_state);
+    bool virinit_check_listitems(VirMemState* virmem_state);
 }
 
 #endif

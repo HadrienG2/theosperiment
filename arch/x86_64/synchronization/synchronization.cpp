@@ -15,14 +15,14 @@
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
- 
+
 #include <synchronization.h>
 
 bool KernelSemaphore8::grab_attempt() {
   uint8_t availability_before;
   uint8_t availability_after;
   uint8_t real_availability;
-  
+
   //Make a copy of semaphore availability
   availability_before = availability;
   //If semaphore was available at copy time, generate new semaphore availability.
@@ -39,11 +39,17 @@ bool KernelSemaphore8::grab_attempt() {
   else return false;
 }
 
+bool KernelSemaphore8::operator==(const KernelSemaphore8& param) const {
+    if(availability != param.availability) return false;
+    if(max_avl != param.max_avl) return false;
+    return true;
+}
+
 bool KernelSemaphore32::grab_attempt() {
   uint32_t availability_before;
   uint32_t availability_after;
   uint32_t real_availability;
-  
+
   //Make a copy of semaphore availability
   availability_before = availability;
   //If semaphore was available at copy time, generate new semaphore availability.
@@ -60,11 +66,17 @@ bool KernelSemaphore32::grab_attempt() {
   else return false;
 }
 
+bool KernelSemaphore32::operator==(const KernelSemaphore32& param) const {
+    if(availability != param.availability) return false;
+    if(max_avl != param.max_avl) return false;
+    return true;
+}
+
 bool KernelSemaphore64::grab_attempt() {
   uint64_t availability_before;
   uint64_t availability_after;
   uint64_t real_availability;
-  
+
   //Make a copy of semaphore availability
   availability_before = availability;
   //If semaphore was available at copy time, generate new semaphore availability.
@@ -79,4 +91,10 @@ bool KernelSemaphore64::grab_attempt() {
                    :"m" (availability_before), "b" (availability_after));
   if(real_availability==availability_before) return true;
   else return false;
+}
+
+bool KernelSemaphore64::operator==(const KernelSemaphore64& param) const {
+    if(availability != param.availability) return false;
+    if(max_avl != param.max_avl) return false;
+    return true;
 }

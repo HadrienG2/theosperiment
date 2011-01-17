@@ -22,10 +22,12 @@
     These tests are supposed to be run before memory management has been initialized. Otherwise,
     they might smash its internal data, which would result in them malfunctioning
 
-I/  PhyMemManager
+I/  Initialization
     1. Meta (testing the test itself)
         * Check that we're testing the good version of PhyMemManager (PHYMEMMANAGER_VERSION)
-    2. Initial state
+        * Check that we're testing the good version of VirMemManager (VIRMEMMANAGER_VERSION)
+        * Check that we're testing the good version of MemAllocator (MEMALLOCATOR_VERSION)
+    2. PhyMemManager initialization
         * Initialize a PhyMemManager object
         * Check that mmap_mutex is available
         * Check that the fundamental assumptions about phy_mmap are respected
@@ -37,9 +39,9 @@ I/  PhyMemManager
             -kmmap items which are not of nature NATURE_RES must be marked allocatable, items of
                 nature NATURE_RES must be marked non-allocatable
             -Regions of phy_mmap including NATURE_BSK or NATURE_KNL items must be marked as
-                allocated to the kernel, others must be marked as free (apart from the exception below)
+                allocated to the kernel, others must be marked as free (apart from exception below)
         * Sole accepted difference is a part of initially free memory which is allocated by
-            PhyMemMap to store its management structures. Check that it is allocated properly, though
+            PhyMemMap to store its management structures. Check that it is allocated properly.
         * Check that all map items are allocated before use, without leaks
             -The items of phy_mmap, must be stacked at the beginning of the allocated space
             -What remains of the allocated space must be put in free_mapitems
@@ -47,7 +49,32 @@ I/  PhyMemManager
             value, except for next_buddy which is the next item or zero at the end of the list)
         * x86_64 : Check that phy_highmmap, free_lowmem and free_highmem have a good value and that
             linking via next_buddy is done properly
-    3. Page allocation
+    3. VirMemManager initialization
+        * Initialize a VirMemManager object
+        * Check phymem-virmem integration :
+            -The phymem pointer of virmem must be correct
+            -Two physical pages must have been allocated to kernel during virmem initialization
+        * Check that maplist_mutex is free
+        * Check the state of map_list
+            -There must be a single entry
+            -map_owner must be PID_KERNEL
+            -map_pointer must be NULL
+            -mutex must be free
+            -x86_64 : pml4t_location must agree with the result derivated from CR3 by get_pml4t()
+        * Check that map and list items are properly allocated
+        * Check the information about kernel physical and virtual locations
+    4. MemAllocator initialization
+        * Initialize a MemAllocator object
+        * Check phymem-virmem-mallocator integration :
+            -The phymem and virmem pointers must be correct
+            -Two physical pages must have been allocated to PID_KERNEL during initialization
+        * Check that map_list, knl_free_map and knl_busy_map are all NULL
+        * Check that map and list items are properly allocated
+        * Check that knl_mutex and maplist_mutex are available
+        * Setup kalloc with our MemAllocator, so that we may use it later
+
+II/ PhyMemManager
+    1. Page allocation
         * Save PhyMemManager state
         * Allocate a page to some PID using alloc_page()
         * Check that the returned result is correct
@@ -66,13 +93,13 @@ I/  PhyMemManager
             -If that chunk was more than one page long, it must now be one page less long, not
              overlap with the allocated page, and free_mapitems must be one less item long
             -Everything else must be perfectly identical to the previous state
-    4. Page freeing
+    2. Page freeing
         * Save PhyMemManager state (will be implicit in further tests)
         * Free the previously allocated page using free()
         * Check modifications to the PhyMemManager's state
             -The page must now be marked as free for use (ie have no owner)
             -Everything else must be identical
-    5. Contiguous chunk allocation
+    3. Contiguous chunk allocation
         * Allocate a chunk of one page with alloc_chunk()
         * Check that the results are the same as in 3.
         * Free it, check that the results are the same as in 4.
@@ -82,7 +109,7 @@ I/  PhyMemManager
           together, and that everything else is unchanged.
         * Free the chunk, check that it works well
         * Repeat this test with alloc_contigchunk()
-    6. Allocation in non-contiguous free memory
+    4. Allocation in non-contiguous free memory
         * Allocate pages until we have three contiguous pages
         * Free the first and the last
         * Allocate a page, check that it goes in the first hole, free it
@@ -95,7 +122,7 @@ I/  PhyMemManager
           characteristics, and does not smash memory which was not free before (like the second busy
           page)
         * Free everything which has been allocated since the beginning of 5.
-    7. Allocation of all memory
+    5. Allocation of all memory
         * Count the amount of available allocatable memory in phy_mmap (phy_highmmap on x86_64)
         * Allocate all of it with alloc_chunk()
         * Check that allocation is successful, that all free map is indeed allocated, and that no
@@ -111,16 +138,16 @@ I/  PhyMemManager
           works. Free everything
         * Allocate all memory minus three contiguous pages. Repeat the tests of 6.
         * Free everything
-    8. Sharing functions
+    6. Sharing functions
         * Allocate a page
         * Check that adding an owner works properly (owner is added to the owners field of the page,
           nothing else has changed)
         * Remove both owners from the page, check that it is freed properly by re-allocating it
-    9. kill() test
+    7. kill() test
         * Restart one test which allocates some data, try to kill a process, check that all of its
           data has been liberated.
         * Same thing, but with the kernel. Check that its data has *not* been liberated.
-    a. Internal allocator
+    8. Internal allocator
         * Check that sizeof(PhyMemMap) is a power of 2
         * Count the number of spare PhyMemMaps in free_mapitem, allocate as much pages
         * Check that no new page has been allocated by the internal allocator and that free_mapitems
@@ -132,27 +159,13 @@ I/  PhyMemManager
           free_mapitems, check that they are all properly cleaned up before being put in
           free_mapitems
         * Repeat this test with alloc_chunk() and alloc_contigchunk(), using 1-page chunks
-    b. x86_64-specific
+    9. x86_64-specific
         * Check that the separation between low memory and high memory is done properly in the
           memory map and the chunks of free map items
         * Repeat all of the previous tests with the low memory allocators
 
-II/ VirMemManager
-    1. Meta
-        * Check that we're testing the good version of VirMemManager (VIRMEMMANAGER_VERSION)
-    2. Initial state
-        * Initialize a VirMemManager object
-        * Check that the phymem pointer is correct and that 2 physical pages have been allocated
-          during initialization
-        * Check the state of map_list
-            -There must be a single entry
-            -map_owner must be PID_KERNEL
-            -map_pointer must be NULL
-            -x86_64 : pml4t_location must agree with the result derivated from CR3
-            -mutex must be free
-        * Check that maplist_mutex is free
-        * Check that the content of free_mapitems and free_listitems is properly allocated
-    3. Basic paging
+III/VirMemManager
+    1. Basic paging
         * Save VirMemManager and PhyMemManager state
         * Allocate a page with phymem
         * Try to map it in PID_KERNEL's address space
@@ -182,13 +195,13 @@ II/ VirMemManager
             -A page translation, coherent with the previous results, must be present
             -The kernel must be properly memory-mapped in the process' address space
             -Everything else must be zero
-    4. Freeing and process data cleanup
+    2. Freeing and process data cleanup
         * Free the previously mapped page
         * Check that the result is a nonzero pointer
         * Check that PhyMemManager and VirMemManager are back to their initial state at the
           beginning of 2.
         * Check that paging structures have been fully zeroed-out before liberation
-    5. Chunk mapping
+    3. Chunk mapping
         * Do the following successive allocation test, checking the results of each operation
             -Allocate page 1
             -Allocate page 2
@@ -203,13 +216,13 @@ II/ VirMemManager
         * Free, check the result like in 4.
         * Using the same tricks as in I/6., allocate and map a non-contiguous chunk. Check results
         * Free it, check results
-    6. Flags
+    4. Flags
         * Try to map a page with all possible combinations of R, W, X, and P flags
         * Check the flags are properly set up in the map and paging structures
         * For each combination, try to modify the flags in all possible ways, and check it works
         * Repeat with contiguous and non-contiguous multi-page chunks.
         * Free everything
-    7. Allocation of all memory
+    5. Allocation of all memory
         * Allocate a page and map it in one new PID's address space, so that management structures
           for that PID are created
         * Allocate all free memory as before, then try to map it in that PID's address space
@@ -217,18 +230,18 @@ II/ VirMemManager
         * Free the chunk, allocate all memory minus one page, try to allocate and map that page
         * Check that the operation went as planned
         * Free everything
-    8. Multiple process management
+    6. Multiple process management
         * Map a page for two different processes
         * Check that it worked
         * Free the mapped page for the first process
         * Check that it worked
         * Free the mapped page for the second process
         * Check that it worked
-    9. kill() test
+    7. kill() test
         * Restart one test which allocates some data, try to kill a process, check that all of its
           data has been liberated.
         * Same thing, but with the kernel. Check that nothing happens
-    a. Internal allocator
+    8. Internal allocator
         * Check that sizeof(VirMemMap) and sizeof(VirMapList) are powers of 2
         * Count the number of free_mapitems
         * Map a page that amount of times to a single process
@@ -239,22 +252,13 @@ II/ VirMemManager
           free_mapitems
         * Same test with a new PID for each mapped page, to test the management of free_listitems.
           Remember that paging structures are allocated for each new process, too
-    b. x86_64-specific
+    9. x86_64-specific
         * Try to allocate data crossing the boundary between two PTs, then between two PDs, then
           between two PDPTs. Check that the result is correct and that the paging structures are
           all zeroed out and freed when their time has come
 
-III/MemAllocator
-    1. Meta
-        * Check that we're testing the good version of MemAllocator (MEMALLOCATOR_VERSION)
-    2. Initial state
-        * Initialize a MemAllocator object
-        * Check that phymem and virmem are properly initialized and that two physical pages are
-          being allocated by the kernel during initialization
-        * Check that map_list, knl_free_mem and knl_busy_mem are all NULL
-        * Check that knl_mutex is available
-        * Check that the content of free_listitems et free_mapitems is properly allocated
-    3. Allocating/freeing kernel data
+IV/ MemAllocator
+    1. Allocating/freeing kernel data
         * Allocate one byte of memory to the kernel
         * Check that the result is nonzero and page-aligned
         * Check MemAllocator's state
@@ -268,7 +272,7 @@ III/MemAllocator
         * Free this byte
         * Check that MemAllocator went back to its initial state
         * Check that VirMemManager is unchanged and that the page was liberated in PhyMemManager
-    4. Allocating/freeing user data
+    2. Allocating/freeing user data
         * Allocate a byte to some PID, check that the result is PG_SIZE
         * Check MemAllocator's state :
             -map_list must be nonzero
@@ -287,7 +291,7 @@ III/MemAllocator
         * Check that MemAllocator went back to its initial state
         * Check that VirMemManager went back to its initial state and that the page was freed by
           PhyMemManager
-    5. Sub-page allocation
+    3. Sub-page allocation
         * Allocate to some PID a number of mid-sized (~0x100 bytes) objects whose sizes add up to
           PG_SIZE, check that the sole observed things compared with the previous byte allocation
           are a data transfer from this PID's busy_map to its free_map, and a gradual depletion of
@@ -299,11 +303,11 @@ III/MemAllocator
           free_map. Check that in this case, the free_map chunk is left untouched and a new page
           is allocated instead
         * Free everything and do the same tests, but allocating objects for the kernel this time
-    6. Allocating accross several pages
+    4. Allocating accross several pages
         * Allocate something bigger than one page but smaller than two to a PID
         * Check that we get the expected result, then free the data and check it works well
         * Same tests, but allocating objects for the kernel this time
-    7. Allocating all memory
+    5. Allocating all memory
         * Allocate all memory to an already existing PID
         * Check that the operation was successful and had the expected results
         * Try to allocate memory to this PID and others in all possible ways, check that it fails
@@ -312,7 +316,7 @@ III/MemAllocator
         * Check that everything went well
         * Free everything, check that the memory management system goes back to its initial state
         * Same tests, but allocating objects for the kernel this time
-    8. Flags
+    6. Flags
         * Repeat previous tests with all combinations of R, W, X, and P flags. Check that
             -The pages are allocated with the correct flags in VirMemManager for usual PIDs
             -Allocation fails without a single change to the system's state when kernel is the
@@ -320,12 +324,12 @@ III/MemAllocator
              flags are not RW-P
         * Try to do sub-page allocation with objects having different flags. Check that they are not
           allocated together in a single page, but that new pages are created instead.
-    9. Multiple process management
+    7. Multiple process management
         * Allocate pages for two new processes
         * Check that it works as expected
         * Delete the page of the first process, check that it worked as planned
         * Delete the page of the second process, check that it worked as planned
-    a. Sharing functions
+    8. Sharing functions
         * For a PID which already has a byte allocated, use alloc_shareable() to allocate objects
           more than one page but less than 2 pages long, one page long, and less than one page long.
           Check that in each case, new pages are allocated, and that the remaining space after
@@ -334,11 +338,11 @@ III/MemAllocator
           initial process, map its content in the address pace of another process, and put it in the
           busy_map of that other process. Nothing more, nothing less.
         * Same tests, but with the kernel as the allocating process, sender, or recipient
-    b. kill() test
+    9. kill() test
         * Restart one test which allocates some data, try to kill a process, check that all of its
           data has been liberated.
         * Same thing, but with the kernel. Check that its data has *not* been liberated.
-    c. Internal allocator
+    a. Internal allocator
         * Check that sizeof(MallocMap), sizeof(KnlMallocMap) and sizeof(MallocPIDList) are powers of
           2, and that sizeof(MallocMap) == sizeof(KnlMallocMap) (going from one to the other should
           be a matter of casting a pointer)

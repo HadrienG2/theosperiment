@@ -248,7 +248,9 @@ PhyMemMap* PhyMemManager::contigchunk_allocator(const addr_t requested_size,
 PhyMemMap* PhyMemManager::resvchunk_allocator(const addr_t location, const PID initial_owner) {
     PhyMemMap* requested_chunk = phy_mmap->find_thischunk(location);
 
-    if((requested_chunk->allocatable == 0) && (requested_chunk->owners[0] == PID_NOBODY)) {
+    if(requested_chunk &&
+       (requested_chunk->allocatable == 0) &&
+       (requested_chunk->owners[0] == PID_NOBODY)) {
         return chunk_owneradd(requested_chunk, initial_owner);
     } else {
         return NULL;

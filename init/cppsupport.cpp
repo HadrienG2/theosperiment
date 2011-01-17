@@ -1,6 +1,6 @@
- /* Physical memory management testing routines
+ /* Some symbols which must be defined for C++ code to work, even though we don't need them
 
-      Copyright (C) 2010-2011  Hadrien Grasland
+    Copyright (C) 2010  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,22 +16,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef _PHYMEM_TEST_H_
-#define _PHYMEM_TEST_H_
+extern "C" {
+    void *__dso_handle;
+    void __cxa_atexit() {
 
-#include <kernel_information.h>
-#include <physmem.h>
-
-namespace Tests {
-    const int PHYMEM_TEST_VERSION = 1;
-
-    //Main tests
-    bool meta_phymem(); //Check PhyMemManager version
-    PhyMemManager* init_phymem(const KernelInformation& kinfo); //Initialize a PhyMemManager object
-    PhyMemManager* test_phymem(PhyMemManager& phymem); //Test PhyMemManager
-
-    //PhyMemManager individual tests
-    PhyMemManager* phy_test_pagealloc(PhyMemManager& phymem);
+    }
 }
-
-#endif
