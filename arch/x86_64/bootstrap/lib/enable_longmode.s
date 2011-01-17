@@ -2,7 +2,7 @@
   .lcomm tmp_ebp, 4
   .lcomm tmp_ecx, 4
   .lcomm tmp_edx, 4
-  
+
   .text
   .globl enable_longmode
 
@@ -11,7 +11,7 @@ enable_longmode:
   mov   %ecx, (tmp_ecx)
   mov   %edx, (tmp_edx)
   mov   %esp, %ebp
-  
+
   /* At this point, we know that long-mode support is available
      Step 1 : Enable PAE */
   mov   %cr4, %eax

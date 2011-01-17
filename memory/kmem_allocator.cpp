@@ -988,10 +988,10 @@ MallocPIDList* MemAllocator::remove_pid(PID target) {
 MemAllocator::MemAllocator(PhyMemManager& physmem, VirMemManager& virtmem) : phymem(&physmem),
                                                                              virmem(&virtmem),
                                                                              map_list(NULL),
-                                                                             free_mapitems(NULL),
-                                                                             free_listitems(NULL),
                                                                              knl_free_map(NULL),
-                                                                             knl_busy_map(NULL) {
+                                                                             knl_busy_map(NULL),
+                                                                             free_mapitems(NULL),
+                                                                             free_listitems(NULL) {
     alloc_mapitems();
     alloc_listitems();
 }

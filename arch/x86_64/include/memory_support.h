@@ -1,6 +1,6 @@
 /* Support classes for all code that manages chunks (contiguous or non-contiguous) of memory
 
-        Copyright (C) 2010    Hadrien Grasland
+        Copyright (C) 2010-2011    Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -58,6 +58,7 @@ struct PhyMemMap {
                                                           //neighbours, forms a contiguous chunk
                                                           //of free memory at least "size" large.
     PhyMemMap* find_thischunk(const addr_t location) const;
+    unsigned int buddy_length() const;
     unsigned int length() const;
     //Comparing map items is fairly straightforward and should be done by default
     //by the C++ compiler, but well...
@@ -103,6 +104,10 @@ struct VirMemMap {
     //Algorithms finding things in or about the map
     VirMemMap* find_thischunk(const addr_t location) const;
     unsigned int length() const;
+    //Comparing map items is fairly straightforward and should be done by default
+    //by the C++ compiler, but well...
+    bool operator==(const VirMemMap& param) const;
+    bool operator!=(const VirMemMap& param) const {return !(*this==param);}
 } __attribute__((packed));
 
 //There is one map of virtual memory per process. Since there probably won't ever be more than
@@ -120,6 +125,10 @@ struct VirMapList {
                    map_pointer(NULL),
                    pml4t_location(NULL),
                    next_item(NULL) {};
+    //Comparing list items is fairly straightforward and should be done by default
+    //by the C++ compiler, but well...
+    bool operator==(const VirMapList& param) const;
+    bool operator!=(const VirMapList& param) const {return !(*this==param);}
 } __attribute__((packed));
 
 //**************************************************
@@ -145,6 +154,10 @@ struct MallocMap {
                                                           //bytes in this map
     MallocMap* find_contigchunk(const addr_t size, const VirMemFlags flags) const;
     MallocMap* find_thischunk(const addr_t location) const;
+    //Comparing C-style structs is fairly straightforward and should be done by default
+    //by the C++ compiler, but well...
+    bool operator==(const MallocMap& param) const;
+    bool operator!=(const MallocMap& param) const {return !(*this==param);}
 } __attribute__((packed));
 
 //There is a derivative of the previous structure for the kernel, as it has virtual memory disabled.
@@ -160,6 +173,10 @@ struct KnlMallocMap {
     KnlMallocMap* find_contigchunk(const addr_t size) const; //Try to find at least "size"
                                                              //contiguous bytes in this map
     KnlMallocMap* find_thischunk(const addr_t location) const;
+    //Comparing C-style structs is fairly straightforward and should be done by default
+    //by the C++ compiler, but well...
+    bool operator==(const KnlMallocMap& param) const;
+    bool operator!=(const KnlMallocMap& param) const {return !(*this==param);}
 } __attribute__((packed));
 
 //There are two maps per process, and we must keep track of each process. The same assumptions as
@@ -175,6 +192,10 @@ struct MallocPIDList {
                       free_map(NULL),
                       busy_map(NULL),
                       next_item(NULL) {};
+    //Comparing C-style structs is fairly straightforward and should be done by default
+    //by the C++ compiler, but well...
+    bool operator==(const MallocPIDList& param) const;
+    bool operator!=(const MallocPIDList& param) const {return !(*this==param);}
 } __attribute__((packed));
 
 #endif

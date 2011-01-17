@@ -21,7 +21,7 @@ ifeq ($(Fdebug),1)
     KNL_CPP_SRC += $(wildcard arch/$(ARCH)/debug/*.cpp debug/*.cpp)
 endif
 ifeq ($(Ftests),1)
-    KNL_CPP_SRC += $(wildcard tests/memory/*.cpp arch/$(ARCH)/tests/memory/*.cpp)
+    KNL_CPP_SRC += $(wildcard tests/common/*.cpp tests/memory/*.cpp arch/$(ARCH)/tests/memory/*.cpp)
 endif
 
 #Headers go there (Yeah, duplication sucks. If you know how to avoid it...)

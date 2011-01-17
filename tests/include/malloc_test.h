@@ -1,6 +1,6 @@
  /* Memory allocation testing routines
 
-      Copyright (C) 2010  Hadrien Grasland
+      Copyright (C) 2011  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -23,11 +23,31 @@
 #include <physmem.h>
 #include <virtmem.h>
 
-namespace MemTest {
+namespace Tests {
     const int MALLOC_TEST_VERSION = 1;
 
-    //Regression tests of specific parts of memory management
-    MemAllocator* test_mallocator(PhyMemManager& phymem, VirMemManager& virmem);
+    //The internal state of a MemAllocator, as described in kmem_allocator.h
+    struct MemAllocatorState {
+        PhyMemManager* phymem;
+        VirMemManager* virmem;
+        MallocPIDList* map_list;
+        KnlMallocMap* knl_free_map;
+        KnlMallocMap* knl_busy_map;
+        MallocMap* free_mapitems; //As usual, this is a casted integer in a saved state, because
+                                  //there's no point copying and storing a pack of blank data.
+        MallocPIDList* free_listitems; //Same for this.
+        KernelMutex maplist_mutex;
+        KernelMutex knl_mutex;
+    };
+
+    //Main tests
+    bool meta_mallocator(); //Check MemAllocator version
+    MemAllocator* init_mallocator(PhyMemManager& phymem, VirMemManager& virmem);
+    MemAllocator* test_mallocator(MemAllocator& mallocator);
+
+    //Auxiliary functions
+    bool malinit_check_mapitems(MemAllocatorState* mallocator_state);
+    bool malinit_check_listitems(MemAllocatorState* mallocator_state);
 }
 
 #endif

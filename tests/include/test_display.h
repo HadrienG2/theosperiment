@@ -1,6 +1,6 @@
- /* Physical memory management testing routines
+ /* Some routines used to display test output in a consistent way
 
-      Copyright (C) 2010-2011  Hadrien Grasland
+      Copyright (C) 2011  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,22 +16,18 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef _PHYMEM_TEST_H_
-#define _PHYMEM_TEST_H_
-
-#include <kernel_information.h>
-#include <physmem.h>
+#ifndef _TEST_DISPLAY_H_
+#define _TEST_DISPLAY_H_
 
 namespace Tests {
-    const int PHYMEM_TEST_VERSION = 1;
-
-    //Main tests
-    bool meta_phymem(); //Check PhyMemManager version
-    PhyMemManager* init_phymem(const KernelInformation& kinfo); //Initialize a PhyMemManager object
-    PhyMemManager* test_phymem(PhyMemManager& phymem); //Test PhyMemManager
-
-    //PhyMemManager individual tests
-    PhyMemManager* phy_test_pagealloc(PhyMemManager& phymem);
+    //Helper functions
+    void reset_title(); //Reset title counter to 1
+    void reset_sub_title(); //Reset sub-title counter to 1
+    void test_title(const char* title); //Display test title (e.g. "I/  Mytest")
+    void subtest_title(const char* title); //Display test sub-title (e.g. "1. Mysubtest")
+    void item_title(const char* title); //Display test item title (e.g. "* A wonderful test")
+    void test_failure(const char* message); //Displays an error message
+    void fail_notimpl(); //Warns the test user that a feature has not yet been implemented
 }
 
 #endif

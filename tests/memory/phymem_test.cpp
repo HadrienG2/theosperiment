@@ -20,25 +20,10 @@
 #include <memory_test.h>
 #include <phymem_test.h>
 #include <phymem_test_arch.h>
+#include <test_display.h>
 
-namespace MemTest {
-    PhyMemManager* test_phymem(const KernelInformation& kinfo) {
-        reset_sub_title();
-        subtest_title("Meta (testing the test itself)");
-        if(!phy_test1_meta()) return NULL;
-
-        subtest_title("Initial state");
-        PhyMemManager* phymem_ptr = phy_test2_init(kinfo);
-        if(!phymem_ptr) return NULL;
-        PhyMemManager& phymem = *phymem_ptr;
-
-        subtest_title("Page allocation");
-        if(!phy_test3_pagealloc(phymem)) return NULL;
-
-        return &phymem;
-    }
-
-    bool phy_test1_meta() {
+namespace Tests {
+    bool meta_phymem() {
         item_title("Check PhyMemManager version");
         if(PHYMEM_TEST_VERSION != PHYMEMMANAGER_VERSION) {
             test_failure("Test and PhyMemManager versions mismatch");
@@ -47,13 +32,13 @@ namespace MemTest {
         return true;
     }
 
-    PhyMemManager* phy_test2_init(const KernelInformation& kinfo) {
-        item_title("Initialize PhyMemManager");
+    PhyMemManager* init_phymem(const KernelInformation& kinfo) {
+        item_title("Initialize a PhyMemManager object");
         static PhyMemManager phymem(kinfo);
 
         item_title("Check availability of mmap_mutex");
         PhyMemState* phymem_state = (PhyMemState*) &phymem;
-        if(!(phymem_state->mmap_mutex.state())) {
+        if(phymem_state->mmap_mutex.state() == 0) {
             test_failure("mmap_mutex not available in a freshly initialized PhyMemManager");
             return NULL;
         }
@@ -225,12 +210,20 @@ namespace MemTest {
             map_parser = map_parser->next_buddy;
         }
 
-        if(!phy_test2_init_arch(phymem)) return NULL;
+        if(!phy_init_arch(phymem)) return NULL;
 
         return &phymem;
     }
 
-    PhyMemManager* phy_test3_pagealloc(PhyMemManager& phymem) {
+    PhyMemManager* test_phymem(PhyMemManager& phymem) {
+        reset_sub_title();
+        subtest_title("Page allocation");
+        if(!phy_test_pagealloc(phymem)) return NULL;
+
+        return &phymem;
+    }
+
+    PhyMemManager* phy_test_pagealloc(PhyMemManager& phymem) {
         item_title("Save PhyMemManager state");
         PhyMemState* saved_state = save_phymem_state(phymem);
         if(!saved_state) return NULL;
@@ -272,7 +265,7 @@ namespace MemTest {
             return NULL;
         }
 
-        test_failure("Not implemented yet");
+        fail_notimpl();
         return NULL;
     }
 }

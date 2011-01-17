@@ -20,9 +20,11 @@
 #define _PHYMEM_TEST_ARCH_H_
 
 #include <kernel_information.h>
+#include <memory_support.h>
 #include <physmem.h>
+#include <synchronization.h>
 
-namespace MemTest {
+namespace Tests {
     //The internal state of a PhyMemManager, as described in physmem.h
     struct PhyMemState {
         PhyMemMap* phy_mmap;
@@ -37,7 +39,14 @@ namespace MemTest {
     };
 
     //Arch-specific PhyMemManager tests
-    PhyMemManager* phy_test2_init_arch(PhyMemManager& phymem);
+    PhyMemManager* phy_init_arch(PhyMemManager& phymem);
+
+    //This one is used in a VirMemManager test, but it's so phymem-specific that it fits here
+    //better. Gathers data about the free highmem area(s) where the next two pages would be
+    //allocated...
+    PhyMemMap* find_twopg_freemem(PhyMemManager& phymem);
+    //...and then check that those pages have been allocated properly during virmem initialization
+    bool check_twopg_freemem(PhyMemManager& phymem, PhyMemMap* free_phy_mem);
 
     //Helper functions
     PhyMemState* save_phymem_state(PhyMemManager& phymem); //Only one saved state at a time in this

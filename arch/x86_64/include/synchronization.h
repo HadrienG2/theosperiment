@@ -1,6 +1,6 @@
  /* Synchronization mechanisms : mutexes, semaphores, and friends...
 
-      Copyright (C) 2010  Hadrien Grasland
+      Copyright (C) 2010-2011  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -31,6 +31,10 @@ class KernelSemaphore8 { //A 8-bit semaphore
     void grab_spin() {while(!grab_attempt());} //Wait for semaphore availability
     void release() {if(availability < max_avl) ++availability;} //Release the semaphore
     uint8_t state() {return availability;}
+    //Comparing C structs is fairly straightforward and should be done by default
+    //by the C++ compiler, but well...
+    bool operator==(const KernelSemaphore8& param) const;
+    bool operator!=(const KernelSemaphore8& param) const {return !(*this==param);}
 } __attribute__((packed));
 
 class KernelSemaphore32 {
@@ -43,6 +47,10 @@ class KernelSemaphore32 {
     void grab_spin() {while(!grab_attempt());} //Wait for semaphore availability
     void release() {if(availability < max_avl) ++availability;} //Release the semaphore
     uint32_t state() {return availability;}
+    //Comparing C structs is fairly straightforward and should be done by default
+    //by the C++ compiler, but well...
+    bool operator==(const KernelSemaphore32& param) const;
+    bool operator!=(const KernelSemaphore32& param) const {return !(*this==param);}
 } __attribute__((packed));
 
 class KernelSemaphore64 {
@@ -55,6 +63,10 @@ class KernelSemaphore64 {
     void grab_spin() {while(!grab_attempt());} //Wait for semaphore availability
     void release() {if(availability < max_avl) ++availability;} //Release the semaphore
     uint64_t state() {return availability;}
+    //Comparing C structs is fairly straightforward and should be done by default
+    //by the C++ compiler, but well...
+    bool operator==(const KernelSemaphore64& param) const;
+    bool operator!=(const KernelSemaphore64& param) const {return !(*this==param);}
 } __attribute__((packed));
 
 typedef KernelSemaphore64 KernelSemaphore;

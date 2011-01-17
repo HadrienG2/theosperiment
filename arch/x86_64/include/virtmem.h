@@ -40,12 +40,12 @@ const int VIRMEMMANAGER_VERSION = 1; //Increase this when deep changes require a
 class VirMemManager {
     private:
         PhyMemManager* phymem;
+        KernelMutex maplist_mutex; //Hold that mutex when parsing the map list
+                                   //or adding/removing maps from it.
         VirMapList* map_list;
         VirMemMap* free_mapitems; //A collection of ready to use virtual memory map items
                                   //(chained using next_buddy)
         VirMapList* free_listitems; //A collection of ready to use map list items
-        KernelMutex maplist_mutex; //Hold that mutex when parsing the map list
-                                   //or adding/removing maps from it.
         //Location of the kernel in the physical memory map and virtual address space
         PhyMemMap* phy_knl_rx;
         PhyMemMap* phy_knl_r;

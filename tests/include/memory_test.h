@@ -20,23 +20,12 @@
 #define _MEMORY_TEST_H_
 
 #include <kernel_information.h>
-#include <kmem_allocator.h>
-#include <physmem.h>
-#include <virtmem.h>
 
-namespace MemTest {
+namespace Tests {
     //Main memory management test.
     //As all tests which affect core features of the kernel, it should be run before initialization
     //of the feature it's testing, to prevent internal kernel configuration smashing.
     void test_memory(const KernelInformation& kinfo);
-
-    //Helper functions
-    void reset_title();
-    void reset_sub_title();
-    void test_title(const char* title);
-    void subtest_title(const char* title);
-    void item_title(const char* title);
-    void test_failure(const char* message); //Displays an error message
 }
 
 #endif
