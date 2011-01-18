@@ -49,8 +49,7 @@ struct DebugRect {
 
 //A window is basically a rectangle with an optional border
 enum DebugWindowBorder {NONE=0, SINGLE, DOUBLE, THICK, BLOCK};
-struct DebugWindow : DebugRect {
-  //For some reason, attributes are not inherited, so I rewrite them here
+struct DebugWindow {
   unsigned int startx;
   unsigned int starty;
   unsigned int endx;

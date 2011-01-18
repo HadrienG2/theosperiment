@@ -104,9 +104,9 @@ namespace Tests {
         return &virmem;
     }
 
-    VirMemManager* test_virmem(VirMemManager& virmem) {
+    bool test_virmem(VirMemManager& virmem) {
         fail_notimpl();
-        return NULL;
+        return false;
     }
 
     bool virinit_check_mapitems(VirMemState* virmem_state) {

@@ -264,7 +264,140 @@ namespace Tests {
         }
         result->free_mapitems = (PhyMemMap*) free_count;
 
+        //Initialize mutex
+        result->mmap_mutex = KernelMutex();
+
         return result;
+    }
+
+    bool cmp_phymem_state(PhyMemManager& current_phymem, PhyMemState* state) {
+        PhyMemState* current_state = (PhyMemState*) &current_phymem;
+
+        //Compare phy_mmap, phy_highmmap, free_lowmem, and free_highmem
+        PhyMemMap* parser1 = current_state->phy_mmap;
+        PhyMemMap* parser2 = state->phy_mmap;
+        PhyMemMap* last_buddy1 = NULL;
+        PhyMemMap* last_buddy2 = NULL;
+        bool more_buddies = false;
+        while(parser1 && parser2) {
+            //Manage phy_highmmap, free_lowmem, and free_highmem
+            if((current_state->phy_highmmap == parser1) || (state->phy_highmmap == parser2)) {
+                if(!((current_state->phy_highmmap == parser1) &&
+                     (state->phy_highmmap == parser2))) {
+                    test_failure("phy_highmmap mismatch");
+                    return false;
+                }
+            }
+            if((current_state->free_lowmem == parser1) || (state->free_lowmem == parser2)) {
+                if(!((current_state->free_lowmem == parser1) &&
+                     (state->free_lowmem == parser2))) {
+                    test_failure("free_lowmem mismatch");
+                    return false;
+                }
+            }
+            if((current_state->free_highmem == parser1) || (state->free_highmem == parser2)) {
+                if(!((current_state->free_highmem == parser1) &&
+                     (state->free_highmem == parser2))) {
+                    test_failure("free_highmem mismatch");
+                    return false;
+                }
+            }
+            //Manage buddies in the simplest case (only free_*mem uses them)
+            if((last_buddy1) && (last_buddy1->next_buddy == parser1)) {
+                if(last_buddy2->next_buddy != parser2) {
+                    test_failure("phy_mmap mismatch");
+                    return false;
+                }
+            }
+            if(parser1->next_buddy) {
+                if(parser2->next_buddy == NULL) {
+                    test_failure("phy_mmap mismatch");
+                    return false;
+                }
+                if(last_buddy1) {
+                    more_buddies = true;
+                } else {
+                    last_buddy1 = parser1;
+                    last_buddy2 = parser2;
+                }
+            }
+            //Check the chunk's other properties
+            if(parser1->location != parser2->location) {
+                test_failure("phy_mmap mismatch");
+                return false;
+            }
+            if(parser1->size != parser2->size) {
+                test_failure("phy_mmap mismatch");
+                return false;
+            }
+            if(parser1->owners != parser2->owners) {
+                test_failure("phy_mmap mismatch");
+                return false;
+            }
+            if(parser1->allocatable != parser2->allocatable) {
+                test_failure("phy_mmap mismatch");
+                return false;
+            }
+            //Go to the next items
+            parser1 = parser1->next_mapitem;
+            parser2 = parser2->next_mapitem;
+        }
+        if(parser1 || parser2) {
+            test_failure("phy_mmap mismatch");
+            return false;
+        }
+        if(last_buddy1) more_buddies = true;
+
+        //More sophisticated buddy management, when needed
+        if(more_buddies) {
+            //Parse the source and dest map, looking for unmanaged buddies.
+            parser1 = current_state->phy_mmap;
+            parser2 = state->phy_mmap;
+            while(parser1) {
+                if(parser1->next_buddy) {
+                    //Parse the source and dest map a second time, looking for the missing buddy
+                    PhyMemMap* buddy_parser1 = current_state->phy_mmap;
+                    PhyMemMap* buddy_parser2 = state->phy_mmap;
+                    while(buddy_parser1) {
+                        if(parser1->next_buddy == buddy_parser1) break;
+                        buddy_parser1 = buddy_parser1->next_mapitem;
+                        buddy_parser2 = buddy_parser2->next_mapitem;
+                    }
+                    if(parser2->next_buddy != buddy_parser2) {
+                        test_failure("phy_mmap mismatch");
+                        return false;
+                    }
+                }
+                parser1 = parser1->next_mapitem;
+                parser2 = parser2->next_mapitem;
+            }
+        }
+
+        //Check free_mapitems
+        PhyMemMap* free_parser = current_state->free_mapitems;
+        PhyMemMap should_be; //Freshly initialized map item, for reference purposes
+        unsigned int free_length = 0;
+        while(free_parser) {
+            should_be.next_buddy = free_parser->next_buddy;
+            if(*free_parser != should_be) {
+                test_failure("free_mapitems mismatch");
+                return false;
+            }
+            ++free_length;
+            free_parser = free_parser->next_buddy;
+        }
+        if(free_length != (addr_t) (state->free_mapitems)) {
+            test_failure("free_mapitems mismatch");
+            return false;
+        }
+
+        //Check mutex
+        if(current_state->mmap_mutex != state->mmap_mutex) {
+            test_failure("mmap_mutex mismatch");
+            return false;
+        }
+
+        return true;
     }
 
     void discard_phymem_state(PhyMemState* saved_state) {

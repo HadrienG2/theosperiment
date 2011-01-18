@@ -15,13 +15,16 @@
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
- 
+
 #include <panic.h>
 #include <dbgstream.h>
 
 const char* PANIC_TITLE = "Oh my god, it sounds like the kernel just died !";
-const char* PANIC_SHARING_NONEXISTENT = "MemAllocator : Cannot share non-existent object";
+
+const char* PANIC_MM_UNINITIALIZED = "MemAllocator : Called memory management functions while \
+memory management itself was not initialized yet";
 const char* PANIC_OUT_OF_MEMORY = "MemAllocator : Out of memory";
+const char* PANIC_SHARING_NONEXISTENT = "MemAllocator : Cannot share non-existent object";
 
 void panic(const char* error_message) {
     dbgout << bkgcolor(BKG_PURPLE);

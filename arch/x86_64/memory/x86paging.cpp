@@ -129,10 +129,10 @@ namespace x86paging {
         return cr3 & 0x000ffffffffff000;
     }
 
-    uint64_t remove_paging(uint64_t vir_addr,
-                           const uint64_t size,
-                           uint64_t pml4t_location,
-                           PhyMemManager* phymem) {
+    bool remove_paging(uint64_t vir_addr,
+                       const uint64_t size,
+                       uint64_t pml4t_location,
+                       PhyMemManager* phymem) {
         uint64_t additional_params[1] = {(uint64_t) phymem};
         return paging_parser(vir_addr,
                             size,

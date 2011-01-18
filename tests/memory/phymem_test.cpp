@@ -215,15 +215,18 @@ namespace Tests {
         return &phymem;
     }
 
-    PhyMemManager* test_phymem(PhyMemManager& phymem) {
+    bool test_phymem(PhyMemManager& phymem) {
         reset_sub_title();
         subtest_title("Page allocation");
-        if(!phy_test_pagealloc(phymem)) return NULL;
+        PhyMemMap* allocd_page = phy_test_pagealloc(phymem);
+        if(!allocd_page) return false;
 
-        return &phymem;
+        subtest_title("Page freeing");
+        fail_notimpl();
+        return false;
     }
 
-    PhyMemManager* phy_test_pagealloc(PhyMemManager& phymem) {
+    PhyMemMap* phy_test_pagealloc(PhyMemManager& phymem) {
         item_title("Save PhyMemManager state");
         PhyMemState* saved_state = save_phymem_state(phymem);
         if(!saved_state) return NULL;
@@ -265,7 +268,33 @@ namespace Tests {
             return NULL;
         }
 
-        fail_notimpl();
-        return NULL;
+        //                General state-checking principles :
+        //After checking whether a modification is done the right way, we modify
+        //the saved state in exactly the same way. In the end, to check that nothing else has
+        //changed, we just have to compare the (modified) saved state with phymem's current state.
+        item_title("Check modifications to the PhyMemManager's state");
+        if(allocd_page->location != saved_state->free_highmem->location) {
+            test_failure("The page was not allocated in an initially free space");
+            return NULL;
+        }
+        PhyMemMap buffer;
+        if(saved_state->free_highmem->size == PG_SIZE) {
+            saved_state->free_highmem->add_owner(PID_KERNEL);
+            saved_state->free_highmem = saved_state->free_highmem->next_buddy;
+        } else {
+            buffer = *(saved_state->free_highmem);
+            buffer.size-= PG_SIZE;
+            buffer.location+= PG_SIZE;
+            saved_state->free_highmem->size = PG_SIZE;
+            saved_state->free_highmem->add_owner(PID_KERNEL);
+            saved_state->free_highmem->next_buddy = NULL;
+            saved_state->free_highmem->next_mapitem = &buffer;
+            saved_state->free_highmem = &buffer;
+            saved_state->free_mapitems = (PhyMemMap*) ((addr_t) (saved_state->free_mapitems) - 1);
+        }
+        if(!cmp_phymem_state(phymem, saved_state)) return NULL;
+        discard_phymem_state(saved_state);
+
+        return allocd_page;
     }
 }

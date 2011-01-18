@@ -28,10 +28,11 @@ namespace Tests {
     //Main tests
     bool meta_phymem(); //Check PhyMemManager version
     PhyMemManager* init_phymem(const KernelInformation& kinfo); //Initialize a PhyMemManager object
-    PhyMemManager* test_phymem(PhyMemManager& phymem); //Test PhyMemManager
+    bool test_phymem(PhyMemManager& phymem); //Test PhyMemManager
 
     //PhyMemManager individual tests
-    PhyMemManager* phy_test_pagealloc(PhyMemManager& phymem);
+    PhyMemMap* phy_test_pagealloc(PhyMemManager& phymem);
+    bool phy_test_pagefree(PhyMemManager& phymem, PhyMemMap* allocd_page);
 }
 
 #endif
