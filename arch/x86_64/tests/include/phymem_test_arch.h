@@ -48,9 +48,12 @@ namespace Tests {
     //...and then check that those pages have been allocated properly during virmem initialization
     bool check_twopg_freemem(PhyMemManager& phymem, PhyMemMap* free_phy_mem);
 
-    //Helper functions
-    PhyMemState* save_phymem_state(PhyMemManager& phymem); //Only one saved state at a time in this
-    void discard_phymem_state(PhyMemState* saved_state);   //version of the test suite.
+    //State management functions
+    PhyMemState* save_phymem_state(PhyMemManager& phymem); //Save phymem's internal state
+    bool cmp_phymem_state(PhyMemManager& current_phymem, //Compare phymem's state to a saved state
+                          PhyMemState* state);           //returns true if it's the same, displays
+                                                         //why and returns false otherwise
+    void discard_phymem_state(PhyMemState* saved_state); //Discards a saved state
 }
 
 #endif

@@ -44,8 +44,8 @@ class MemAllocator {
         KernelMutex knl_mutex; //Hold that mutex when parsing or modifying the kernel maps
 
         //Support functions
-        addr_t alloc_mapitems(); //Get some memory map storage space
-        addr_t alloc_listitems(); //Get some map list storage space
+        bool alloc_mapitems(); //Get some memory map storage space
+        bool alloc_listitems(); //Get some map list storage space
         addr_t allocator(const addr_t size,
                          MallocPIDList* target,
                          const VirMemFlags flags,
@@ -55,7 +55,7 @@ class MemAllocator {
                                    const VirMemFlags flags,
                                    const bool force);
         void liberate_memory();
-        addr_t liberator(const addr_t location, MallocPIDList* target);
+        bool liberator(const addr_t location, MallocPIDList* target);
         addr_t share(const addr_t location,
                      const MallocPIDList* source,
                      MallocPIDList* target,
@@ -63,7 +63,7 @@ class MemAllocator {
                      const bool force);
         addr_t knl_allocator(const addr_t size, const bool force);
         addr_t knl_allocator_shareable(addr_t size, const bool force);
-        addr_t knl_liberator(const addr_t location);
+        bool knl_liberator(const addr_t location);
         addr_t share_from_knl(const addr_t location,
                               MallocPIDList* target,
                               const VirMemFlags flags,
@@ -74,7 +74,7 @@ class MemAllocator {
         MallocPIDList* find_or_create_pid(PID target,  //Same as above, but try to create the entry
                                           bool force); //if it does not exist yet
         MallocPIDList* setup_pid(PID target); //Create management structures for a new PID
-        MallocPIDList* remove_pid(PID target); //Discards management structures for this PID
+        bool remove_pid(PID target); //Discards management structures for this PID
     public:
         MemAllocator(PhyMemManager& physmem, VirMemManager& virtmem);
 
@@ -93,7 +93,7 @@ class MemAllocator {
 
         //Free previously allocated memory. Returns 0 if location or process does not exist,
         //location otherwise
-        addr_t free(const addr_t location, PID target);
+        bool free(const addr_t location, PID target);
 
         //Give another process access to that data under the limits of "flags".
         //Note that by doing so, the current owner loses property of that data : free will only
@@ -125,7 +125,7 @@ void* kalloc_shareable(addr_t size,
                        PID target = PID_KERNEL,
                        const VirMemFlags flags = VMEM_FLAGS_RW,
                        const bool force = false);
-void* kfree(const void* location, PID target = PID_KERNEL);
+bool kfree(const void* location, PID target = PID_KERNEL);
 void* kowneradd(const void* location,
                 const PID source,
                 PID target,

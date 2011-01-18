@@ -173,7 +173,7 @@ class DebugOutput {
         void clear_oldwindow(const DebugWindow old_window,  //Clear what remains of an old window
                              const DebugWindow new_window); //after a new one has been drawn
         void clear_rect(const DebugRect rect); //Clear the contents of a rectangle on screen
-        void clear_window() {clear_rect(window); col=0; row=0;} //Clear the current window
+        void clear_window() {clear_rect((DebugRect&) window); col=0; row=0;} //Clear the current window
         void copy_rect(const DebugRect rect,    //Copy the contents of a specified rectangle
                        unsigned int dest_col,   //somewhere else on the screen.
                        unsigned int dest_row);  //Overlap allowed.

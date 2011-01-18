@@ -7,9 +7,11 @@ This file is made in order to help you know what those are and where they are lo
    (in arch/x86_64/bootstrap/bs_multiboot.s)
 *** Module size ***
 -> The kernel is loaded at virtual address 1GB. Therefore, kernel and all modules combined should be smaller than 1GB.
+-> This also means that processes must be smaller than 1GB initially, since the kernel is memory-mapped in all address spaces.
+   This limit does not apply to dynamically allocated memory.
    (in support/kernel_linker.lds)
 *** Page size ***
--> Currently, all pages are of the same size : 4KB
+-> Currently, all pages are of the same size : 4KB.
    (in build_all.sh, arch/x86_64/bootstrap/bs_multiboot.s, support/*.lds and include/align.h)
 *** Kernel memory map ***
 -> In the x86_64 bootstrap kernel, memory map can't be more than 512 entries long.

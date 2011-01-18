@@ -29,7 +29,7 @@ namespace Tests {
     //Main tests
     bool meta_virmem(); //Check VirMemManager version
     VirMemManager* init_virmem(PhyMemManager& phymem);
-    VirMemManager* test_virmem(VirMemManager& virmem);
+    bool test_virmem(VirMemManager& virmem);
 
     //Auxiliary functions
     bool virinit_check_mapitems(VirMemState* virmem_state);

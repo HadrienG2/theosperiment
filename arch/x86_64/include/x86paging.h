@@ -67,10 +67,10 @@ namespace x86paging {
 
     uint64_t get_pml4t(); //Return address of the current PML4T
 
-    uint64_t remove_paging(uint64_t vir_addr,  //Remove page translations in a virtual address range
-                           const uint64_t size,
-                           uint64_t pml4t_location,
-                           PhyMemManager* phymem);
+    bool remove_paging(uint64_t vir_addr,  //Remove page translations in a virtual address range
+                       const uint64_t size,
+                       uint64_t pml4t_location,
+                       PhyMemManager* phymem);
 
     uint64_t setup_4kpages(uint64_t vir_addr,          //Setup paging structures for 4KB paging in
                            const uint64_t size,        //a virtual address range.

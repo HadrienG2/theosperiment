@@ -43,7 +43,7 @@ namespace Tests {
     //Main tests
     bool meta_mallocator(); //Check MemAllocator version
     MemAllocator* init_mallocator(PhyMemManager& phymem, VirMemManager& virmem);
-    MemAllocator* test_mallocator(MemAllocator& mallocator);
+    bool test_mallocator(MemAllocator& mallocator);
 
     //Auxiliary functions
     bool malinit_check_mapitems(MemAllocatorState* mallocator_state);

@@ -52,16 +52,13 @@ namespace Tests {
         MemAllocator& mallocator = *mallocator_ptr;
 
         test_title("PhyMemManager");
-        phymem_ptr = test_phymem(phymem);
-        if(!phymem_ptr) return;
+        if(!test_phymem(phymem)) return;
 
         test_title("VirMemManager");
-        virmem_ptr = test_virmem(virmem);
-        if(!virmem_ptr) return;
+        if(!test_virmem(virmem)) return;
 
         test_title("MemAllocator");
-        mallocator_ptr = test_mallocator(mallocator);
-        if(!mallocator_ptr) return;
+        if(!test_mallocator(mallocator)) return;
 
         dbgout << "All tests were successfully completed !" << endl;
     }

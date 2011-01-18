@@ -54,24 +54,24 @@ class VirMemManager {
         addr_t knl_r_loc;
         addr_t knl_rw_loc;
         //Support methods
-        addr_t alloc_mapitems(); //Get some memory map storage space
-        addr_t alloc_listitems(); //Get some map list storage space
-        VirMemMap* chunk_liberator(VirMemMap* chunk);
+        bool alloc_mapitems(); //Get some memory map storage space
+        bool alloc_listitems(); //Get some map list storage space
         VirMemMap* chunk_mapper(const PhyMemMap* phys_chunk,
                                 const VirMemFlags flags,
                                 VirMapList* target,
                                 addr_t location = NULL);
+        bool chunk_liberator(VirMemMap* chunk);
         VirMapList* find_pid(const PID target); //Find the map list entry associated to this PID,
                                                 //return NULL if it does not exist.
         VirMapList* find_or_create_pid(PID target); //Same as above, but try to create the entry
                                                     //if it does not exist yet
         VirMapList* setup_pid(PID target); //Create management structures for a new PID
-        VirMapList* remove_pid(PID target); //Discards management structures for this PID
-        VirMemMap* flag_adjust(VirMemMap* chunk,        //Adjust the paging flags associated with a
-                               const VirMemFlags flags, //chunk.
-                               const VirMemFlags mask,
-                               VirMapList* target);
-        addr_t remove_all_paging(VirMapList* target);
+        bool remove_pid(PID target); //Discards management structures for this PID
+        bool flag_adjust(VirMemMap* chunk,        //Adjust the paging flags associated with a
+                         const VirMemFlags flags, //chunk.
+                         const VirMemFlags mask,
+                         VirMapList* target);
+        bool remove_all_paging(VirMapList* target);
         uint64_t x86flags(VirMemFlags flags); //Converts VirMemFlags to x86 paging flags
     public:
         //Constructor gets the current layout of paged memory, setup management structures
@@ -83,11 +83,11 @@ class VirMemManager {
                        const VirMemFlags flags = VMEM_FLAGS_RW);
 
         //Destroy a chunk of virtual memory
-        VirMemMap* free(VirMemMap* chunk);
+        bool free(VirMemMap* chunk);
 
         //Change a chunk's flags (including in page tables, of course)
-        VirMemMap* adjust_flags(VirMemMap* chunk, const VirMemFlags flags, const VirMemFlags mask);
-        VirMemMap* set_flags(VirMemMap* chunk, const VirMemFlags flags) {
+        bool adjust_flags(VirMemMap* chunk, const VirMemFlags flags, const VirMemFlags mask);
+        bool set_flags(VirMemMap* chunk, const VirMemFlags flags) {
             return adjust_flags(chunk, flags, ~0);
         }
 

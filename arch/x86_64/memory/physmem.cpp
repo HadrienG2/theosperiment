@@ -1,6 +1,6 @@
  /* Physical memory management, ie managing pages of RAM
 
-    Copyright (C) 2010    Hadrien Grasland
+    Copyright (C) 2010-2011    Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,13 +21,13 @@
 
 #include <dbgstream.h>
 
-addr_t PhyMemManager::alloc_mapitems() {
+bool PhyMemManager::alloc_mapitems() {
     addr_t remaining_freemem, used_space;
     PhyMemMap *allocated_mem, *current_item, *free_mem = NULL;
 
     //Find an available chunk of memory
     allocated_mem = free_highmem;
-    if(!allocated_mem) return NULL;
+    if(!allocated_mem) return false;
 
     //We only need one page in this chunk : adjust the properties of the chunk we just found
     remaining_freemem = allocated_mem->size - PG_SIZE;
@@ -66,7 +66,7 @@ addr_t PhyMemManager::alloc_mapitems() {
     }
     allocated_mem->next_buddy = NULL;
 
-    return allocated_mem->location;
+    return true;
 }
 
 PhyMemMap* PhyMemManager::page_allocator(const PID initial_owner, PhyMemMap* map_used) {
@@ -167,7 +167,8 @@ PhyMemMap* PhyMemManager::chunk_allocator(const addr_t size,
 
         //If the newly allocated chunk follows the previous one, merge them together
         if(current_item->location == previous_item->location+previous_item->size) {
-            current_item = merge_with_next(previous_item);
+            merge_with_next(previous_item);
+            current_item = previous_item;
         }
     }
 
@@ -251,13 +252,18 @@ PhyMemMap* PhyMemManager::resvchunk_allocator(const addr_t location, const PID i
     if(requested_chunk &&
        (requested_chunk->allocatable == 0) &&
        (requested_chunk->owners[0] == PID_NOBODY)) {
-        return chunk_owneradd(requested_chunk, initial_owner);
+        bool result = chunk_owneradd(requested_chunk, initial_owner);
+        if(result) {
+            return requested_chunk;
+        } else {
+            return NULL;
+        }
     } else {
         return NULL;
     }
 }
 
-PhyMemMap* PhyMemManager::chunk_liberator(PhyMemMap* chunk) {
+bool PhyMemManager::chunk_liberator(PhyMemMap* chunk) {
     PhyMemMap *current_item, *next_item = chunk, *free_item;
 
     //Now let's free all memory map items in the chunk
@@ -314,10 +320,10 @@ PhyMemMap* PhyMemManager::chunk_liberator(PhyMemMap* chunk) {
         }
     } while(next_item);
 
-    return chunk;
+    return true;
 }
 
-PhyMemMap* PhyMemManager::chunk_owneradd(PhyMemMap* chunk, const PID new_owner) {
+bool PhyMemManager::chunk_owneradd(PhyMemMap* chunk, const PID new_owner) {
     unsigned int result;
     PhyMemMap* current_item = chunk;
 
@@ -334,13 +340,13 @@ PhyMemMap* PhyMemManager::chunk_owneradd(PhyMemMap* chunk, const PID new_owner) 
             parser->del_owner(new_owner);
             parser = parser->next_buddy;
         }
-        return NULL;
+        return false;
     }
 
-    return chunk;
+    return true;
 }
 
-PhyMemMap* PhyMemManager::chunk_ownerdel(PhyMemMap* chunk, const PID former_owner) {
+bool PhyMemManager::chunk_ownerdel(PhyMemMap* chunk, const PID former_owner) {
     PhyMemMap* current_item = chunk;
     do {
         current_item->del_owner(former_owner);
@@ -348,10 +354,10 @@ PhyMemMap* PhyMemManager::chunk_ownerdel(PhyMemMap* chunk, const PID former_owne
     } while(current_item);
     if(chunk->owners[0] == PID_NOBODY) chunk_liberator(chunk);
 
-    return chunk;
+    return true;
 }
 
-PhyMemMap* PhyMemManager::merge_with_next(PhyMemMap* first_item) {
+void PhyMemManager::merge_with_next(PhyMemMap* first_item) {
     PhyMemMap* next_item = first_item->next_mapitem;
 
     //We assume that the first element and his neighbour are really identical.
@@ -363,8 +369,6 @@ PhyMemMap* PhyMemManager::merge_with_next(PhyMemMap* first_item) {
     *next_item = PhyMemMap();
     next_item->next_buddy = free_mapitems;
     free_mapitems = next_item;
-
-    return first_item;
 }
 
 void PhyMemManager::killer(PID target) {
@@ -604,8 +608,8 @@ PhyMemMap* PhyMemManager::alloc_resvchunk(const addr_t location, const PID initi
     return result;
 }
 
-PhyMemMap* PhyMemManager::free(PhyMemMap* chunk) {
-    PhyMemMap *result;
+bool PhyMemManager::free(PhyMemMap* chunk) {
+    bool result;
 
     mmap_mutex.grab_spin();
 
@@ -616,25 +620,26 @@ PhyMemMap* PhyMemManager::free(PhyMemMap* chunk) {
     return result;
 }
 
-PhyMemMap* PhyMemManager::free(addr_t chunk_beginning) {
-    PhyMemMap *result, *chunk;
+bool PhyMemManager::free(addr_t chunk_beginning) {
+    bool result;
+    PhyMemMap* chunk;
 
     mmap_mutex.grab_spin();
 
         chunk = phy_mmap->find_thischunk(chunk_beginning);
         if(!chunk) {
             mmap_mutex.release();
-            return NULL;
+            return false;
         }
         result = chunk_liberator(chunk);
 
     mmap_mutex.release();
 
-    return result;
+    return true;
 }
 
-PhyMemMap* PhyMemManager::owneradd(PhyMemMap* chunk, const PID new_owner) {
-    PhyMemMap *result;
+bool PhyMemManager::owneradd(PhyMemMap* chunk, const PID new_owner) {
+    bool result;
 
     mmap_mutex.grab_spin();
 
@@ -646,8 +651,8 @@ PhyMemMap* PhyMemManager::owneradd(PhyMemMap* chunk, const PID new_owner) {
 }
 
 
-PhyMemMap* PhyMemManager::ownerdel(PhyMemMap* chunk, const PID former_owner) {
-    PhyMemMap *result;
+bool PhyMemManager::ownerdel(PhyMemMap* chunk, const PID former_owner) {
+    bool result;
 
     mmap_mutex.grab_spin();
 

@@ -92,9 +92,9 @@ namespace Tests {
         return &mallocator;
     }
 
-    MemAllocator* test_mallocator(MemAllocator& mallocator) {
+    bool test_mallocator(MemAllocator& mallocator) {
         fail_notimpl();
-        return NULL;
+        return false;
     }
 
     bool malinit_check_mapitems(MemAllocatorState* mallocator_state) {
