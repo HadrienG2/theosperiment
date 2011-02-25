@@ -57,7 +57,7 @@ class MemAllocator {
         void liberate_memory();
         bool liberator(const addr_t location, MallocPIDList* target);
         addr_t share(const addr_t location,
-                     const MallocPIDList* source,
+                     MallocPIDList* source,
                      MallocPIDList* target,
                      const VirMemFlags flags,
                      const bool force);
@@ -68,7 +68,7 @@ class MemAllocator {
                               MallocPIDList* target,
                               const VirMemFlags flags,
                               const bool force);
-        addr_t share_to_knl(const addr_t location, const MallocPIDList* source, const bool force);
+        addr_t share_to_knl(const addr_t location, MallocPIDList* source, const bool force);
         MallocPIDList* find_pid(const PID target); //Find the map list entry associated to this PID,
                                                    //return NULL if it does not exist.
         MallocPIDList* find_or_create_pid(PID target,  //Same as above, but try to create the entry
@@ -100,7 +100,7 @@ class MemAllocator {
         //remove his right to access the data, and not the data itself.
         //Also, always allocate data used for this with malloc_shareable.
         addr_t owneradd(const addr_t location,
-                        const PID source,
+                        PID source,
                         PID target,
                         const VirMemFlags flags = VMEM_FLAGS_RW,
                         const bool force = false);

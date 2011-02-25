@@ -62,13 +62,13 @@ multiboot_entry:
   sub  $0x1000, %esp
 
   /* Reset EFLAGS. */
-  pushl $0
+  push $0
   popf
 
   /* Push the pointer to the Multiboot information structure. */
-  pushl %eax
+  push %eax
   /* Push the magic value. */
-  pushl %ebx
+  push %ebx
 
   /* Now enter the C main function... */
   call  bootstrap_longmode

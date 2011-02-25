@@ -10,17 +10,17 @@ cpuid_check:
   mov   %ebx, (tmp_ebx)
   mov   %esp, %ebp
 
-  pushfl
+  pushf
   pop   %eax
   mov   %eax, %ebx
   xor   $0x00200000, %eax
   push  %eax
-  popfl
-  pushfl
+  popf
+  pushf
   pop   %eax
   cmp   %ebx, %eax
   jz    no_cpuid
-  movl  $1, %eax
+  mov  $1, %eax
 
 return:
   /* End of the function */

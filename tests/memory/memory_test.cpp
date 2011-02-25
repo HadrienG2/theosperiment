@@ -16,19 +16,15 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include <align.h>
 #include <malloc_test.h>
 #include <memory_test.h>
 #include <phymem_test.h>
 #include <test_display.h>
 #include <virmem_test.h>
 
-#include <dbgstream.h>
-
 namespace Tests {
     void test_memory(const KernelInformation& kinfo) {
-        dbgout << set_window(screen_win);
-        dbgout << endl << "Beginning memory management testing..." << endl;
+        test_beginning("Memory Management");
 
         reset_title();
         test_title("Initialization");
@@ -60,6 +56,6 @@ namespace Tests {
         test_title("MemAllocator");
         if(!test_mallocator(mallocator)) return;
 
-        dbgout << "All tests were successfully completed !" << endl;
+        test_success();
     }
 }

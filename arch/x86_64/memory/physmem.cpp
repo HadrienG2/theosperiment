@@ -69,55 +69,10 @@ bool PhyMemManager::alloc_mapitems() {
     return true;
 }
 
-PhyMemMap* PhyMemManager::page_allocator(const PID initial_owner, PhyMemMap* map_used) {
-    addr_t remaining_freemem;
-    PhyMemMap *allocated_mem, *free_mem = NULL;
-
-    //Grab some management structure storage space if needed
-    if(!free_mapitems) {
-        if(!alloc_mapitems()) return NULL; //Memory is full
-    }
-
-    //Find a free region of memory of at least one page (means any free region of memory since
-    //our map of memory has its locations and sizes page-aligned)
-    if(map_used == phy_highmmap) {
-        allocated_mem = free_highmem;
-    } else {
-        allocated_mem = free_lowmem;
-    }
-    if(!allocated_mem) return NULL;
-
-    //We only need one page in this chunk : adjust the properties of the chunk we just found
-    remaining_freemem = allocated_mem->size - PG_SIZE;
-    allocated_mem->size = PG_SIZE;
-    allocated_mem->add_owner(initial_owner);
-
-    //Adjust memory chunks properties and allocate new memory map item if needed
-    if(remaining_freemem) {
-        free_mem = free_mapitems;
-        free_mapitems = free_mapitems->next_buddy;
-        *free_mem = PhyMemMap();
-        free_mem->location = allocated_mem->location+PG_SIZE;
-        free_mem->size = remaining_freemem;
-        free_mem->next_mapitem = allocated_mem->next_mapitem;
-        free_mem->next_buddy = allocated_mem->next_buddy;
-        allocated_mem->next_mapitem = free_mem;
-    }
-
-    //Update information about free memory
-    if(map_used == phy_highmmap) {
-        if(free_mem) free_highmem = free_mem; else free_highmem = allocated_mem->next_buddy;
-    } else {
-        if(free_mem) free_lowmem = free_mem; else free_lowmem = allocated_mem->next_buddy;
-    }
-    allocated_mem->next_buddy = NULL;
-
-    return allocated_mem;
-}
-
-PhyMemMap* PhyMemManager::chunk_allocator(const addr_t size,
-                                          const PID initial_owner,
-                                          PhyMemMap* map_used) {
+PhyMemMap* PhyMemManager::chunk_allocator(const PID initial_owner,
+                                          const addr_t size,
+                                          PhyMemMap* map_used,
+                                          bool contiguous) {
     addr_t remaining_freemem = 0, to_be_allocd = 0;
     PhyMemMap *free_mem = NULL, *current_item, *previous_item, *result;
 
@@ -126,11 +81,24 @@ PhyMemMap* PhyMemManager::chunk_allocator(const addr_t size,
         if(!alloc_mapitems()) return NULL; //Memory is full
     }
 
-    //Allocate a chunk of memory in current_item
-    if(map_used == phy_highmmap) {
-        current_item = free_highmem;
+    //Put a suitable chunk of memory in current_item. This is the part which differs between
+    //contiguous and non-contiguous chunks : for contiguous chunks, we look for a chunk of free
+    //memory of the right size (even if it's fragmented). For non-contiguous chunks size does not
+    //matter, as long as the buddies are large enough (hmmm...).
+    if(!contiguous) {
+        if(map_used == phy_highmmap) {
+            current_item = free_highmem;
+        } else {
+            current_item = free_lowmem;
+        }
     } else {
-        current_item = free_lowmem;
+        if(map_used == phy_highmmap) {
+            if(!free_highmem) return NULL;
+            current_item = free_highmem->find_contigchunk(size);
+        } else {
+            if(!free_lowmem) return NULL;
+            current_item = free_lowmem->find_contigchunk(size);
+        }
     }
     if(!current_item) return NULL;
     current_item->add_owner(initial_owner);
@@ -196,57 +164,8 @@ PhyMemMap* PhyMemManager::chunk_allocator(const addr_t size,
     return result;
 }
 
-PhyMemMap* PhyMemManager::contigchunk_allocator(const addr_t requested_size,
-                                                const PID initial_owner,
-                                                PhyMemMap* map_used) {
-    addr_t remaining_freemem = 0;
-    PhyMemMap *result, *new_chunk = NULL;
-
-    //Make sure there's space for storing a new memory map item
-    if(!free_mapitems) {
-        return NULL; //Memory is full
-    }
-
-    //Find a large enough chunk of memory (if any)
-    if(map_used == phy_highmmap) {
-        if(!free_highmem) return NULL;
-        result = free_highmem->find_contigchunk(requested_size);
-    } else {
-        if(!free_lowmem) return NULL;
-        result = free_lowmem->find_contigchunk(requested_size);
-    }
-    if(!result) return NULL;
-    while(result->size < requested_size) merge_with_next(result); //find_contigchunk finds things,
-                                                                  //but it does not automatically
-                                                                  //remove chunk fragmentation.
-    result->add_owner(initial_owner);
-    remaining_freemem = result->size - requested_size;
-
-    //Check if we allocated too much memory, and if so correct this
-    if(remaining_freemem) {
-        result->size-= remaining_freemem;
-        new_chunk = free_mapitems;
-        free_mapitems = free_mapitems->next_buddy;
-        *new_chunk = PhyMemMap();
-        new_chunk->location = result->location+result->size;
-        new_chunk->size = remaining_freemem;
-        new_chunk->next_mapitem = result->next_mapitem;
-        new_chunk->next_buddy = result->next_buddy;
-        result->next_mapitem = new_chunk;
-    }
-
-    //Update free memory information
-    if(map_used == phy_highmmap) {
-        if(new_chunk) free_highmem = new_chunk; else free_highmem = result->next_buddy;
-    } else {
-        if(new_chunk) free_lowmem = new_chunk; else free_lowmem = result->next_buddy;
-    }
-    result->next_buddy = NULL;
-
-    return result;
-}
-
-PhyMemMap* PhyMemManager::resvchunk_allocator(const addr_t location, const PID initial_owner) {
+PhyMemMap* PhyMemManager::resvchunk_allocator(const PID initial_owner,
+                                              const addr_t location) {
     PhyMemMap* requested_chunk = phy_mmap->find_thischunk(location);
 
     if(requested_chunk &&
@@ -547,8 +466,6 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
         current_item->next_mapitem = NULL;
         current_item = current_item->next_buddy;
     }
-    if(!free_mapitems) alloc_mapitems(); //If there are no free map items after initialization,
-                                         //have some ready to use
 
     //Locate the beginning of high memory and separate free low memory chunk from
     //free high memory chunk.
@@ -562,6 +479,16 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
     free_highmem = last_free->next_buddy;
     last_free->next_buddy = NULL;
     phy_highmmap = current_item;
+
+    //Allocate extra map items right away so that we don't need some more too soon
+    PhyMemMap* free_mapitems_backup = free_mapitems;
+    alloc_mapitems();
+    if(free_mapitems_backup) {
+        current_item = free_mapitems_backup;
+        while(current_item->next_buddy) current_item = current_item->next_buddy;
+        current_item->next_buddy = free_mapitems;
+        free_mapitems = free_mapitems_backup;
+    }
 }
 
 PhyMemMap* PhyMemManager::alloc_page(const PID initial_owner) {
@@ -569,40 +496,32 @@ PhyMemMap* PhyMemManager::alloc_page(const PID initial_owner) {
 
     mmap_mutex.grab_spin();
 
-        result = page_allocator(initial_owner, phy_highmmap);
+        result = chunk_allocator(initial_owner, PG_SIZE, phy_highmmap);
 
     mmap_mutex.release();
     return result;
 }
 
-PhyMemMap* PhyMemManager::alloc_chunk(const addr_t size, const PID initial_owner) {
+PhyMemMap* PhyMemManager::alloc_chunk(const PID initial_owner, const addr_t size, bool contiguous) {
     PhyMemMap* result;
 
     mmap_mutex.grab_spin();
 
-        result = chunk_allocator(align_pgup(size), initial_owner, phy_highmmap);
+        result = chunk_allocator(initial_owner,
+                                 align_pgup(size),
+                                 phy_highmmap,
+                                 contiguous);
 
     mmap_mutex.release();
     return result;
 }
 
-PhyMemMap* PhyMemManager::alloc_contigchunk(const addr_t size, const PID initial_owner) {
+PhyMemMap* PhyMemManager::alloc_resvchunk(const PID initial_owner, const addr_t location) {
     PhyMemMap* result;
 
     mmap_mutex.grab_spin();
 
-        result = contigchunk_allocator(align_pgup(size), initial_owner, phy_highmmap);
-
-    mmap_mutex.release();
-    return result;
-}
-
-PhyMemMap* PhyMemManager::alloc_resvchunk(const addr_t location, const PID initial_owner) {
-    PhyMemMap* result;
-
-    mmap_mutex.grab_spin();
-
-        result = resvchunk_allocator(location, initial_owner);
+        result = resvchunk_allocator(initial_owner, location);
 
     mmap_mutex.release();
     return result;
@@ -694,7 +613,7 @@ PhyMemMap* PhyMemManager::alloc_lowpage(const PID initial_owner) {
         lowmem_end->next_mapitem = NULL;
 
         //Do the allocation job
-        result = page_allocator(initial_owner, phy_mmap);
+        result = chunk_allocator(initial_owner, PG_SIZE, phy_mmap);
 
         //Make high memory come back
         lowmem_end->next_mapitem = phy_highmmap;
@@ -704,7 +623,9 @@ PhyMemMap* PhyMemManager::alloc_lowpage(const PID initial_owner) {
     return result;
 }
 
-PhyMemMap* PhyMemManager::alloc_lowchunk(const addr_t size, const PID initial_owner) {
+PhyMemMap* PhyMemManager::alloc_lowchunk(const PID initial_owner,
+                                         const addr_t size,
+                                         bool contiguous) {
     PhyMemMap *result, *lowmem_end = phy_mmap;
 
     mmap_mutex.grab_spin();
@@ -715,28 +636,7 @@ PhyMemMap* PhyMemManager::alloc_lowchunk(const addr_t size, const PID initial_ow
         lowmem_end->next_mapitem = NULL;
 
         //Do the allocation job
-        result = chunk_allocator(align_pgup(size), initial_owner, phy_mmap);
-
-        //Make high memory come back
-        lowmem_end->next_mapitem = phy_highmmap;
-
-    mmap_mutex.release();
-
-    return result;
-}
-
-PhyMemMap* PhyMemManager::alloc_lowcontigchunk(const addr_t size, const PID initial_owner) {
-    PhyMemMap *result, *lowmem_end = phy_mmap;
-
-    mmap_mutex.grab_spin();
-
-        //Find the end of low memory
-        while(lowmem_end->next_mapitem!=phy_highmmap) lowmem_end = lowmem_end->next_mapitem;
-        //Temporarily make high memory disappear
-        lowmem_end->next_mapitem = NULL;
-
-        //Do the allocation job
-        result = contigchunk_allocator(align_pgup(size), initial_owner, phy_mmap);
+        result = chunk_allocator(initial_owner, align_pgup(size), phy_mmap, contiguous);
 
         //Make high memory come back
         lowmem_end->next_mapitem = phy_highmmap;

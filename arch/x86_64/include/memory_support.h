@@ -40,14 +40,17 @@ struct PhyMemMap {
                           //It should NOT be the case with memory-mapped I/O, as an example.
     PhyMemMap* next_buddy;
     PhyMemMap* next_mapitem;
-    uint64_t padding;
+    uint32_t shareable; //Boolean. Indicates that the content of the page has been allocated in a
+                        //specific way which makes it suitable for sharing between processes.
+    uint32_t padding;
     uint64_t padding2;
     PhyMemMap() : location(0),
                   size(0),
                   owners(PID_NOBODY),
                   allocatable(true),
                   next_buddy(NULL),
-                  next_mapitem(NULL) {};
+                  next_mapitem(NULL),
+                  shareable(false) {};
     //This mirrors the member functions of "owners"
     unsigned int add_owner(const PID new_owner) {return owners.add_pid(new_owner);}
     void clear_owners() {owners.clear_pids();}
@@ -92,7 +95,8 @@ struct VirMemMap {
     PhyMemMap* points_to; //Physical memory chunk this virtual memory chunk points to
     VirMemMap* next_buddy;
     VirMemMap* next_mapitem;
-    uint32_t padding;
+    uint32_t shareable; //Boolean. Indicates that the content of the page has been allocated in a
+                        //specific way which makes it suitable for sharing between processes.
     uint64_t padding2;
     VirMemMap() : location(0),
                   size(0),
@@ -100,7 +104,8 @@ struct VirMemMap {
                   owner(NULL),
                   points_to(NULL),
                   next_buddy(NULL),
-                  next_mapitem(NULL) {};
+                  next_mapitem(NULL),
+                  shareable(false) {};
     //Algorithms finding things in or about the map
     VirMemMap* find_thischunk(const addr_t location) const;
     unsigned int length() const;

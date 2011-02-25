@@ -1,6 +1,7 @@
- /* Some symbols which must be defined for C++ code to work, even though we don't need them
+ /* Equivalent of cstring (aka string.h), but not a full implementation. Manipulates chunks of RAM,
+    and maybe C-style strings and array in the future.
 
-    Copyright (C) 2010  Hadrien Grasland
+      Copyright (C) 2011  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,18 +17,11 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-//Support code for shared libraries. We're not coding a shared library, so these are stubs
-extern "C" {
-    void *__dso_handle;
-    void __cxa_atexit() {
-        
-    }
-}
+#ifndef _KSTRING_H_
+#define _KSTRING_H_
 
-//What happens where a pure virtual function is called ? Nothing.
-extern "C" {
-    void __cxa_pure_virtual()
-    {
+#include <address.h>
 
-    }
-}
+void* memcpy(void* destination, const void* source, addr_t num);
+
+#endif

@@ -71,13 +71,23 @@ namespace Tests {
         dbgout << "    * " << title << endl;
     }
 
+    void test_beginning(const char* component_name) {
+        dbgout << set_window(screen_win);
+        dbgout << "Beginning " << component_name << " testing..." << endl;
+    }
+
+    void test_success() {
+        dbgout << txtcolor(TXT_LIGHTGREEN) << "All tests were successfully completed !" << endl;
+        dbgout << txtcolor(TXT_LIGHTGRAY) << endl;
+    }
+
     void test_failure(const char* message) {
         dbgout << txtcolor(TXT_LIGHTRED) << "  Error : " << message;
         dbgout << txtcolor(TXT_LIGHTGRAY) << endl;
     }
 
     void fail_notimpl() {
-        dbgout << txtcolor(TXT_RED) << "  This test is not implemented yet !";
+        dbgout << txtcolor(TXT_YELLOW) << "  This test is not implemented yet !";
         dbgout << txtcolor(TXT_LIGHTGRAY) << endl;
     }
 }

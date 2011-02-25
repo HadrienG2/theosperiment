@@ -20,6 +20,7 @@
 #define _PHYMEM_TEST_H_
 
 #include <kernel_information.h>
+#include <phymem_test_arch.h>
 #include <physmem.h>
 
 namespace Tests {
@@ -33,6 +34,12 @@ namespace Tests {
     //PhyMemManager individual tests
     PhyMemMap* phy_test_pagealloc(PhyMemManager& phymem);
     bool phy_test_pagefree(PhyMemManager& phymem, PhyMemMap* allocd_page);
+    bool phy_test_contigchunkalloc(PhyMemManager& phymem);
+
+    //Auxiliary functions
+    bool phy_init_check_mmap_assump(PhyMemState* phymem_state);
+    bool phy_check_returned_page(PhyMemMap* returned_page);
+    bool phy_check_returned_2pgcontigchunk(PhyMemMap* returned_chunk);
 }
 
 #endif

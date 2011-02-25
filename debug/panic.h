@@ -19,11 +19,13 @@
 #ifndef _PANIC_H_
 #define _PANIC_H_
 
+extern const char* PANIC_IMPOSSIBLE_KERNEL_FLAGS; //Someone attempted to force allocating memory
+                                                  //to kernel with anything but RW-- flags
+extern const char* PANIC_IMPOSSIBLE_SHARING; //Someone attempted to force an impossible sharing
+                                             //operation
 extern const char* PANIC_MM_UNINITIALIZED; //Someone called kalloc() and such with the force
                                            //switch on while they were not initialized yet
 extern const char* PANIC_OUT_OF_MEMORY; //MemAllocator runs out of memory
-extern const char* PANIC_SHARING_NONEXISTENT; //Someone attempted to force sharing of a
-                                              //non-existent object in MemAllocator
 
 void panic(const char* error_message);
 

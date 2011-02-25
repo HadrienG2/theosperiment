@@ -92,6 +92,7 @@ bool PhyMemMap::operator==(const PhyMemMap& param) const {
     if(allocatable != param.allocatable) return false;
     if(next_buddy != param.next_buddy) return false;
     if(next_mapitem != param.next_mapitem) return false;
+    if(shareable != param.shareable) return false;
     return true;
 }
 
@@ -125,6 +126,7 @@ bool VirMemMap::operator==(const VirMemMap& param) const {
     if(points_to != param.points_to) return false;
     if(next_buddy != param.next_buddy) return false;
     if(next_mapitem != param.next_mapitem) return false;
+    if(shareable != param.shareable) return false;
     return true;
 }
 
