@@ -47,30 +47,26 @@ class PhyMemManager {
         KernelMutex mmap_mutex;
         //Support methods used by public methods
         bool alloc_mapitems(); //Get some memory map storage space
-        PhyMemMap* page_allocator(const PID initial_owner, PhyMemMap* map_used);
-        PhyMemMap* chunk_allocator(const addr_t size,
-                                   const PID initial_owner,
-                                   PhyMemMap* map_used);
-        PhyMemMap* contigchunk_allocator(const addr_t requested_size,
-                                         const PID initial_owner,
-                                         PhyMemMap* map_used);
-        PhyMemMap* resvchunk_allocator(const addr_t location, const PID initial_owner);
+        PhyMemMap* chunk_allocator(const PID initial_owner,
+                                   const addr_t size,
+                                   PhyMemMap* map_used,
+                                   bool contiguous = false);
+        PhyMemMap* resvchunk_allocator(const PID initial_owner, const addr_t location);
         bool chunk_liberator(PhyMemMap* chunk);
         bool chunk_owneradd(PhyMemMap* chunk, const PID new_owner);
         bool chunk_ownerdel(PhyMemMap* chunk, const PID former_owner);
         void merge_with_next(PhyMemMap* first_item); //Merge two consecutive elements of
-                                                           //the memory map (in order to save space)
+                                                     //the memory map (in order to save space)
         void killer(PID target);
     public:
         PhyMemManager(const KernelInformation& kinfo);
         //Page/chunk allocation and freeing functions
         PhyMemMap* alloc_page(const PID initial_owner); //Allocates a page of memory.
-        PhyMemMap* alloc_chunk(const addr_t size,        //Allocates a non-contiguous chunk of memory
-                               const PID initial_owner); //at least "size" large.
-        PhyMemMap* alloc_contigchunk(const addr_t size,        //Same as above, but with a contiguous
-                                     const PID initial_owner); //chunk of memory
-        PhyMemMap* alloc_resvchunk(const addr_t location,    //Get access to a reserved chunk of
-                                   const PID initial_owner); //memory, if it is not allocated yet
+        PhyMemMap* alloc_chunk(const PID initial_owner,  //Allocates a chunk of memory which is at
+                               const addr_t size,        //least "size" large. The "contiguous" flag
+                               bool contiguous = false); //forces it to be physically contiguous
+        PhyMemMap* alloc_resvchunk(const PID initial_owner,  //Get access to a reserved chunk of
+                                   const addr_t location);   //memory, if it is not allocated yet
         bool free(PhyMemMap* chunk); //Free a chunk of memory (fast version)
         bool free(addr_t chunk_beginning); //Same as above, but slower and easier to use
 
@@ -89,9 +85,9 @@ class PhyMemManager {
 
         //x86_64-specific methods
         PhyMemMap* alloc_lowpage(const PID initial_owner); //Allocate a page of low memory (<1MB)
-        PhyMemMap* alloc_lowchunk(const addr_t size, //Allocate a chunk of low memory
-                                  const PID initial_owner);
-        PhyMemMap* alloc_lowcontigchunk(const addr_t size, const PID initial_owner);
+        PhyMemMap* alloc_lowchunk(const PID initial_owner, //Allocate a chunk of low memory
+                                  const addr_t size,
+                                  bool contiguous = false);
 
         //Debug methods. Will go out in a final release.
         void print_highmmap(); //Print a map of high memory (>=1MB)

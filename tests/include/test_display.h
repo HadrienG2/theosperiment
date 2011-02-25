@@ -20,12 +20,19 @@
 #define _TEST_DISPLAY_H_
 
 namespace Tests {
-    //Helper functions
+    //Hierarchy
     void reset_title(); //Reset title counter to 1
     void reset_sub_title(); //Reset sub-title counter to 1
     void test_title(const char* title); //Display test title (e.g. "I/  Mytest")
     void subtest_title(const char* title); //Display test sub-title (e.g. "1. Mysubtest")
     void item_title(const char* title); //Display test item title (e.g. "* A wonderful test")
+
+    //Message display
+    void test_beginning(const char* component_name); //Run at the beginning of a test.
+                                                     //Sets text display to full screen and displays
+                                                     //something like "Beginning <component_name>
+                                                     //testing..."
+    void test_success(); //Informs the user that all tests have been completed successfuly.
     void test_failure(const char* message); //Displays an error message
     void fail_notimpl(); //Warns the test user that a feature has not yet been implemented
 }

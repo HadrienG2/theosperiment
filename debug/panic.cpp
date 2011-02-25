@@ -21,10 +21,13 @@
 
 const char* PANIC_TITLE = "Oh my god, it sounds like the kernel just died !";
 
+const char* PANIC_IMPOSSIBLE_KERNEL_FLAGS = "MemAllocator : Allocation of memory to the kernel with\
+ anything but RW- flags has been forced";
+const char* PANIC_IMPOSSIBLE_SHARING = "MemAllocator : An impossible sharing operation (nonexistent\
+ shared object, nonexistent source PID, impossible to create recipient) has been forced";
 const char* PANIC_MM_UNINITIALIZED = "MemAllocator : Called memory management functions while \
 memory management itself was not initialized yet";
 const char* PANIC_OUT_OF_MEMORY = "MemAllocator : Out of memory";
-const char* PANIC_SHARING_NONEXISTENT = "MemAllocator : Cannot share non-existent object";
 
 void panic(const char* error_message) {
     dbgout << bkgcolor(BKG_PURPLE);

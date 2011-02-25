@@ -16,8 +16,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include <kmem_allocator.h>
 #include <align.h>
+#include <kmem_allocator.h>
+#include <kstring.h>
 
 #include <dbgstream.h>
 #include <panic.h>
@@ -91,7 +92,7 @@ addr_t MemAllocator::allocator(const addr_t size,
     //Step 2 : If there's none, create it
     if(!hole) {
         //Allocating enough memory
-        phy_chunk = phymem->alloc_chunk(align_pgup(size), target->map_owner);
+        phy_chunk = phymem->alloc_chunk(target->map_owner, align_pgup(size));
         if(!phy_chunk) {
             if(!force) return NULL;
             liberate_memory();
@@ -203,12 +204,13 @@ addr_t MemAllocator::allocator_shareable(addr_t size,
     //Same as above, but always allocates a new chunk and does not put extra memory in free_map
 
     //Allocating memory
-    PhyMemMap* phy_chunk = phymem->alloc_chunk(align_pgup(size), target->map_owner);
+    PhyMemMap* phy_chunk = phymem->alloc_chunk(target->map_owner, align_pgup(size));
     if(!phy_chunk) {
         if(!force) return NULL;
         liberate_memory();
         return allocator_shareable(size, target, flags, force);
     }
+    phy_chunk->shareable = true;
     VirMemMap* vir_chunk = virmem->map(phy_chunk, target->map_owner, flags);
     if(!vir_chunk) {
         phymem->free(phy_chunk);
@@ -216,6 +218,7 @@ addr_t MemAllocator::allocator_shareable(addr_t size,
         liberate_memory();
         return allocator_shareable(size, target, flags, force);
     }
+    vir_chunk->shareable = true;
 
     //Putting that memory in a MallocMap block
     if(!free_mapitems) {
@@ -409,7 +412,7 @@ bool MemAllocator::liberator(const addr_t location, MallocPIDList* target) {
 }
 
 addr_t MemAllocator::share(const addr_t location,
-                           const MallocPIDList* source,
+                           MallocPIDList* source,
                            MallocPIDList* target,
                            const VirMemFlags flags,
                            const bool force) {
@@ -425,17 +428,31 @@ addr_t MemAllocator::share(const addr_t location,
 
     //Setup chunk sharing
     if(source->busy_map == NULL) {
-        if(force) panic(PANIC_SHARING_NONEXISTENT);
+        if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
     }
     MallocMap* shared_item = source->busy_map->find_thischunk(location);
     if(!shared_item) {
-        if(force) panic(PANIC_SHARING_NONEXISTENT);
+        if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
+    }
+    if(shared_item->belongs_to->shareable == false) {
+        addr_t shared_copy_loc = allocator_shareable(shared_item->size,
+                                                     source,
+                                                     shared_item->belongs_to->flags,
+                                                     force);
+        if(!shared_copy_loc) return NULL; //The force flag was not on if the allocation could fail
+        MallocMap* shared_copy = source->busy_map->find_thischunk(shared_copy_loc);
+        memcpy((void*) shared_copy_loc, (const void*) shared_item->location, shared_item->size);
+        shared_item = shared_copy;
     }
     PID target_pid = target->map_owner;
     PhyMemMap* phy_item = shared_item->belongs_to->points_to;
     if(phymem->owneradd(phy_item, target_pid) == false) {
+        //If a new item has been allocated for sharing, delete it
+        if(shared_item != source->busy_map->find_thischunk(location)) {
+            liberator(shared_item->location, source);
+        }
         if(!force) return NULL;
         liberate_memory();
         return share(location, source, target, flags, force);
@@ -443,6 +460,10 @@ addr_t MemAllocator::share(const addr_t location,
     VirMemMap* shared_chunk = virmem->map(phy_item, target_pid, flags);
     if(!shared_chunk) {
         phymem->ownerdel(phy_item, target_pid);
+        //If a new item has been allocated for sharing, delete it
+        if(shared_item != source->busy_map->find_thischunk(location)) {
+            liberator(shared_item->location, source);
+        }
         if(!force) return NULL;
         liberate_memory();
         return share(location, source, target, flags, force);
@@ -477,18 +498,18 @@ addr_t MemAllocator::share(const addr_t location,
 addr_t MemAllocator::knl_allocator(const addr_t size, const bool force) {
     //This works a lot like allocator(), except that it uses knl_free_map and knl_busy_map and that
     //since paging is disabled for the kernel, the chunk is allocated through
-    //PhyMemManager::alloc_contigchunk, and not mapped through virmem.
+    //PhyMemManager::alloc_chunk with contiguous flag on, and not mapped through virmem.
 
     PhyMemMap* phy_chunk = NULL;
 
-    //Steps 1 : Look for a suitable hole in knl_free_map
+    //Step 1 : Look for a suitable hole in knl_free_map
     KnlMallocMap* hole = NULL;
     if(knl_free_map) hole = knl_free_map->find_contigchunk(size);
 
     //Step 2 : If there's none, create it
     if(!hole) {
-        //Allocating enough memory
-        phy_chunk = phymem->alloc_contigchunk(align_pgup(size), PID_KERNEL);
+        //Allocating enough contiguous memory
+        phy_chunk = phymem->alloc_chunk(PID_KERNEL, align_pgup(size), true);
         if(!phy_chunk) {
             if(!force) return NULL;
             liberate_memory();
@@ -588,12 +609,13 @@ addr_t MemAllocator::knl_allocator_shareable(addr_t size, const bool force) {
     //allocator_shareable(), but modified in the same way as above
 
     //Allocating memory
-    PhyMemMap* phy_chunk = phymem->alloc_chunk(align_pgup(size), PID_KERNEL);
+    PhyMemMap* phy_chunk = phymem->alloc_chunk(PID_KERNEL, align_pgup(size), true);
     if(!phy_chunk) {
         if(!force) return NULL;
         liberate_memory();
         return knl_allocator_shareable(size, force);
     }
+    phy_chunk->shareable = true;
 
     //Putting that memory in a MallocMap block
     if(!free_mapitems) {
@@ -783,17 +805,27 @@ addr_t MemAllocator::share_from_knl(const addr_t location,
 
     //Setup chunk sharing
     if(!knl_busy_map) {
-        if(force) panic(PANIC_SHARING_NONEXISTENT);
+        if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
     }
     KnlMallocMap* shared_item = knl_busy_map->find_thischunk(location);
     if(!shared_item) {
-        if(force) panic(PANIC_SHARING_NONEXISTENT);
+        if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
+    }
+    if(shared_item->belongs_to->shareable == false) {
+        addr_t shared_copy_loc = knl_allocator_shareable(shared_item->size, force);
+        if(!shared_copy_loc) return NULL; //The force flag was not on if the allocation could fail
+        memcpy((void*) shared_copy_loc, (const void*) shared_item->location, shared_item->size);
+        shared_item = knl_busy_map->find_thischunk(shared_copy_loc);
     }
     PhyMemMap* phy_item = shared_item->belongs_to;
     PID target_pid = target->map_owner;
     if(phymem->owneradd(phy_item, target_pid) == false) {
+        //If a new item has been allocated for sharing, delete it
+        if(shared_item != knl_busy_map->find_thischunk(location)) {
+            knl_liberator(shared_item->location);
+        }
         if(!force) return NULL;
         liberate_memory();
         return share_from_knl(location, target, flags, force);
@@ -801,6 +833,10 @@ addr_t MemAllocator::share_from_knl(const addr_t location,
     VirMemMap* shared_chunk = virmem->map(phy_item, target_pid, flags);
     if(!shared_chunk) {
         phymem->ownerdel(phy_item, target_pid);
+        //If a new item has been allocated for sharing, delete it
+        if(shared_item != knl_busy_map->find_thischunk(location)) {
+            knl_liberator(shared_item->location);
+        }
         if(!force) return NULL;
         liberate_memory();
         return share_from_knl(location, target, flags, force);
@@ -832,7 +868,7 @@ addr_t MemAllocator::share_from_knl(const addr_t location,
 }
 
 addr_t MemAllocator::share_to_knl(const addr_t location,
-                                  const MallocPIDList* source,
+                                  MallocPIDList* source,
                                   const bool force) {
     //Like sharer(), but the kernel is the recipient
 
@@ -848,16 +884,30 @@ addr_t MemAllocator::share_to_knl(const addr_t location,
 
     //Setup chunk sharing
     if(source->busy_map == NULL) {
-        if(force) panic(PANIC_SHARING_NONEXISTENT);
+        if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
     }
     MallocMap* shared_item = source->busy_map->find_thischunk(location);
     if(!shared_item) {
-        if(force) panic(PANIC_SHARING_NONEXISTENT);
+        if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
+    }
+    if(shared_item->belongs_to->shareable == false) {
+        addr_t shared_copy_loc = allocator_shareable(shared_item->size,
+                                                     source,
+                                                     shared_item->belongs_to->flags,
+                                                     force);
+        if(!shared_copy_loc) return NULL; //The force flag was not on if the allocation could fail
+        MallocMap* shared_copy = source->busy_map->find_thischunk(shared_copy_loc);
+        memcpy((void*) shared_copy_loc, (const void*) shared_item->location, shared_item->size);
+        shared_item = shared_copy;
     }
     PhyMemMap* shared_chunk = shared_item->belongs_to->points_to;
     if(phymem->owneradd(shared_chunk, PID_KERNEL) == false) {
+        //If a new item has been allocated for sharing, delete it
+        if(shared_item != source->busy_map->find_thischunk(location)) {
+            liberator(shared_item->location, source);
+        }
         if(!force) return NULL;
         liberate_memory();
         return share_to_knl(location, source, force);
@@ -987,7 +1037,10 @@ addr_t MemAllocator::malloc(const addr_t size, PID target, const VirMemFlags fla
 
     if(target == PID_KERNEL) {
         //Kernel does not support paging, so only default flags are supported
-        if(flags != VMEM_FLAGS_RW) return NULL;
+        if(flags != VMEM_FLAGS_RW) {
+            if(force) panic(PANIC_IMPOSSIBLE_KERNEL_FLAGS);
+            return NULL;
+        }
         knl_mutex.grab_spin();
 
             result = knl_allocator(size, force);
@@ -1022,7 +1075,10 @@ addr_t MemAllocator::malloc_shareable(addr_t size,
 
     if(target == PID_KERNEL) {
         //Kernel does not support paging, so only default flags are supported
-        if(flags != VMEM_FLAGS_RW) return NULL;
+        if(flags != VMEM_FLAGS_RW) {
+            if(force) panic(PANIC_IMPOSSIBLE_KERNEL_FLAGS);
+            return NULL;
+        }
         knl_mutex.grab_spin();
 
             //Allocate that chunk (special kernel case)
@@ -1090,7 +1146,7 @@ bool MemAllocator::free(const addr_t location, PID target) {
 }
 
 addr_t MemAllocator::owneradd(const addr_t location,
-                              const PID source,
+                              PID source,
                               PID target,
                               const VirMemFlags flags,
                               const bool force) {
@@ -1127,13 +1183,16 @@ addr_t MemAllocator::owneradd(const addr_t location,
         //PID source shares something with kernel
 
         //Kernel does not support paging, so only default flags are supported
-        if(flags != VMEM_FLAGS_RW) return NULL;
+        if(flags != VMEM_FLAGS_RW) {
+            if(force) panic(PANIC_IMPOSSIBLE_KERNEL_FLAGS); //Stub !
+            return NULL;
+        }
         maplist_mutex.grab_spin();
 
             source_item = find_pid(source);
             if(!source_item) {
                 maplist_mutex.release();
-                if(force) panic(PANIC_SHARING_NONEXISTENT);
+                if(force) panic(PANIC_IMPOSSIBLE_SHARING); //Stub !
                 return NULL;
             }
 
@@ -1152,7 +1211,7 @@ addr_t MemAllocator::owneradd(const addr_t location,
             source_item = find_pid(source);
             if(!source_item) {
                 maplist_mutex.release();
-                if(force) panic(PANIC_SHARING_NONEXISTENT);
+                if(force) panic(PANIC_IMPOSSIBLE_SHARING); //Stub !
                 return NULL;
             }
             target_item = find_or_create_pid(target, force);

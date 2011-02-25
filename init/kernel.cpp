@@ -16,22 +16,21 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include <interrupts.h>
 #include <kernel_information.h>
 #include <kmem_allocator.h>
 #include <physmem.h>
 #include <virtmem.h>
 
 #include <dbgstream.h>
-#include <memory_test.h>
+//#include <memory_test.h>
 
 extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << txtcolor(TXT_LIGHTGREEN) << "Kernel loaded : " << kinfo.cpu_info.core_amount;
     dbgout << " CPU core(s) around."  << txtcolor(TXT_LIGHTGRAY) << endl;
 
-    //Put test suite here, as otherwise it will smash the work of already initialized components
-    Tests::test_memory(kinfo);
-    dbgout << bp();
+    //Put test suites here, as otherwise they might smash the work of already initialized components
+    //Tests::test_memory(kinfo);
+    //dbgout << bp();
 
     dbgout << "* Setting up physical memory management..." << endl;
     PhyMemManager phymem(kinfo);
