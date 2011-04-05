@@ -83,10 +83,10 @@ class DebugAttributeChanger : DebugManipulator {
         TxtAttr new_attr; //New attribute being set
         TxtAttr mask; //Allows one to specify which bits in the new attribute are effective
 };
-DebugAttributeChanger& attrset(const TxtAttr attribute);
-DebugAttributeChanger& blink(const bool blink_status);
-DebugAttributeChanger& bkgcolor(const TxtAttr attribute);
-DebugAttributeChanger& txtcolor(const TxtAttr attribute);
+DebugAttributeChanger attrset(const TxtAttr attribute);
+DebugAttributeChanger blink(const bool blink_status);
+DebugAttributeChanger bkgcolor(const TxtAttr attribute);
+DebugAttributeChanger txtcolor(const TxtAttr attribute);
 
 //This manipulator is used to move the text cursor on screen
 enum DebugCursorMoverType {ABSOLUTE, RELATIVE};
@@ -96,7 +96,7 @@ class DebugCursorMover : DebugManipulator {
         int col_off;
         int row_off;
 };
-DebugCursorMover& movxy(const unsigned int x, const unsigned int y);
+DebugCursorMover movxy(const unsigned int x, const unsigned int y);
 
 //This manipulator is used to trigger a breakpoint from Bochs, while maybe leaving some interesting
 //information in the registers
@@ -107,8 +107,8 @@ class DebugBreakpoint : DebugManipulator {
         uint64_t rcx;
         uint64_t rdx;
 };
-DebugBreakpoint& bp();
-DebugBreakpoint& bp_streg(const uint64_t rax,
+DebugBreakpoint bp();
+DebugBreakpoint bp_streg(const uint64_t rax,
                           const uint64_t rbx = 0,
                           const uint64_t rcx = 0,
                           const uint64_t rdx = 0);
@@ -118,7 +118,7 @@ class DebugNumberBaseChanger : DebugManipulator {
     public:
         DebugNumberBase new_base;
 };
-DebugNumberBaseChanger& numberbase(const DebugNumberBase new_base);
+DebugNumberBaseChanger numberbase(const DebugNumberBase new_base);
 
 //This manipulator is used to set up padding when printing numbers.
 //A padding of 5 means that if the final number is less than 5 digits long,
@@ -129,16 +129,16 @@ class DebugPadder : DebugManipulator {
         bool padding_on;
         int padsize;
 };
-DebugPadder& pad_status(const bool padding_status);
-DebugPadder& pad_size(unsigned int padsize);
+DebugPadder pad_status(const bool padding_status);
+DebugPadder pad_size(unsigned int padsize);
 
 //This manipulator is used to scroll on-screen text
 class DebugScroller : DebugManipulator {
     public:
         unsigned int amount;
 };
-DebugScroller& cls();
-DebugScroller& scroll(unsigned int amount);
+DebugScroller cls();
+DebugScroller scroll(unsigned int amount);
 
 //This manipulator is used to restrict debug I/O to a specific
 //region of the screen (called a window). Content will be kept
@@ -147,7 +147,7 @@ class DebugWindower : DebugManipulator {
     public:
         DebugWindow window;
 };
-DebugWindower& set_window(const DebugWindow window);
+DebugWindower set_window(const DebugWindow window);
 
 //*******************************************************
 //****************** MAIN DEBUG OUTPUT ******************

@@ -44,14 +44,14 @@ static DebugPadder padder_buff;
 static DebugScroller scroller_buff;
 static DebugWindower windower_buff;
 
-DebugAttributeChanger& attrset(const uint8_t attribute) {
+DebugAttributeChanger attrset(const uint8_t attribute) {
   attrchg_buff.new_attr = (uint8_t) attribute;
   attrchg_buff.mask = 0xff;
 
   return attrchg_buff;
 }
 
-DebugAttributeChanger& blink(const bool blink_status) {
+DebugAttributeChanger blink(const bool blink_status) {
   if(blink_status) attrchg_buff.new_attr = TXT_BLINK;
   else attrchg_buff.new_attr = 0;
   attrchg_buff.mask = TXT_BLINK;
@@ -59,25 +59,25 @@ DebugAttributeChanger& blink(const bool blink_status) {
   return attrchg_buff;
 }
 
-DebugAttributeChanger& bkgcolor(const uint8_t attribute) {
+DebugAttributeChanger bkgcolor(const uint8_t attribute) {
   attrchg_buff.new_attr = (uint8_t) attribute;
   attrchg_buff.mask = 0x70;
 
   return attrchg_buff;
 }
 
-DebugAttributeChanger& txtcolor(const uint8_t attribute) {
+DebugAttributeChanger txtcolor(const uint8_t attribute) {
   attrchg_buff.new_attr = (uint8_t) attribute;
   attrchg_buff.mask = 0x0f;
 
   return attrchg_buff;
 }
 
-DebugBreakpoint& bp() {
+DebugBreakpoint bp() {
   return bp_buff;
 }
 
-DebugBreakpoint& bp_streg(const uint64_t rax, const uint64_t rbx, const uint64_t rcx, const uint64_t rdx) {
+DebugBreakpoint bp_streg(const uint64_t rax, const uint64_t rbx, const uint64_t rcx, const uint64_t rdx) {
   bp_buff.rax = (uint64_t) rax;
   bp_buff.rbx = (uint64_t) rbx;
   bp_buff.rcx = (uint64_t) rcx;
@@ -86,7 +86,7 @@ DebugBreakpoint& bp_streg(const uint64_t rax, const uint64_t rbx, const uint64_t
   return bp_buff;
 }
 
-DebugCursorMover& movxy(const unsigned int x, const unsigned int y) {
+DebugCursorMover movxy(const unsigned int x, const unsigned int y) {
   cursmov_buff.type = ABSOLUTE;
   cursmov_buff.col_off = (unsigned int) x;
   cursmov_buff.row_off = (unsigned int) y;
@@ -94,39 +94,39 @@ DebugCursorMover& movxy(const unsigned int x, const unsigned int y) {
   return cursmov_buff;
 }
 
-DebugNumberBaseChanger& numberbase(const DebugNumberBase new_base) {
+DebugNumberBaseChanger numberbase(const DebugNumberBase new_base) {
   numchg_buff.new_base = (DebugNumberBase) new_base;
 
   return numchg_buff;
 }
 
-DebugPadder& pad_status(const bool padding_status) {
+DebugPadder pad_status(const bool padding_status) {
   padder_buff.padding_on = (bool) padding_status;
   padder_buff.padsize = -1; //Do not change padding
 
   return padder_buff;
 }
 
-DebugPadder& pad_size(unsigned int padsize) {
+DebugPadder pad_size(unsigned int padsize) {
   if(padsize > NUMBER_OF_COLS) padsize = NUMBER_OF_COLS; //More digits than the number of cols is probably an error.
   padder_buff.padsize = padsize;
 
   return padder_buff;
 }
 
-DebugScroller& cls() {
+DebugScroller cls() {
     scroller_buff.amount = NUMBER_OF_ROWS;
 
     return scroller_buff;
 }
 
-DebugScroller& scroll(unsigned int amount) {
+DebugScroller scroll(unsigned int amount) {
     scroller_buff.amount = amount;
 
     return scroller_buff;
 }
 
-DebugWindower& set_window(const DebugWindow window) {
+DebugWindower set_window(const DebugWindow window) {
   windower_buff.window.startx = min(max(0, min(window.startx, window.endx)), NUMBER_OF_COLS-1);
   windower_buff.window.starty = min(max(0, min(window.starty, window.endy)), NUMBER_OF_COLS-1);
   windower_buff.window.endx = min(max(0, max(window.startx, window.endx)), NUMBER_OF_COLS-1);

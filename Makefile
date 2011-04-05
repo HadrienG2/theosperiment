@@ -51,7 +51,7 @@ CFLAGS=$(C_WARNINGS) $(C_LIBS) $(C_STD)
 ifeq ($(Fdebug),1)
     CFLAGS += -O0 -DDEBUG
 else
-    CFLAGS += -O3
+    CFLAGS += -O2
 endif
 
 #Compilation parameters for the kernel

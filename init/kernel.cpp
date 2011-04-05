@@ -25,7 +25,7 @@
 //#include <memory_test.h>
 
 extern "C" int kmain(const KernelInformation& kinfo) {
-    dbgout << txtcolor(TXT_LIGHTGREEN) << "Kernel loaded : " << kinfo.cpu_info.core_amount;
+    dbgout << txtcolor(TXT_LIGHTGREEN) << "Kernel loaded: " << kinfo.cpu_info.core_amount;
     dbgout << " CPU core(s) around."  << txtcolor(TXT_LIGHTGRAY) << endl;
 
     //Put test suites here, as otherwise they might smash the work of already initialized components
