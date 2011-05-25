@@ -124,7 +124,7 @@ struct VirMapList {
     VirMemMap* map_pointer;
     addr_t pml4t_location;
     VirMapList* next_item;
-    KernelMutex mutex;
+    OwnerlessMutex mutex;
     uint16_t padding2;
     VirMapList() : map_owner(PID_NOBODY),
                    map_pointer(NULL),
@@ -191,7 +191,7 @@ struct MallocPIDList {
     MallocMap* free_map; //A sorted map of ready-to-use chunks of memory
     MallocMap* busy_map; //A sorted map of used chunks of memory
     MallocPIDList* next_item;
-    KernelMutex mutex;
+    OwnerlessMutex mutex;
     uint16_t padding;
     MallocPIDList() : map_owner(PID_NOBODY),
                       free_map(NULL),

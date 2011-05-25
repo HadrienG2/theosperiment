@@ -18,7 +18,7 @@
 
 #include <synchronization.h>
 
-bool KernelSemaphore8::grab_attempt() {
+bool OwnerlessSemaphore8::grab_attempt() {
   uint8_t availability_before;
   uint8_t availability_after;
   uint8_t real_availability;
@@ -39,13 +39,13 @@ bool KernelSemaphore8::grab_attempt() {
   else return false;
 }
 
-bool KernelSemaphore8::operator==(const KernelSemaphore8& param) const {
+bool OwnerlessSemaphore8::operator==(const OwnerlessSemaphore8& param) const {
     if(availability != param.availability) return false;
     if(max_avl != param.max_avl) return false;
     return true;
 }
 
-bool KernelSemaphore32::grab_attempt() {
+bool OwnerlessSemaphore32::grab_attempt() {
   uint32_t availability_before;
   uint32_t availability_after;
   uint32_t real_availability;
@@ -66,13 +66,13 @@ bool KernelSemaphore32::grab_attempt() {
   else return false;
 }
 
-bool KernelSemaphore32::operator==(const KernelSemaphore32& param) const {
+bool OwnerlessSemaphore32::operator==(const OwnerlessSemaphore32& param) const {
     if(availability != param.availability) return false;
     if(max_avl != param.max_avl) return false;
     return true;
 }
 
-bool KernelSemaphore64::grab_attempt() {
+bool OwnerlessSemaphore64::grab_attempt() {
   uint64_t availability_before;
   uint64_t availability_after;
   uint64_t real_availability;
@@ -93,7 +93,7 @@ bool KernelSemaphore64::grab_attempt() {
   else return false;
 }
 
-bool KernelSemaphore64::operator==(const KernelSemaphore64& param) const {
+bool OwnerlessSemaphore64::operator==(const OwnerlessSemaphore64& param) const {
     if(availability != param.availability) return false;
     if(max_avl != param.max_avl) return false;
     return true;
