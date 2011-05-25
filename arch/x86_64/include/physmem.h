@@ -44,7 +44,7 @@ class PhyMemManager {
         PhyMemMap* free_highmem; //A contiguous chunk representing free high memory
         PhyMemMap* free_mapitems; //A collection of spare PhyMemMap objects forming a dummy chunk,
                                   //ready for use in a memory map
-        KernelMutex mmap_mutex;
+        OwnerlessMutex mmap_mutex;
         //Support methods used by public methods
         bool alloc_mapitems(); //Get some memory map storage space
         PhyMemMap* chunk_allocator(const PID initial_owner,

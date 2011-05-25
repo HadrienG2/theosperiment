@@ -21,59 +21,59 @@
 
 #include <hack_stdint.h>
 
-class KernelSemaphore8 { //A 8-bit semaphore
+class OwnerlessSemaphore8 { //A 8-bit semaphore
   protected:
     uint8_t availability;
     uint8_t max_avl;
   public:
-    KernelSemaphore8(const uint8_t max_users) : availability(max_users), max_avl(max_users) {}
+    OwnerlessSemaphore8(const uint8_t max_users) : availability(max_users), max_avl(max_users) {}
     bool grab_attempt(); //Attempt to grab the semaphore. Return true if successful.
     void grab_spin() {while(!grab_attempt());} //Wait for semaphore availability
     void release() {if(availability < max_avl) ++availability;} //Release the semaphore
     uint8_t state() {return availability;}
     //Comparing C structs is fairly straightforward and should be done by default
     //by the C++ compiler, but well...
-    bool operator==(const KernelSemaphore8& param) const;
-    bool operator!=(const KernelSemaphore8& param) const {return !(*this==param);}
+    bool operator==(const OwnerlessSemaphore8& param) const;
+    bool operator!=(const OwnerlessSemaphore8& param) const {return !(*this==param);}
 } __attribute__((packed));
 
-class KernelSemaphore32 {
+class OwnerlessSemaphore32 {
   protected:
     uint32_t availability;
     uint32_t max_avl;
   public:
-    KernelSemaphore32(const uint32_t max_users) : availability(max_users), max_avl(max_users) {}
+    OwnerlessSemaphore32(const uint32_t max_users) : availability(max_users), max_avl(max_users) {}
     bool grab_attempt(); //Attempt to grab the semaphore. Return true if successful.
     void grab_spin() {while(!grab_attempt());} //Wait for semaphore availability
     void release() {if(availability < max_avl) ++availability;} //Release the semaphore
     uint32_t state() {return availability;}
     //Comparing C structs is fairly straightforward and should be done by default
     //by the C++ compiler, but well...
-    bool operator==(const KernelSemaphore32& param) const;
-    bool operator!=(const KernelSemaphore32& param) const {return !(*this==param);}
+    bool operator==(const OwnerlessSemaphore32& param) const;
+    bool operator!=(const OwnerlessSemaphore32& param) const {return !(*this==param);}
 } __attribute__((packed));
 
-class KernelSemaphore64 {
+class OwnerlessSemaphore64 {
   protected:
     uint64_t availability;
     uint64_t max_avl;
   public:
-    KernelSemaphore64(const uint64_t max_users) : availability(max_users), max_avl(max_users) {}
+    OwnerlessSemaphore64(const uint64_t max_users) : availability(max_users), max_avl(max_users) {}
     bool grab_attempt(); //Attempt to grab the semaphore. Return true if successful.
     void grab_spin() {while(!grab_attempt());} //Wait for semaphore availability
     void release() {if(availability < max_avl) ++availability;} //Release the semaphore
     uint64_t state() {return availability;}
     //Comparing C structs is fairly straightforward and should be done by default
     //by the C++ compiler, but well...
-    bool operator==(const KernelSemaphore64& param) const;
-    bool operator!=(const KernelSemaphore64& param) const {return !(*this==param);}
+    bool operator==(const OwnerlessSemaphore64& param) const;
+    bool operator!=(const OwnerlessSemaphore64& param) const {return !(*this==param);}
 } __attribute__((packed));
 
-typedef KernelSemaphore64 KernelSemaphore;
+typedef OwnerlessSemaphore64 OwnerlessSemaphore;
 
-class KernelMutex : public KernelSemaphore8 {
+class OwnerlessMutex : public OwnerlessSemaphore8 {
   public:
-    KernelMutex() : KernelSemaphore8(1) {}
+    OwnerlessMutex() : OwnerlessSemaphore8(1) {}
 } __attribute__((packed));
 
 #endif

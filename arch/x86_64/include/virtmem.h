@@ -40,7 +40,7 @@ const int VIRMEMMANAGER_VERSION = 1; //Increase this when deep changes require a
 class VirMemManager {
     private:
         PhyMemManager* phymem;
-        KernelMutex maplist_mutex; //Hold that mutex when parsing the map list
+        OwnerlessMutex maplist_mutex; //Hold that mutex when parsing the map list
                                    //or adding/removing maps from it.
         VirMapList* map_list;
         VirMemMap* free_mapitems; //A collection of ready to use virtual memory map items

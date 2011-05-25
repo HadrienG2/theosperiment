@@ -39,6 +39,7 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << "* Setting up memory allocator..." << endl;
     MemAllocator mallocator(phymem, virmem);
     setup_kalloc(mallocator);
+	dbgout << "All done !";
 
     return 0;
 }

@@ -40,8 +40,8 @@ class MemAllocator {
         KnlMallocMap* knl_busy_map; //A sorted map of the chunks of memory used by the kernel
         MallocMap* free_mapitems; //A collection of ready to use memory map items
         MallocPIDList* free_listitems; //A collection of ready to use map list items
-        KernelMutex maplist_mutex; //Hold that mutex when parsing or modifying the map list
-        KernelMutex knl_mutex; //Hold that mutex when parsing or modifying the kernel maps
+        OwnerlessMutex maplist_mutex; //Hold that mutex when parsing or modifying the map list
+        OwnerlessMutex knl_mutex; //Hold that mutex when parsing or modifying the kernel maps
 
         //Support functions
         bool alloc_mapitems(); //Get some memory map storage space
