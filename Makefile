@@ -1,6 +1,6 @@
 #Feature enable/disable flags : debug mode, kernel test suite
 Fdebug = 1
-Ftests = 0
+Ftests = 1
 
 #Target architecture and arch-specific data go here
 ARCH = x86_64

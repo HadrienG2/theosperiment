@@ -32,14 +32,13 @@ namespace Tests {
     bool test_phymem(PhyMemManager& phymem); //Test PhyMemManager
 
     //PhyMemManager individual tests
-    PhyMemMap* phy_test_pagealloc(PhyMemManager& phymem);
-    bool phy_test_pagefree(PhyMemManager& phymem, PhyMemMap* allocd_page);
-    bool phy_test_contigchunkalloc(PhyMemManager& phymem);
+    bool phy_test_contigalloc(PhyMemManager& phymem);
+    /* PhyMemMap* phy_test_pagealloc(PhyMemManager& phymem); */
 
     //Auxiliary functions
+    bool phy_check_returned_2pgchunk(PhyMemMap* returned_chunk);
     bool phy_init_check_mmap_assump(PhyMemState* phymem_state);
-    bool phy_check_returned_page(PhyMemMap* returned_page);
-    bool phy_check_returned_2pgcontigchunk(PhyMemMap* returned_chunk);
+    PhyMemState* phy_setstate_2_free_pg(PhyMemManager& phymem);
 }
 
 #endif
