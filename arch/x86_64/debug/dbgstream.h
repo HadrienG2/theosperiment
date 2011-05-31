@@ -158,7 +158,7 @@ class DebugOutput {
     private:
         //Current state
         TxtAttr attribute; //Text attributes (see above)
-        char* buffer; //The buffer in which text is written
+        volatile char* buffer; //The buffer in which text is written
         unsigned int col; //Current cursor position : column...
         unsigned int row; //...and row
         DebugNumberBase number_base; //Base in which we count : octal, binary, hexa, decimal...

@@ -437,14 +437,8 @@ addr_t MemAllocator::share(const addr_t location,
         return NULL;
     }
     if(shared_item->belongs_to->shareable == false) {
-        addr_t shared_copy_loc = allocator_shareable(shared_item->size,
-                                                     source,
-                                                     shared_item->belongs_to->flags,
-                                                     force);
-        if(!shared_copy_loc) return NULL; //The force flag was not on if the allocation could fail
-        MallocMap* shared_copy = source->busy_map->find_thischunk(shared_copy_loc);
-        memcpy((void*) shared_copy_loc, (const void*) shared_item->location, shared_item->size);
-        shared_item = shared_copy;
+        if(force) panic(PANIC_IMPOSSIBLE_SHARING);
+        return NULL;
     }
     PID target_pid = target->map_owner;
     PhyMemMap* phy_item = shared_item->belongs_to->points_to;
@@ -814,10 +808,8 @@ addr_t MemAllocator::share_from_knl(const addr_t location,
         return NULL;
     }
     if(shared_item->belongs_to->shareable == false) {
-        addr_t shared_copy_loc = knl_allocator_shareable(shared_item->size, force);
-        if(!shared_copy_loc) return NULL; //The force flag was not on if the allocation could fail
-        memcpy((void*) shared_copy_loc, (const void*) shared_item->location, shared_item->size);
-        shared_item = knl_busy_map->find_thischunk(shared_copy_loc);
+        if(force) panic(PANIC_IMPOSSIBLE_SHARING);
+        return NULL;
     }
     PhyMemMap* phy_item = shared_item->belongs_to;
     PID target_pid = target->map_owner;
@@ -893,14 +885,8 @@ addr_t MemAllocator::share_to_knl(const addr_t location,
         return NULL;
     }
     if(shared_item->belongs_to->shareable == false) {
-        addr_t shared_copy_loc = allocator_shareable(shared_item->size,
-                                                     source,
-                                                     shared_item->belongs_to->flags,
-                                                     force);
-        if(!shared_copy_loc) return NULL; //The force flag was not on if the allocation could fail
-        MallocMap* shared_copy = source->busy_map->find_thischunk(shared_copy_loc);
-        memcpy((void*) shared_copy_loc, (const void*) shared_item->location, shared_item->size);
-        shared_item = shared_copy;
+        if(force) panic(PANIC_IMPOSSIBLE_SHARING);
+        return NULL;
     }
     PhyMemMap* shared_chunk = shared_item->belongs_to->points_to;
     if(phymem->owneradd(shared_chunk, PID_KERNEL) == false) {

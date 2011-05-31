@@ -40,6 +40,9 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     MemAllocator mallocator(phymem, virmem);
     setup_kalloc(mallocator);
 	dbgout << "All done !";
+	
+	void* test = kalloc(3);
+	kowneradd(test, PID_KERNEL, 1, VMEM_FLAGS_RW, true);
 
     return 0;
 }
