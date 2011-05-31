@@ -165,7 +165,7 @@ MallocMap* MallocMap::find_thischunk(const addr_t location) const {
     MallocMap* current_item = (MallocMap*) this;
 
     while(current_item) {
-        if(current_item->size == location) break;
+        if(current_item->location == location) break;
         current_item = current_item->next_item;
     }
     return current_item;
@@ -193,7 +193,7 @@ KnlMallocMap* KnlMallocMap::find_thischunk(const addr_t location) const {
     KnlMallocMap* current_item = (KnlMallocMap*) this;
 
     while(current_item) {
-        if(current_item->size == location) break;
+        if(current_item->location == location) break;
         current_item = current_item->next_item;
     }
     return current_item;
