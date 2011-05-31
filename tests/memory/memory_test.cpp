@@ -46,7 +46,7 @@ namespace Tests {
         MemAllocator* mallocator_ptr = init_mallocator(phymem, virmem);
         if(!mallocator_ptr) return;
         MemAllocator& mallocator = *mallocator_ptr;
-
+        
         test_title("PhyMemManager");
         if(!test_phymem(phymem)) return;
 

@@ -21,24 +21,17 @@
 #include <phymem_test_arch.h>
 #include <test_display.h>
 
-#include <dbgstream.h>
+//#include <dbgstream.h>
 
 namespace Tests {
     PhyMemState* save_phymem_state(PhyMemManager& phymem) {
         PhyMemState* phymem_state = (PhyMemState*) &phymem;
 
         //Allocate storage space.
-        PhyMemState* result = (PhyMemState*) kalloc(sizeof(PhyMemState));
-        if(!result) {
-            test_failure("Could not allocate storage space");
-            return NULL;
-        }
-        result->phy_mmap = (PhyMemMap*) kalloc(sizeof(PhyMemMap)*(phymem_state->phy_mmap->length()));
-        if(result->phy_mmap == NULL) {
-            kfree(result);
-            test_failure("Could not allocate storage space");
-            return NULL;
-        }
+        static PhyMemState state;
+        static PhyMemMap buffer[512];
+        PhyMemState* result = &state;
+        result->phy_mmap = buffer;
 
         //Parse phymem's memory map and make a copy of it. Set up phy_highmmap, free_lowmem,
         //and free_highmem in the way. Manage buddies in the simplest case where only free map items
@@ -120,7 +113,7 @@ namespace Tests {
         result->free_mapitems = (PhyMemMap*) free_count;
 
         //Initialize mutex
-        result->mmap_mutex = KernelMutex();
+        result->mmap_mutex = OwnerlessMutex();
 
         return result;
     }
@@ -182,8 +175,7 @@ namespace Tests {
                 return false;
             }
             if(parser1->size != parser2->size) {
-                test_failure("phy_mmap mismatch (size)");
-                dbgout << "(" << parser1->size << " != " << parser2->size << ")" << endl;
+                test_failure("phy_mmap mismatch");
                 return false;
             }
             if(parser1->owners != parser2->owners) {
@@ -256,18 +248,6 @@ namespace Tests {
         return true;
     }
 
-    void discard_phymem_state(PhyMemState* saved_state) {
-        //Free the saved state. This is easier than you may think, thank to phy_mmap being
-        //allocated as a single big block of memory. We must be careful with the map owners, though.
-        PhyMemMap* map_parser = saved_state->phy_mmap;
-        while(map_parser) {
-            map_parser->clear_owners();
-            map_parser = map_parser->next_mapitem;
-        }
-        kfree(saved_state->phy_mmap);
-        kfree(saved_state);
-    }
-
     PhyMemManager* phy_init_arch(PhyMemManager& phymem) {
         item_title("x86_64 : Checking free_highmmap, free_lowmem and free_highmem");
         PhyMemState* phymem_state = (PhyMemState*) &phymem;
@@ -335,131 +315,41 @@ namespace Tests {
 
         return &phymem;
     }
-
-    bool check_phystate_pagealloc(PhyMemManager& phymem,
-                                      PhyMemState* saved_state,
-                                      PhyMemMap* returned_page) {
-        //                General state-checking principles :
-        //After checking whether a modification is done the right way, we modify
-        //the saved state in exactly the same way. In the end, to check that nothing else has
-        //changed, we just have to compare the (modified) saved state with phymem's current state.
-        if(returned_page->location != saved_state->free_highmem->location) {
-            test_failure("The page was not allocated in initially free space");
-            return false;
-        }
-        static PhyMemMap buffer;
-        if(saved_state->free_highmem->size == PG_SIZE) {
-            saved_state->free_highmem->add_owner(PID_KERNEL);
-            PhyMemMap* new_free_highmem = saved_state->free_highmem->next_buddy;
-            saved_state->free_highmem->next_buddy = NULL;
-            saved_state->free_highmem = new_free_highmem;
-        } else {
-            buffer = *(saved_state->free_highmem);
-            buffer.size-= PG_SIZE;
-            buffer.location+= PG_SIZE;
-            saved_state->free_highmem->size = PG_SIZE;
-            saved_state->free_highmem->add_owner(PID_KERNEL);
-            saved_state->free_highmem->next_buddy = NULL;
-            saved_state->free_highmem->next_mapitem = &buffer;
-            saved_state->free_highmem = &buffer;
-            saved_state->free_mapitems = (PhyMemMap*) ((addr_t) (saved_state->free_mapitems) - 1);
-        }
-        if(!cmp_phymem_state(phymem, saved_state)) return false;
-
-        return true;
-    }
-
-    bool check_phystate_chunkfree(PhyMemManager& phymem,
-                                  PhyMemState* saved_state,
-                                  PhyMemMap* returned_page) {
-        if(returned_page->owners[0] != PID_NOBODY) {
-            test_failure("The chunk was not freed properly");
-            return false;
-        }
-        PhyMemMap* saved_returned_page = saved_state->phy_mmap->find_thischunk(returned_page->location);
-        saved_returned_page->clear_owners();
-        saved_returned_page->next_buddy = saved_state->free_highmem;
-        saved_state->free_highmem = saved_returned_page;
-        if(!cmp_phymem_state(phymem, saved_state)) return false;
-
-        return true;
-    }
-
-    bool check_phystate_2contigpagesfree(PhyMemManager& phymem,
-                                         PhyMemState* saved_state,
-                                         PhyMemMap* first_page) {
-        if(first_page->owners[0] != PID_NOBODY) {
-            test_failure("The first page was not freed properly");
-            return false;
-        }
-        if(first_page->next_mapitem->owners[0] != PID_NOBODY) {
-            test_failure("The second page was not freed properly");
-            return false;
-        }
-        PhyMemMap* saved_first_page = saved_state->phy_mmap->find_thischunk(first_page->location);
-        saved_first_page->clear_owners();
-        saved_first_page->next_mapitem->clear_owners();
-        saved_first_page->next_mapitem->next_buddy = saved_state->free_highmem;
-        saved_first_page->next_buddy = saved_first_page->next_mapitem;
-        saved_state->free_highmem = saved_first_page;
-        if(!cmp_phymem_state(phymem, saved_state)) return false;
-
-        return true;
-    }
-
-    bool check_phystate_2pgcontigchunk_alloc(PhyMemManager& phymem,
-                                             PhyMemState* saved_state,
-                                             PhyMemMap* returned_chunk) {
-        if(returned_chunk->location != saved_state->free_highmem->location) {
-            test_failure("The chunk was not allocated in initially free space");
-            return false;
-        }
-        saved_state->free_highmem->add_owner(PID_KERNEL);
-        saved_state->free_highmem->size = 2*PG_SIZE;
-        PhyMemMap* new_free_highmem = saved_state->free_highmem->next_buddy->next_buddy;
-        saved_state->free_highmem->next_buddy = NULL;
-        saved_state->free_highmem->next_mapitem = saved_state->free_highmem->next_mapitem->next_mapitem;
-        saved_state->free_highmem = new_free_highmem;
-        saved_state->free_mapitems = (PhyMemMap*) ((addr_t) (saved_state->free_mapitems) + 1);
-        if(!cmp_phymem_state(phymem, saved_state)) return false;
-
-        return true;
-    }
-
-    bool check_phystate_2pgcontigchunk_realloc(PhyMemManager& phymem,
-                                               PhyMemState* saved_state,
-                                               PhyMemMap* returned_chunk) {
-        if(returned_chunk->location != saved_state->free_highmem->location) {
-            test_failure("The chunk was not allocated in initially free space");
-            return false;
-        }
-        saved_state->free_highmem->add_owner(PID_KERNEL);
-        PhyMemMap* new_free_highmem = saved_state->free_highmem->next_buddy;
-        saved_state->free_highmem->next_buddy = NULL;
-        saved_state->free_highmem = new_free_highmem;
-        if(!cmp_phymem_state(phymem, saved_state)) return false;
-
-        return true;
-    }
-
-    bool check_phystate_2pg_in_3pg(PhyMemManager& phymem,
+    
+    bool check_phystate_chunk_free(PhyMemManager& phymem,
                                    PhyMemState* saved_state,
                                    PhyMemMap* returned_chunk) {
-        if(returned_chunk->location != saved_state->free_highmem->location) {
-            test_failure("The chunk was not allocated in initially free space");
-            return false;
+        PhyMemMap* map_parser = saved_state->phy_highmmap;
+        while(map_parser->location != returned_chunk->location) {
+            map_parser = map_parser->next_mapitem;
         }
-        static PhyMemMap buffer;
-        dbgout << numberbase(HEXADECIMAL) << saved_state->free_highmem->location << "->" << saved_state->free_highmem->size;
-        buffer = *(saved_state->free_highmem);
-        buffer.size = PG_SIZE;
-        buffer.location+= 2*PG_SIZE;
+        saved_state->free_highmem = map_parser;
+        map_parser->clear_owners();
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+
+        return true;
+    }
+
+    bool check_phystate_merge_alloc(PhyMemManager& phymem,
+                                    PhyMemState* saved_state,
+                                    PhyMemMap* returned_chunk) {
         saved_state->free_highmem->size = 2*PG_SIZE;
         saved_state->free_highmem->add_owner(PID_KERNEL);
-        saved_state->free_highmem->next_buddy = NULL;
-        saved_state->free_highmem->next_mapitem = &buffer;
-        saved_state->free_highmem = &buffer;
-        saved_state->free_mapitems = (PhyMemMap*) ((addr_t) (saved_state->free_mapitems) - 1);
+        saved_state->free_highmem->next_buddy = saved_state->free_highmem->next_mapitem->next_buddy;
+        saved_state->free_highmem->next_mapitem =
+            saved_state->free_highmem->next_mapitem->next_mapitem;
+        saved_state->free_highmem = saved_state->free_highmem->next_mapitem;
+        saved_state->free_mapitems = (PhyMemMap*) (((uint64_t) saved_state->free_mapitems) + 1);
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+
+        return true;
+    }
+    
+    bool check_phystate_perfectfit_alloc(PhyMemManager& phymem,
+                                         PhyMemState* saved_state,
+                                         PhyMemMap* returned_chunk) {
+        saved_state->free_highmem->add_owner(PID_KERNEL);
+        saved_state->free_highmem = saved_state->free_highmem->next_mapitem;
         if(!cmp_phymem_state(phymem, saved_state)) return false;
 
         return true;
@@ -468,7 +358,7 @@ namespace Tests {
     PhyMemMap* find_twopg_freemem(PhyMemManager& phymem) {
         PhyMemState* phymem_state = (PhyMemState*) &phymem;
 
-        //In fact, we have to make room for a third allocated page, in case PhyMemManager has to
+        //We have to make room for a third allocated page, in case PhyMemManager has to
         //allocate new map items
         static PhyMemMap storage_space[3];
         unsigned int to_be_allocd = 2*PG_SIZE;

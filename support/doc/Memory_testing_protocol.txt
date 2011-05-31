@@ -71,10 +71,10 @@ I/  Initialization
         * Check that map_list, knl_free_map and knl_busy_map are all NULL
         * Check that map and list items are properly allocated
         * Check that knl_mutex and maplist_mutex are available
-        * Setup kalloc with our MemAllocator, so that we may use it later
+        * Setup kalloc with our MemAllocator
 
 II/ PhyMemManager
-    1. Contiguous memory allocation and liberation with and without free items merging
+    1. Contiguous memory allocation and liberation
         * Put PhyMemManager in a state with two consecutive free pages, save this state.
         * Allocate a contiguous chunk of two pages, check the returned result
             -The pointer must be nonzero
@@ -84,14 +84,15 @@ II/ PhyMemManager
             -allocatable must be true
             -next_buddy must be NULL
             -next_mapitem must be nonzero
+            -shareable must be false
         * Check modifications to PhyMemManager's state
             -The two previously free pages must have been merged in the returned chunk
             -In free_*mem, the chunk must have been replaced with the next item
             -free_mapitems must be one item longer, as the second free page has been merged with the
              first one
             -Everything else should be identical to the previous state
-        * Free the previously allocated chunk, using the pointer-based version of free()
-        * Check modifications to PhyMemManager's state
+        * Use pointer-based free() to free the chunk. Check that result is true, and that
+          PhyMemManager's state has been modified well
             -The chunk must now have no owner
             -It must have been moved in the beginning of free_*mem
             -Everything else must be identical
@@ -100,8 +101,8 @@ II/ PhyMemManager
             -The chunk must have been allocated in the previously freed space
             -As before, it must have disappeared from free_*mem
             -Everything else should be identical
-        * Free the chunk in the same way, modifications to PhyMemManager's state should be the same
-        * Free the saved state of PhyMemManager
+        * Free the chunk with the address-based version of free. Modifications to PhyMemManager's
+         state should be the same
     2. Contiguous memory allocation with free item splitting
         * Put PhyMemManager in a state with a 3 pages long free chunk, save this state
         * Allocate a contiguous chunk of two pages, check the result
@@ -112,7 +113,6 @@ II/ PhyMemManager
             -free_mapitems should be one item shorter (one new map item is required for splitting)
             -Everything else should be identical
         * Free the chunk in the same way, modifications to PhyMemManager's state should be the same
-        * Free the saved state of PhyMemManager
     3. Contiguous memory allocation in non-contiguous free memory
         * Put PhyMemManager in a state with one free page, then an allocated page, then a two pages
           long free chunk, and save this state.
@@ -125,7 +125,6 @@ II/ PhyMemManager
             -The chunk must now have no owner
             -free_*mem should still point to the free page, followed by the now-free 2pg chunk
             -Everything else should be identical
-        * Free the saved PhyMemManager state
     4. Non-contiguous memory allocation
         * Go back to the beginning and start over, but with non-contiguous chunk allocation and the
           location-based variant of free this time. Results should be identical except for the last
@@ -143,7 +142,6 @@ II/ PhyMemManager
             -Owners of both parts of the allocated chunk have been cleared
             -They should have been put in the beginning of free_*mem, in the right order
             -Everything else should be identical
-        * Free the saved state, we're done
     5. Sharing functions
         * Allocate a page
         * Check that adding an owner works properly (owner is added to the owners field of the page,
@@ -198,6 +196,7 @@ III/VirMemManager
             -points_to must be the previously allocated page
             -next_buddy doit être NULL
             -next_mapitem doit être NULL
+            -shareable must be false
         * Check map_list state
             -A single new item, located after that of PID_KERNEL, pointed by the previously
              mentioned "owner" field
@@ -355,7 +354,8 @@ IV/ MemAllocator
           allocation is not put in free_map.
         * Check that owneradd() works properly. It should take a chunk of the busy_map of the
           initial process, map its content in the address pace of another process, and put it in the
-          busy_map of that other process. Nothing more, nothing less.
+          busy_map of that other process. It should only work on pages allocated with
+          alloc_shareable(). Nothing more, nothing less.
         * Check that free()-ing a shared page does in fact only remove the relevant owner in
           PhyMemManager, and does not actually free the page for all owners.
         * Same tests, but with the kernel as the allocating process, sender, or recipient

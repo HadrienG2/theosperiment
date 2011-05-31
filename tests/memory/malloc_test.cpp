@@ -88,6 +88,9 @@ namespace Tests {
 
         item_title("Setup kalloc with our MemAllocator, so that we may use it later");
         setup_kalloc(mallocator);
+        
+        item_title("Allocate 1 byte of data with kalloc");
+        kalloc(1);
 
         return &mallocator;
     }

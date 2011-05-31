@@ -51,7 +51,7 @@ const TxtAttr BKG_MARROON = 0x60;
 const TxtAttr BKG_LIGHTGRAY = 0x70;
  
 //The beginning of the video ram
-static char* const videoram = (char *) 0xb8000;
+static volatile char* const videoram = (char *) 0xb8000;
 //Size of the video ram
 static const unsigned int number_of_cols = 80;
 static const unsigned int number_of_rows = 25;

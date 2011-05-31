@@ -28,7 +28,7 @@ namespace Tests {
     //The internal state of a VirMemManager, as described in virtmem.h
     struct VirMemState {
         PhyMemManager* phymem;
-        KernelMutex maplist_mutex;
+        OwnerlessMutex maplist_mutex;
         VirMapList* map_list;
         VirMemMap* free_mapitems; //In a saved state, this is just a casted integer, counting the
                                   //number of items stored in there. As said about PhyMemState,

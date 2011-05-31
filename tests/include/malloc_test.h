@@ -36,8 +36,8 @@ namespace Tests {
         MallocMap* free_mapitems; //As usual, this is a casted integer in a saved state, because
                                   //there's no point copying and storing a pack of blank data.
         MallocPIDList* free_listitems; //Same for this.
-        KernelMutex maplist_mutex;
-        KernelMutex knl_mutex;
+        OwnerlessMutex maplist_mutex;
+        OwnerlessMutex knl_mutex;
     };
 
     //Main tests
