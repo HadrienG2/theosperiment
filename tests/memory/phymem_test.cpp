@@ -294,21 +294,36 @@ namespace Tests {
         if(!phy_test_contigalloc(phymem)) return false;
         
         subtest_title("Contiguous memory allocation with free item splitting");
+        if(!phy_test_splitalloc(phymem)) return false;
+        
+        subtest_title("Contiguous memory allocation in non-contiguous free memory");
+        if(!phy_test_rockyalloc_contig(phymem)) return false;
+        
+        subtest_title("Non-contiguous memory allocation");
+        if(!phy_test_noncontigalloc(phymem)) return false;
+        
+        subtest_title("Sharing functions");
+        if(!phy_test_sharing(phymem)) return false;
+        
+        subtest_title("Allocation of a reserved chunk");
+        if(!phy_test_resvalloc(phymem)) return false;
+        
+        subtest_title("Finding a chunk");
         fail_notimpl();
         return false;
     }
     
     bool phy_test_contigalloc(PhyMemManager& phymem) {
         item_title("Put PhyMemManager in a state with two consecutive free pages, save it");
-        PhyMemState* saved_state = phy_setstate_2_free_pg(phymem);
+        PhyMemState* saved_state = phy_setstate_2_free_pgs(phymem);
         if(!saved_state) return false;
         
         item_title("Allocate a contiguous chunk of two pages, check the returned result");
         PhyMemMap* returned_chunk = phymem.alloc_chunk(PID_KERNEL, 2*PG_SIZE, true);
-        if(!phy_check_returned_2pgchunk(returned_chunk)) return false;
+        if(!phy_check_returned_2pgchunk_contig(returned_chunk)) return false;
         
         item_title("Check modifications to PhyMemManager's state");
-        if(!check_phystate_merge_alloc(phymem, saved_state, returned_chunk)) return false;
+        if(!check_phystate_merge_alloc(phymem, saved_state)) return false;
         
         item_title("Use pointer-based free() to free the chunk, check state");
         if(!phymem.free(returned_chunk)) {
@@ -319,10 +334,10 @@ namespace Tests {
         
         item_title("Allocate a contiguous chunk of two pages again, check the result");
         returned_chunk = phymem.alloc_chunk(PID_KERNEL, 2*PG_SIZE, true);
-        if(!phy_check_returned_2pgchunk(returned_chunk)) return false;
+        if(!phy_check_returned_2pgchunk_contig(returned_chunk)) return false;
         
         item_title("Check modifications to PhyMemManager's state");
-        if(!check_phystate_perfectfit_alloc(phymem, saved_state, returned_chunk)) return false;
+        if(!check_phystate_perfectfit_alloc(phymem, saved_state)) return false;
         
         item_title("Use location-based free() to free the chunk, check state");
         if(!phymem.free(returned_chunk->location)) {
@@ -334,7 +349,156 @@ namespace Tests {
         return true;
     }
     
-    bool phy_check_returned_2pgchunk(PhyMemMap* chunk) {
+    bool phy_test_noncontigalloc(PhyMemManager& phymem) {
+        item_title("First three tests should give same results with non-contiguous allocation");
+        //Fragmented contiguous free space
+        PhyMemState* saved_state = phy_setstate_2_free_pgs(phymem);
+        if(!saved_state) return false;
+        PhyMemMap* returned_chunk = phymem.alloc_chunk(PID_KERNEL, 2*PG_SIZE, false);
+        if(!phy_check_returned_2pgchunk_contig(returned_chunk)) return false;
+        if(!check_phystate_merge_alloc(phymem, saved_state)) return false;
+        if(!phymem.free(returned_chunk)) {
+            test_failure("The free operation has returned false");
+            return false;
+        }
+        if(!check_phystate_chunk_free(phymem, saved_state, returned_chunk)) return false;
+        //"Perfect fit" situation
+        returned_chunk = phymem.alloc_chunk(PID_KERNEL, 2*PG_SIZE, false);
+        if(!phy_check_returned_2pgchunk_contig(returned_chunk)) return false;
+        if(!check_phystate_perfectfit_alloc(phymem, saved_state)) return false;
+        if(!phymem.free(returned_chunk->location)) {
+            test_failure("The free operation has returned false");
+            return false;
+        }
+        if(!check_phystate_chunk_free(phymem, saved_state, returned_chunk)) return false;
+        //Free space is too large
+        saved_state = phy_setstate_3pg_free_chunk(phymem);
+        if(!saved_state) return false;
+        returned_chunk = phymem.alloc_chunk(PID_KERNEL, 2*PG_SIZE, false);
+        if(!phy_check_returned_2pgchunk_contig(returned_chunk)) return false;
+        if(!check_phystate_split_alloc(phymem, saved_state)) return false;
+        if(!phymem.free(returned_chunk)) {
+            test_failure("The free operation has returned false");
+            return false;
+        }
+        if(!check_phystate_chunk_free(phymem, saved_state, returned_chunk)) return false;
+        
+        item_title("Last test should return a non-contiguous chunk instead");
+        saved_state = phy_setstate_rocky_freemem(phymem);
+        if(!saved_state) return false;
+        returned_chunk = phymem.alloc_chunk(PID_KERNEL, 2*PG_SIZE, false);
+        if(!phy_check_returned_2pgchunk_noncontig(returned_chunk)) return false;
+        
+        item_title("Check modifications to PhyMemManager's state");
+        if(!check_phystate_rockyalloc_noncontig(phymem, saved_state)) return false;
+        
+        item_title("Check that the non-contiguous chunk is freed properly");
+        if(!phymem.free(returned_chunk)) {
+            test_failure("The free operation has returned false");
+            return false;
+        }
+        if(!check_phystate_rockyfree_noncontig(phymem, saved_state, returned_chunk)) return false;
+        
+        return true;;
+    }
+    
+    bool phy_test_resvalloc(PhyMemManager& phymem) {
+        item_title("Find a reserved (non-allocatable) chunk in phy_mmap");
+        fail_notimpl();
+        return false;
+    }
+    
+    bool phy_test_rockyalloc_contig(PhyMemManager& phymem) {
+        item_title("Put PhyMemManager in a F-FF state (F=free page, -=busy page) and save");
+        PhyMemState* saved_state = phy_setstate_rocky_freemem(phymem);
+        if(!saved_state) return false;
+        
+        item_title("Allocate a contiguous chunk of two pages, check the result");
+        PhyMemMap* returned_chunk = phymem.alloc_chunk(PID_KERNEL, 2*PG_SIZE, true);
+        if(!phy_check_returned_2pgchunk_contig(returned_chunk)) return false;
+        
+        item_title("Check modifications to PhyMemManager's state");
+        if(!check_phystate_rockyalloc_contig(phymem, saved_state)) return false;
+        
+        item_title("Use pointer-based free() to free the chunk, check state");
+        if(!phymem.free(returned_chunk)) {
+            test_failure("The free operation has returned false");
+            return false;
+        }
+        if(!check_phystate_rockyfree_contig(phymem, saved_state)) return false;
+        
+        return true;
+    }
+    
+    bool phy_test_sharing(PhyMemManager& phymem) {
+        item_title("Allocate a page, save PhyMemManager's state");
+        PhyMemMap* shared_page = phymem.alloc_page(PID_KERNEL);
+        if(!phy_check_returned_page(shared_page)) return false;
+        PhyMemState* saved_state = save_phymem_state(phymem);
+        if(!saved_state) {
+            test_failure("Could not save PhyMemManager's state");
+            return false;
+        }
+        
+        item_title("Check that adding an owner works properly");
+        if(!phymem.owneradd(shared_page, 42)) {
+            test_failure("owneradd() returned false");
+            return false;
+        }
+        if(!check_phystate_owneradd(phymem, saved_state, shared_page)) return false;
+        
+        item_title("Free the page, check that all owners are now gone");
+        if(!phymem.free(shared_page)) {
+            test_failure("Page was not freed properly");
+            return false;
+        }
+        if((shared_page->owners[0] != PID_NOBODY) || (shared_page->owners[1] != PID_NOBODY)) {
+            test_failure("Page was not freed properly");
+            return false;
+        }
+        
+        item_title("Allocate the page again, save PhyMemManager's state");
+        shared_page = phymem.alloc_page(PID_KERNEL);
+        if(!phy_check_returned_page(shared_page)) return false;
+        saved_state = save_phymem_state(phymem);
+        if(!saved_state) {
+            test_failure("Could not save PhyMemManager's state");
+            return false;
+        }
+        
+        item_title("Remove the page's sole owner, check that it is freed");
+        if(!phymem.ownerdel(shared_page, PID_KERNEL)) {
+            test_failure("ownerdel() returned false");
+            return false;
+        }
+        if(!check_phystate_ownerdel(phymem, saved_state, shared_page)) return false;
+        
+        return true;
+    }
+    
+    bool phy_test_splitalloc(PhyMemManager& phymem) {
+        item_title("Put PhyMemManager in a state with a 3 pages long free chunk, save it");
+        PhyMemState* saved_state = phy_setstate_3pg_free_chunk(phymem);
+        if(!saved_state) return false;
+        
+        item_title("Allocate a contiguous chunk of two pages, check the returned result");
+        PhyMemMap* returned_chunk = phymem.alloc_chunk(PID_KERNEL, 2*PG_SIZE, true);
+        if(!phy_check_returned_2pgchunk_contig(returned_chunk)) return false;
+        
+        item_title("Check modifications to PhyMemManager's state");
+        if(!check_phystate_split_alloc(phymem, saved_state)) return false;
+        
+        item_title("Use pointer-based free() to free the chunk, check state");
+        if(!phymem.free(returned_chunk)) {
+            test_failure("The free operation has returned false");
+            return false;
+        }
+        if(!check_phystate_chunk_free(phymem, saved_state, returned_chunk)) return false;
+        
+        return true;
+    }
+    
+    bool phy_check_returned_2pgchunk_contig(PhyMemMap* chunk) {
         if(!chunk) {
             test_failure("The pointer must be nonzero");
             return false;
@@ -369,6 +533,110 @@ namespace Tests {
         }
         return true;
     }
+    
+    bool phy_check_returned_2pgchunk_noncontig(PhyMemMap* chunk) {
+        //Checking the chunk
+        if(!chunk) {
+            test_failure("The pointer must be nonzero");
+            return false;
+        }
+        if(align_pgdown(chunk->location) != chunk->location) {
+            test_failure("location must be page-aligned");
+            return false;
+        }
+        if(chunk->size != PG_SIZE) {
+            test_failure("size must be PG_SIZE");
+            return false;
+        }
+        if((chunk->owners[0] != PID_KERNEL) || (chunk->owners[1] != PID_NOBODY)) {
+            test_failure("owners must only include PID_KERNEL");
+            return false;
+        }
+        if(chunk->allocatable == false) {
+            test_failure("allocatable must be true");
+            return false;
+        }
+        if(chunk->next_buddy == NULL) {
+            test_failure("next_buddy must be nonzero");
+            return false;
+        }        
+        if(chunk->next_mapitem == NULL) {
+            test_failure("next_mapitem must be nonzero");
+            return false;
+        }
+        if(chunk->shareable) {
+            test_failure("shareable must be false");
+            return false;
+        }
+        
+        //Checking its buddy
+        if(align_pgdown(chunk->next_buddy->location) != chunk->next_buddy->location) {
+            test_failure("Buddy's location must be page-aligned");
+            return false;
+        }
+        if(chunk->next_buddy->size != PG_SIZE) {
+            test_failure("Buddy's size must be PG_SIZE");
+            return false;
+        }
+        if((chunk->next_buddy->owners[0] != PID_KERNEL) ||
+          (chunk->next_buddy->owners[1] != PID_NOBODY)) {
+            test_failure("Buddy's owners must only include PID_KERNEL");
+            return false;
+        }
+        if(chunk->next_buddy->allocatable == false) {
+            test_failure("Buddy's allocatable must be true");
+            return false;
+        }
+        if(chunk->next_buddy->next_buddy != NULL) {
+            test_failure("Buddy's next_buddy must be NULL");
+            return false;
+        }
+        if(chunk->next_buddy->next_mapitem == NULL) {
+            test_failure("Buddy's next_mapitem must be nonzero");
+            return false;
+        }
+        if(chunk->next_buddy->shareable) {
+            test_failure("Buddy's shareable must be false");
+            return false;
+        }
+        return true;
+    }
+    
+    bool phy_check_returned_page(PhyMemMap* page) {
+        if(!page) {
+            test_failure("The pointer must be nonzero");
+            return false;
+        }
+        if(align_pgdown(page->location) != page->location) {
+            test_failure("location must be page-aligned");
+            return false;
+        }
+        if(page->size != PG_SIZE) {
+            test_failure("size must be PG_SIZE");
+            return false;
+        }
+        if((page->owners[0] != PID_KERNEL) || (page->owners[1] != PID_NOBODY)) {
+            test_failure("owners must only include PID_KERNEL");
+            return false;
+        }
+        if(page->allocatable == false) {
+            test_failure("allocatable must be true");
+            return false;
+        }
+        if(page->next_buddy != NULL) {
+            test_failure("next_buddy must be NULL");
+            return false;
+        }
+        if(page->next_mapitem == NULL) {
+            test_failure("next_mapitem must be nonzero");
+            return false;
+        }
+        if(page->shareable) {
+            test_failure("shareable must be false");
+            return false;
+        }
+        return true;
+    }
 
     bool phy_init_check_mmap_assump(PhyMemState* phymem_state) {
         PhyMemMap* map_parser = phymem_state->phy_mmap;
@@ -397,7 +665,7 @@ namespace Tests {
         return true;
     }
     
-    PhyMemState* phy_setstate_2_free_pg(PhyMemManager& phymem) {
+    PhyMemState* phy_setstate_2_free_pgs(PhyMemManager& phymem) {
         PhyMemMap* last_pages[2];
         
         //Allocate pages until we have two consecutive ones, if possible.
@@ -425,6 +693,110 @@ namespace Tests {
         phymem.free(last_pages[1]);
         
         //Save phymem's state, return the result
-        return save_phymem_state(phymem);
+        PhyMemState* saved_state = save_phymem_state(phymem);
+        if(!saved_state) {
+            test_failure("Could not save PhyMemManager's state");
+            return NULL;
+        }
+        return saved_state;
+    }
+    
+    PhyMemState* phy_setstate_3pg_free_chunk(PhyMemManager& phymem) {
+        PhyMemMap* last_pages[3];
+        
+        //Allocate pages until we have three consecutive ones, if possible.
+        last_pages[0] = phymem.alloc_page(PID_KERNEL);
+        if(last_pages[0] == NULL) {
+            test_failure("There aren't three free pages in there");
+            return NULL;
+        }
+        last_pages[1] = phymem.alloc_page(PID_KERNEL);
+        if(last_pages[1] == NULL) {
+            test_failure("There aren't three free pages in there");
+            return NULL;
+        }
+        last_pages[2] = phymem.alloc_page(PID_KERNEL);
+        if(last_pages[2] == NULL) {
+            test_failure("There aren't three free pages in there");
+            return NULL;
+        }
+        while((last_pages[0]->location + last_pages[0]->size != last_pages[1]->location) || 
+          (last_pages[1]->location + last_pages[1]->size != last_pages[2]->location)) {
+            last_pages[0] = last_pages[1];
+            last_pages[1] = last_pages[2];
+            last_pages[2] = phymem.alloc_page(PID_KERNEL);
+            if(last_pages[2] == NULL) {
+                test_failure("There aren't three consecutive free pages in there");
+                return NULL;
+            }
+        }
+        
+        //Free the three contiguous pages
+        phymem.free(last_pages[0]);
+        phymem.free(last_pages[1]);
+        phymem.free(last_pages[2]);
+        
+        //Allocate a three pages contiguous chunk on top of them, free it
+        PhyMemMap* chunk = phymem.alloc_chunk(PID_KERNEL, 3*PG_SIZE, true);
+        phymem.free(chunk);
+        
+        //Save phymem's state, return the result
+        PhyMemState* saved_state = save_phymem_state(phymem);
+        if(!saved_state) {
+            test_failure("Could not save PhyMemManager's state");
+            return NULL;
+        }
+        return saved_state;
+    }
+    
+    PhyMemState* phy_setstate_rocky_freemem(PhyMemManager& phymem) {
+        PhyMemMap* last_pages[4];
+        
+        //Allocate pages until we have three consecutive ones, if possible.
+        last_pages[0] = phymem.alloc_page(PID_KERNEL);
+        if(last_pages[0] == NULL) {
+            test_failure("There aren't four free pages in there");
+            return NULL;
+        }
+        last_pages[1] = phymem.alloc_page(PID_KERNEL);
+        if(last_pages[1] == NULL) {
+            test_failure("There aren't four free pages in there");
+            return NULL;
+        }
+        last_pages[2] = phymem.alloc_page(PID_KERNEL);
+        if(last_pages[2] == NULL) {
+            test_failure("There aren't four free pages in there");
+            return NULL;
+        }
+        last_pages[3] = phymem.alloc_page(PID_KERNEL);
+        if(last_pages[3] == NULL) {
+            test_failure("There aren't four free pages in there");
+            return NULL;
+        }
+        while((last_pages[0]->location + last_pages[0]->size != last_pages[1]->location) || 
+          (last_pages[1]->location + last_pages[1]->size != last_pages[2]->location) ||
+          (last_pages[2]->location + last_pages[2]->size != last_pages[3]->location)) {
+            last_pages[0] = last_pages[1];
+            last_pages[1] = last_pages[2];
+            last_pages[2] = last_pages[3];
+            last_pages[3] = phymem.alloc_page(PID_KERNEL);
+            if(last_pages[3] == NULL) {
+                test_failure("There aren't four consecutive free pages in there");
+                return NULL;
+            }
+        }
+        
+        //Free the first, third and fourth page
+        phymem.free(last_pages[0]);
+        phymem.free(last_pages[2]);
+        phymem.free(last_pages[3]);
+        
+        //Save phymem's state, return the result
+        PhyMemState* saved_state = save_phymem_state(phymem);
+        if(!saved_state) {
+            test_failure("Could not save PhyMemManager's state");
+            return NULL;
+        }
+        return saved_state;
     }
 }

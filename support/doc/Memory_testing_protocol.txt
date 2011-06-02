@@ -94,11 +94,13 @@ II/ PhyMemManager
         * Use pointer-based free() to free the chunk. Check that result is true, and that
           PhyMemManager's state has been modified well
             -The chunk must now have no owner
-            -It must have been moved in the beginning of free_*mem
+            -It must have been moved in the beginning of free_*mem, and must have the former
+             free_*mem as its next buddy
             -Everything else must be identical
         * Allocate a contiguous chunk of two pages again, check the result again
         * Check modifications to PhyMemManager's state
             -The chunk must have been allocated in the previously freed space
+            -It must have no buddy
             -As before, it must have disappeared from free_*mem
             -Everything else should be identical
         * Free the chunk with the address-based version of free. Modifications to PhyMemManager's
@@ -114,13 +116,15 @@ II/ PhyMemManager
             -Everything else should be identical
         * Free the chunk in the same way, modifications to PhyMemManager's state should be the same
     3. Contiguous memory allocation in non-contiguous free memory
-        * Put PhyMemManager in a state with one free page, then an allocated page, then a two pages
-          long free chunk, and save this state.
+        * Put PhyMemManager in a state with one free page, then an allocated page, then two free
+          pages, and save this state.
         * Allocate a contiguous chunk of two pages, check the result
         * Check modifications to PhyMemManager's state
             -The free page must have been left untouched, the free chunk after should have been
-             fully allocated.
-            -free_*mem should still point to the free page, everything else should be identical
+             fully allocated in the two pages afterwards.
+            -free_*mem should still point to the free page
+            -free_mapitems should be one item longer due to some merging
+            -Everything else should be identical
         * Free the chunk, check modifications to PhyMemManager's state
             -The chunk must now have no owner
             -free_*mem should still point to the free page, followed by the now-free 2pg chunk
@@ -143,18 +147,20 @@ II/ PhyMemManager
             -They should have been put in the beginning of free_*mem, in the right order
             -Everything else should be identical
     5. Sharing functions
-        * Allocate a page
+        * Allocate a page, save PhyMemManager's state
         * Check that adding an owner works properly (owner is added to the owners field of the page,
           nothing else has changed)
-        * Remove both owners from the page, check that it is freed properly by re-allocating it
+        * Free the page, check that all owners are now gone
+        * Allocate the page again, save PhyMemManager's state
+        * Remove the page's owner, check that it is freed
     6. Allocation of a reserved chunk
-        * Find a reserved chunk in phy_mmap
+        * Find a reserved (non-allocatable) chunk in phy_mmap
         * Try to allocate it with alloc_resvchunk
         * Check that it works
         * Try to allocate it to another PID with alloc_resvchunk
         * Check that it didn't work
         * Check that owneradd does work
-        * Free the chunk, check that it went back to its initial state
+        * Free the chunk, check that it went back to its initial state (including allocatable = false)
     7. Finding a chunk
         * Try to find the first chunk of phy_mmap with find_this()
         * Check results
@@ -178,7 +184,7 @@ II/ PhyMemManager
           free_mapitems, check that they are all properly cleaned up before being put in
           free_mapitems
     a. x86_64-specific
-        * Repeat tests with the low memory allocators, when it does apply.
+        * Repeat all allocation tests with the low memory allocators
 
 III/VirMemManager
     1. Basic paging

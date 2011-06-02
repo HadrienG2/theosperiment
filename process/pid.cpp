@@ -44,6 +44,7 @@ void PIDs::free_members() {
         kfree(to_delete);
         to_delete = following_one;
     }
+    next_item = NULL;
 }
 
 unsigned int PIDs::add_pid(const PID new_pid) {

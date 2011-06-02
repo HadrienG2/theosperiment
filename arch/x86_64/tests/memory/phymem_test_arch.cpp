@@ -21,8 +21,6 @@
 #include <phymem_test_arch.h>
 #include <test_display.h>
 
-//#include <dbgstream.h>
-
 namespace Tests {
     PhyMemState* save_phymem_state(PhyMemManager& phymem) {
         PhyMemState* phymem_state = (PhyMemState*) &phymem;
@@ -323,33 +321,135 @@ namespace Tests {
         while(map_parser->location != returned_chunk->location) {
             map_parser = map_parser->next_mapitem;
         }
-        saved_state->free_highmem = map_parser;
         map_parser->clear_owners();
+        map_parser->next_buddy = saved_state->free_highmem;
+        saved_state->free_highmem = map_parser;
         if(!cmp_phymem_state(phymem, saved_state)) return false;
 
         return true;
     }
 
     bool check_phystate_merge_alloc(PhyMemManager& phymem,
-                                    PhyMemState* saved_state,
-                                    PhyMemMap* returned_chunk) {
-        saved_state->free_highmem->size = 2*PG_SIZE;
-        saved_state->free_highmem->add_owner(PID_KERNEL);
-        saved_state->free_highmem->next_buddy = saved_state->free_highmem->next_mapitem->next_buddy;
-        saved_state->free_highmem->next_mapitem =
-            saved_state->free_highmem->next_mapitem->next_mapitem;
-        saved_state->free_highmem = saved_state->free_highmem->next_mapitem;
+                                    PhyMemState* saved_state) {
+        PhyMemMap* allocation_region = saved_state->free_highmem;
+        saved_state->free_highmem = saved_state->free_highmem->next_buddy->next_buddy;
+        allocation_region->size = 2*PG_SIZE;
+        allocation_region->add_owner(PID_KERNEL);
+        allocation_region->next_buddy = NULL;
+        allocation_region->next_mapitem = allocation_region->next_mapitem->next_mapitem;
         saved_state->free_mapitems = (PhyMemMap*) (((uint64_t) saved_state->free_mapitems) + 1);
         if(!cmp_phymem_state(phymem, saved_state)) return false;
 
         return true;
     }
     
+    bool check_phystate_owneradd(PhyMemManager& phymem,
+                                 PhyMemState* saved_state,
+                                 PhyMemMap* shared_page) {
+        PhyMemMap* map_parser = saved_state->phy_highmmap;
+        while(map_parser->location != shared_page->location) {
+            map_parser = map_parser->next_mapitem;
+        }
+        map_parser->owners.add_pid(42);
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+
+        return true;
+    }
+    
+    bool check_phystate_ownerdel(PhyMemManager& phymem,
+                                 PhyMemState* saved_state,
+                                 PhyMemMap* shared_page) {
+        PhyMemMap* map_parser = saved_state->phy_highmmap;
+        while(map_parser->location != shared_page->location) {
+            map_parser = map_parser->next_mapitem;
+        }
+        map_parser->owners.clear_pids();
+        map_parser->next_buddy = saved_state->free_highmem;
+        saved_state->free_highmem = map_parser;
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+
+        return true;
+    }
+    
     bool check_phystate_perfectfit_alloc(PhyMemManager& phymem,
-                                         PhyMemState* saved_state,
-                                         PhyMemMap* returned_chunk) {
+                                         PhyMemState* saved_state) {
+        PhyMemMap* allocation_region = saved_state->free_highmem;
+        saved_state->free_highmem = saved_state->free_highmem->next_buddy;
+        allocation_region->add_owner(PID_KERNEL);
+        allocation_region->next_buddy = NULL;
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+
+        return true;
+    }
+    
+    bool check_phystate_rockyalloc_contig(PhyMemManager& phymem,
+                                          PhyMemState* saved_state) {
+        PhyMemMap* allocation_region = saved_state->free_highmem->next_buddy;
+        allocation_region->size = 2*PG_SIZE;
+        allocation_region->add_owner(PID_KERNEL);
+        saved_state->free_highmem->next_buddy = allocation_region->next_buddy->next_buddy;
+        allocation_region->next_buddy = NULL;
+        allocation_region->next_mapitem = allocation_region->next_mapitem->next_mapitem;
+        saved_state->free_mapitems = (PhyMemMap*) (((uint64_t) saved_state->free_mapitems) + 1);
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+
+        return true;
+    }
+    
+    bool check_phystate_rockyalloc_noncontig(PhyMemManager& phymem,
+                                             PhyMemState* saved_state) {
+        PhyMemMap* allocation_region = saved_state->free_highmem;
+        saved_state->free_highmem = saved_state->free_highmem->next_buddy->next_buddy;
+        allocation_region->add_owner(PID_KERNEL);
+        allocation_region = allocation_region->next_buddy;
+        allocation_region->add_owner(PID_KERNEL);
+        allocation_region->next_buddy = NULL;
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+
+        return true;
+    }
+    
+    bool check_phystate_rockyfree_contig(PhyMemManager& phymem,
+                                         PhyMemState* saved_state) {
+        PhyMemMap* allocated_block = saved_state->free_highmem->next_mapitem->next_mapitem;
+        allocated_block->clear_owners();
+        allocated_block->next_buddy = saved_state->free_highmem->next_buddy;
+        saved_state->free_highmem->next_buddy = allocated_block;
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+
+        return true;
+    }
+    
+    bool check_phystate_rockyfree_noncontig(PhyMemManager& phymem,
+                                            PhyMemState* saved_state,
+                                            PhyMemMap* returned_chunk) {
+        PhyMemMap* map_parser = saved_state->phy_highmmap;
+        while(map_parser->location != returned_chunk->location) {
+            map_parser = map_parser->next_mapitem;
+        }
+        PhyMemMap* chunk_beginning = map_parser;
+        map_parser->clear_owners();
+        map_parser = map_parser->next_buddy;
+        map_parser->clear_owners();
+        map_parser->next_buddy = saved_state->free_highmem;
+        saved_state->free_highmem = chunk_beginning;
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+
+        return true;
+    }
+    
+    bool check_phystate_split_alloc(PhyMemManager& phymem,
+                                    PhyMemState* saved_state) {        
+        static PhyMemMap buffer;
+        buffer = *(saved_state->free_highmem);
+        buffer.location+= 2*PG_SIZE;
+        buffer.size-= 2*PG_SIZE;
+        saved_state->free_highmem->size = 2*PG_SIZE;
         saved_state->free_highmem->add_owner(PID_KERNEL);
-        saved_state->free_highmem = saved_state->free_highmem->next_mapitem;
+        saved_state->free_highmem->next_buddy = NULL;
+        saved_state->free_highmem->next_mapitem = &buffer;
+        saved_state->free_highmem = &buffer;
+        saved_state->free_mapitems = (PhyMemMap*) (((uint64_t) saved_state->free_mapitems) - 1);
         if(!cmp_phymem_state(phymem, saved_state)) return false;
 
         return true;
