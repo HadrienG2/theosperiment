@@ -58,11 +58,26 @@ namespace Tests {
                                    PhyMemState* saved_state,
                                    PhyMemMap* returned_chunk);
     bool check_phystate_merge_alloc(PhyMemManager& phymem,
-                                    PhyMemState* saved_state,
-                                    PhyMemMap* returned_chunk);
+                                    PhyMemState* saved_state);
+    bool check_phystate_owneradd(PhyMemManager& phymem,
+                                 PhyMemState* saved_state,
+                                 PhyMemMap* shared_page);
+    bool check_phystate_ownerdel(PhyMemManager& phymem,
+                                 PhyMemState* saved_state,
+                                 PhyMemMap* shared_page);
     bool check_phystate_perfectfit_alloc(PhyMemManager& phymem,
-                                         PhyMemState* saved_state,
-                                         PhyMemMap* returned_chunk);
+                                         PhyMemState* saved_state);
+    bool check_phystate_rockyalloc_contig(PhyMemManager& phymem,
+                                          PhyMemState* saved_state);
+    bool check_phystate_rockyalloc_noncontig(PhyMemManager& phymem,
+                                             PhyMemState* saved_state);
+    bool check_phystate_rockyfree_contig(PhyMemManager& phymem,
+                                         PhyMemState* saved_state);
+    bool check_phystate_rockyfree_noncontig(PhyMemManager& phymem,
+                                            PhyMemState* saved_state,
+                                            PhyMemMap* returned_chunk);
+    bool check_phystate_split_alloc(PhyMemManager& phymem,
+                                    PhyMemState* saved_state);
 
     //This one is used in virmem/mallocator tests, but it's so phymem-specific that it fits here
     //better. Gathers data about the free highmem area(s) where the next two pages would be
