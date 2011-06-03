@@ -414,6 +414,10 @@ KernelMemoryMap* generate_memory_map(const multiboot_info_t* mbd, KernelInformat
   //Here's part 3
   if(merge_memory_map(kinfo) == 0) die(NO_MEMORYMAP);
   
+  //Finally, protect the first page of memory from tampering by marking it as reserved
+  kmmap_add(kinfo, 0, PG_SIZE, NATURE_RES, "NULL pointer's page");
+  kmmap_update(kinfo);
+  
   return kmmap_buffer;
 }
 

@@ -146,7 +146,7 @@ namespace Tests {
         }
 
         //That page should have been allocated first.
-        PhyMemMap* allocd_page = virmem_state->phymem->find_this(mapitems_location);
+        PhyMemMap* allocd_page = virmem_state->phymem->find_thischunk(mapitems_location);
         if((!allocd_page) ||
            (allocd_page->size != PG_SIZE) ||
            (allocd_page->owners[0]!=PID_KERNEL) ||
@@ -200,7 +200,7 @@ namespace Tests {
         }
 
         //That page should have been allocated first.
-        PhyMemMap* allocd_page = virmem_state->phymem->find_this(listitems_location);
+        PhyMemMap* allocd_page = virmem_state->phymem->find_thischunk(listitems_location);
         if((!allocd_page) ||
            (allocd_page->size != PG_SIZE) ||
            (allocd_page->owners[0]!=PID_KERNEL) ||

@@ -75,7 +75,7 @@ I/  Initialization
 
 II/ PhyMemManager
     1. Contiguous memory allocation and liberation
-        * Put PhyMemManager in a state with two consecutive free pages, save this state.
+        * Put PhyMemManager in a state with two consecutive free pages, save it
         * Allocate a contiguous chunk of two pages, check the returned result
             -The pointer must be nonzero
             -location must be page-aligned
@@ -106,7 +106,7 @@ II/ PhyMemManager
         * Free the chunk with the address-based version of free. Modifications to PhyMemManager's
          state should be the same
     2. Contiguous memory allocation with free item splitting
-        * Put PhyMemManager in a state with a 3 pages long free chunk, save this state
+        * Put PhyMemManager in a state with a 3 pages long free chunk, save it
         * Allocate a contiguous chunk of two pages, check the result
         * Check modifications to PhyMemManager's state
             -The previously free chunk should have been split in two : the allocated 2pg chunk, and
@@ -153,38 +153,32 @@ II/ PhyMemManager
         * Free the page, check that all owners are now gone
         * Allocate the page again, save PhyMemManager's state
         * Remove the page's owner, check that it is freed
-    6. Allocation of a reserved chunk
-        * Find a reserved (non-allocatable) chunk in phy_mmap
-        * Try to allocate it with alloc_resvchunk
-        * Check that it works
-        * Try to allocate it to another PID with alloc_resvchunk
-        * Check that it didn't work
-        * Check that owneradd does work
-        * Free the chunk, check that it went back to its initial state (including allocatable = false)
+    6. Allocation of a reserved (allocatable = false) chunk
+        * Allocate a page, mark it as reserved, free it, make sure it's still reserved
+          (this makes sure that there's a reserved free chunk around). Save phymem state.
+        * Try to allocate the page with alloc_resvchunk(), check that it works (result and state)
+        * Try to allocate it to another PID, check that it fails
+        * Check that owneradd() and ownerdel() do work
+        * Free the page, check that it went back to its initial state
     7. Finding a chunk
-        * Try to find the first chunk of phy_mmap with find_this()
-        * Check results
-        * Try to find the second chunk of phy_mmap with find_this()
-        * Check results
-        * Try to find the last chunk of phy_mmap with find_this()
-        * Check results
+        * Try to find the first chunk of phy_mmap with find_thischunk()
+        * Try to find the second chunk of phy_mmap with find_thischunk()
+        * Try to find the last chunk of phy_mmap with find_thischunk()
     8. kill() test
-        * Restart one test which allocates some data, try to kill a process, check that all of its
-          data has been liberated.
-        * Same thing, but with the kernel. Check that its data has *not* been liberated.
+        * Put PhyMemManager in a state with two consecutive free pages, save it
+        * Allocate two pages to a process, then kill the process
+        * Check that we went back to the initially saved state
+        * Try to kill the kernel. Check that it fails.
     9. Internal allocator
         * Check that sizeof(PhyMemMap) is a power of 2
-        * Count the number of spare PhyMemMaps in free_mapitem, allocate as much pages
-        * Check that no new page has been allocated by the internal allocator and that free_mapitems
-          is now empty
-        * Allocate one more page, check that the number of items in free_mapitems is correct and
-          that two pages have been effectively allocated (one being allocated by the internal
-          allocator in the name of the kernel)
-        * Free everything, allocate a big chunk to put all the previously used map items back in
-          free_mapitems, check that they are all properly cleaned up before being put in
-          free_mapitems
+        * Check that all free map items are used before new ones are allocated
+        * Allocate one more page. Check that the right number of free map items
+          (PG_SIZE/sizeof(PhyMemMap)) is allocated when all free map items have been used, and that
+          one and only one page of memory is allocated to the kernel in the process.
+        * Allocate two pages, free them, and allocate a 2 pages chunk. Use it to check that map
+          items are cleaned up before being put in free_mapitems
     a. x86_64-specific
-        * Repeat all allocation tests with the low memory allocators
+        * Repeat all allocation/liberation tests with the low memory allocators
 
 III/VirMemManager
     1. Basic paging

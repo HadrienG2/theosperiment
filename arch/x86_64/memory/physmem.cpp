@@ -325,7 +325,7 @@ void PhyMemManager::killer(PID target) {
     PhyMemMap* parser = phy_mmap;
 
     while(parser) {
-        parser->del_owner(target);
+        if(parser->has_owner(target)) chunk_ownerdel(parser, target);
         parser = parser->next_mapitem;
     }
 }
@@ -547,7 +547,7 @@ PhyMemMap* PhyMemManager::alloc_chunk(const PID initial_owner, const addr_t size
     return result;
 }
 
-PhyMemMap* PhyMemManager::alloc_resvchunk(const PID initial_owner, const addr_t location) {
+PhyMemMap* PhyMemManager::alloc_resvchunk(const addr_t location, const PID initial_owner) {
     PhyMemMap* result;
 
     mmap_mutex.grab_spin();
@@ -602,6 +602,7 @@ bool PhyMemManager::owneradd(PhyMemMap* chunk, const PID new_owner) {
 
 
 bool PhyMemManager::ownerdel(PhyMemMap* chunk, const PID former_owner) {
+    if(chunk->has_owner(former_owner) == false) return false;
     bool result;
 
     mmap_mutex.grab_spin();
@@ -623,7 +624,7 @@ void PhyMemManager::kill(PID target) {
     mmap_mutex.release();
 }
 
-PhyMemMap* PhyMemManager::find_this(addr_t location) {
+PhyMemMap* PhyMemManager::find_thischunk(addr_t location) {
     mmap_mutex.grab_spin();
 
         PhyMemMap* result = phy_mmap->find_thischunk(location);

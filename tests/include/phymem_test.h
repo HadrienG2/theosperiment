@@ -33,6 +33,9 @@ namespace Tests {
 
     //PhyMemManager individual tests
     bool phy_test_contigalloc(PhyMemManager& phymem);
+    bool phy_test_find(PhyMemManager& phymem);
+    bool phy_test_internal_alloc(PhyMemManager& phymem);
+    bool phy_test_kill(PhyMemManager& phymem);
     bool phy_test_noncontigalloc(PhyMemManager& phymem);
     bool phy_test_resvalloc(PhyMemManager& phymem);
     bool phy_test_rockyalloc_contig(PhyMemManager& phymem);
@@ -42,7 +45,9 @@ namespace Tests {
     //Auxiliary functions
     bool phy_check_returned_2pgchunk_contig(PhyMemMap* returned_chunk);
     bool phy_check_returned_2pgchunk_noncontig(PhyMemMap* returned_chunk);
-    bool phy_check_returned_page(PhyMemMap* returned_page);
+    bool phy_check_returned_page(PhyMemMap* returned_chunk);
+    bool phy_check_returned_resvchunk(PhyMemMap* returned_chunk,
+                                      PhyMemMap* resv_page);
     bool phy_init_check_mmap_assump(PhyMemState* phymem_state);
     PhyMemState* phy_setstate_2_free_pgs(PhyMemManager& phymem);
     PhyMemState* phy_setstate_3pg_free_chunk(PhyMemManager& phymem);
