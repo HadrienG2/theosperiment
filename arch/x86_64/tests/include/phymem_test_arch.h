@@ -48,7 +48,14 @@ namespace Tests {
 
     //Arch-specific auxiliary functions
     PhyMemManager* phy_init_arch(PhyMemManager& phymem);
+    PhyMemState* phy_setstate_2_free_pgs_low(PhyMemManager& phymem);
+    PhyMemState* phy_setstate_3pg_free_chunk_low(PhyMemManager& phymem);
+    PhyMemState* phy_setstate_rocky_freemem_low(PhyMemManager& phymem);
     bool phy_test_arch(PhyMemManager& phymem);
+    bool phy_test_contigalloc_low(PhyMemManager& phymem);
+    bool phy_test_noncontigalloc_low(PhyMemManager& phymem);
+    bool phy_test_rockyalloc_contig_low(PhyMemManager& phymem);
+    bool phy_test_splitalloc_low(PhyMemManager& phymem);
     
     //State checkers : these functions are used to check that the when going from a known and saved
     //initial state of PhyMemManager and doing a well-defined set of operations on it, the state
@@ -58,6 +65,9 @@ namespace Tests {
     bool check_phystate_chunk_free(PhyMemManager& phymem,
                                    PhyMemState* saved_state,
                                    PhyMemMap* returned_chunk);
+    bool check_phystate_chunk_free_low(PhyMemManager& phymem,
+                                       PhyMemState* saved_state,
+                                       PhyMemMap* returned_chunk);
     bool check_phystate_internal_alloc(PhyMemManager& phymem,
                                        PhyMemState* saved_state);
     bool check_phystate_merge_alloc(PhyMemManager& phymem,
@@ -72,6 +82,8 @@ namespace Tests {
                                  PhyMemMap* shared_page);
     bool check_phystate_perfectfit_alloc(PhyMemManager& phymem,
                                          PhyMemState* saved_state);
+    bool check_phystate_perfectfit_alloc_low(PhyMemManager& phymem,
+                                             PhyMemState* saved_state);
     bool check_phystate_resvalloc(PhyMemManager& phymem,
                                   PhyMemState* saved_state,
                                   PhyMemMap* returned_chunk);
@@ -80,15 +92,26 @@ namespace Tests {
                                  PhyMemMap* returned_chunk);
     bool check_phystate_rockyalloc_contig(PhyMemManager& phymem,
                                           PhyMemState* saved_state);
+    bool check_phystate_rockyalloc_contig_low(PhyMemManager& phymem,
+                                              PhyMemState* saved_state);
     bool check_phystate_rockyalloc_noncontig(PhyMemManager& phymem,
                                              PhyMemState* saved_state);
+    bool check_phystate_rockyalloc_noncontig_low(PhyMemManager& phymem,
+                                                 PhyMemState* saved_state);
     bool check_phystate_rockyfree_contig(PhyMemManager& phymem,
                                          PhyMemState* saved_state);
+    bool check_phystate_rockyfree_contig_low(PhyMemManager& phymem,
+                                             PhyMemState* saved_state);
     bool check_phystate_rockyfree_noncontig(PhyMemManager& phymem,
                                             PhyMemState* saved_state,
                                             PhyMemMap* returned_chunk);
+    bool check_phystate_rockyfree_noncontig_low(PhyMemManager& phymem,
+                                                PhyMemState* saved_state,
+                                                PhyMemMap* returned_chunk);
     bool check_phystate_split_alloc(PhyMemManager& phymem,
                                     PhyMemState* saved_state);
+    bool check_phystate_split_alloc_low(PhyMemManager& phymem,
+                                        PhyMemState* saved_state);
 
     //This one is used in virmem/mallocator tests, but it's so phymem-specific that it fits here
     //better. Gathers data about the free highmem area(s) where the next two pages would be

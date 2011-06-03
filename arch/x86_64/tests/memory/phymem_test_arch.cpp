@@ -315,18 +315,258 @@ namespace Tests {
         return &phymem;
     }
     
+    PhyMemState* phy_setstate_2_free_pgs_low(PhyMemManager& phymem) {
+        PhyMemMap* last_pages[2];
+        
+        //Allocate pages until we have two consecutive ones, if possible.
+        last_pages[0] = phymem.alloc_lowpage(PID_KERNEL);
+        if(last_pages[0] == NULL) {
+            test_failure("There aren't two free pages in there");
+            return NULL;
+        }
+        last_pages[1] = phymem.alloc_lowpage(PID_KERNEL);
+        if(last_pages[1] == NULL) {
+            test_failure("There aren't two free pages in there");
+            return NULL;
+        }
+        while(last_pages[0]->location + last_pages[0]->size != last_pages[1]->location) {
+            last_pages[0] = last_pages[1];
+            last_pages[1] = phymem.alloc_lowpage(PID_KERNEL);
+            if(last_pages[1] == NULL) {
+                test_failure("There aren't two consecutive free pages in there");
+                return NULL;
+            }
+        }
+        
+        //Free these pages
+        phymem.free(last_pages[0]);
+        phymem.free(last_pages[1]);
+        
+        //Save phymem's state, return the result
+        PhyMemState* saved_state = save_phymem_state(phymem);
+        if(!saved_state) {
+            test_failure("Could not save PhyMemManager's state");
+            return NULL;
+        }
+        return saved_state;
+    }
+    
+    PhyMemState* phy_setstate_3pg_free_chunk_low(PhyMemManager& phymem) {
+        PhyMemMap* last_pages[3];
+        
+        //Allocate pages until we have three consecutive ones, if possible.
+        last_pages[0] = phymem.alloc_lowpage(PID_KERNEL);
+        if(last_pages[0] == NULL) {
+            test_failure("There aren't three free pages in there");
+            return NULL;
+        }
+        last_pages[1] = phymem.alloc_lowpage(PID_KERNEL);
+        if(last_pages[1] == NULL) {
+            test_failure("There aren't three free pages in there");
+            return NULL;
+        }
+        last_pages[2] = phymem.alloc_lowpage(PID_KERNEL);
+        if(last_pages[2] == NULL) {
+            test_failure("There aren't three free pages in there");
+            return NULL;
+        }
+        while((last_pages[0]->location + last_pages[0]->size != last_pages[1]->location) || 
+          (last_pages[1]->location + last_pages[1]->size != last_pages[2]->location)) {
+            last_pages[0] = last_pages[1];
+            last_pages[1] = last_pages[2];
+            last_pages[2] = phymem.alloc_lowpage(PID_KERNEL);
+            if(last_pages[2] == NULL) {
+                test_failure("There aren't three consecutive free pages in there");
+                return NULL;
+            }
+        }
+        
+        //Free the three contiguous pages
+        phymem.free(last_pages[0]);
+        phymem.free(last_pages[1]);
+        phymem.free(last_pages[2]);
+        
+        //Allocate a three pages contiguous chunk on top of them, free it
+        PhyMemMap* chunk = phymem.alloc_lowchunk(PID_KERNEL, 3*PG_SIZE, true);
+        phymem.free(chunk);
+        
+        //Save phymem's state, return the result
+        PhyMemState* saved_state = save_phymem_state(phymem);
+        if(!saved_state) {
+            test_failure("Could not save PhyMemManager's state");
+            return NULL;
+        }
+        return saved_state;
+    }
+    
+    PhyMemState* phy_setstate_rocky_freemem_low(PhyMemManager& phymem) {
+        PhyMemMap* last_pages[4];
+        
+        //Allocate pages until we have three consecutive ones, if possible.
+        last_pages[0] = phymem.alloc_lowpage(PID_KERNEL);
+        if(last_pages[0] == NULL) {
+            test_failure("There aren't four free pages in there");
+            return NULL;
+        }
+        last_pages[1] = phymem.alloc_lowpage(PID_KERNEL);
+        if(last_pages[1] == NULL) {
+            test_failure("There aren't four free pages in there");
+            return NULL;
+        }
+        last_pages[2] = phymem.alloc_lowpage(PID_KERNEL);
+        if(last_pages[2] == NULL) {
+            test_failure("There aren't four free pages in there");
+            return NULL;
+        }
+        last_pages[3] = phymem.alloc_lowpage(PID_KERNEL);
+        if(last_pages[3] == NULL) {
+            test_failure("There aren't four free pages in there");
+            return NULL;
+        }
+        while((last_pages[0]->location + last_pages[0]->size != last_pages[1]->location) || 
+          (last_pages[1]->location + last_pages[1]->size != last_pages[2]->location) ||
+          (last_pages[2]->location + last_pages[2]->size != last_pages[3]->location)) {
+            last_pages[0] = last_pages[1];
+            last_pages[1] = last_pages[2];
+            last_pages[2] = last_pages[3];
+            last_pages[3] = phymem.alloc_lowpage(PID_KERNEL);
+            if(last_pages[3] == NULL) {
+                test_failure("There aren't four consecutive free pages in there");
+                return NULL;
+            }
+        }
+        
+        //Free the first, third and fourth page
+        phymem.free(last_pages[0]);
+        phymem.free(last_pages[2]);
+        phymem.free(last_pages[3]);
+        
+        //Save phymem's state, return the result
+        PhyMemState* saved_state = save_phymem_state(phymem);
+        if(!saved_state) {
+            test_failure("Could not save PhyMemManager's state");
+            return NULL;
+        }
+        return saved_state;
+    }
+    
     bool phy_test_arch(PhyMemManager& phymem) {
         item_title("Repeat all allocation/liberation tests with the low memory allocators");
         //Contiguous memory allocation and liberation
-        PhyMemState* saved_state = phy_setstate_2_free_pgs(phymem);
+        if(!phy_test_contigalloc_low(phymem)) return false;
+        //Contiguous memory allocation with free item splitting
+        if(!phy_test_splitalloc_low(phymem)) return false;
+        //Contiguous memory allocation in non-contiguous free memory
+        if(!phy_test_rockyalloc_contig_low(phymem)) return false;
+        //Non-contiguous memory allocation
+        if(!phy_test_noncontigalloc_low(phymem)) return false;
+        
+        return true;
+    }
+    
+    bool phy_test_contigalloc_low(PhyMemManager& phymem) {
+        //Refer to phy_test_contigalloc() for explanations
+        PhyMemState* saved_state = phy_setstate_2_free_pgs_low(phymem);
         if(!saved_state) return false;
-        phymem.print_lowmmap();
         PhyMemMap* returned_chunk = phymem.alloc_lowchunk(PID_KERNEL, 2*PG_SIZE, true);
         if(!phy_check_returned_2pgchunk_contig(returned_chunk)) return false;
         if(!check_phystate_merge_alloc_low(phymem, saved_state)) return false;
+        if(!phymem.free(returned_chunk)) {
+            test_failure("The free operation has returned false");
+            return false;
+        }
+        if(!check_phystate_chunk_free_low(phymem, saved_state, returned_chunk)) return false;
+        returned_chunk = phymem.alloc_lowchunk(PID_KERNEL, 2*PG_SIZE, true);
+        if(!phy_check_returned_2pgchunk_contig(returned_chunk)) return false;
+        if(!check_phystate_perfectfit_alloc_low(phymem, saved_state)) return false;
+        if(!phymem.free(returned_chunk->location)) {
+            test_failure("The free operation has returned false");
+            return false;
+        }
+        if(!check_phystate_chunk_free_low(phymem, saved_state, returned_chunk)) return false;
         
-        fail_notimpl();
-        return false;
+        return true;
+    }
+    
+    bool phy_test_noncontigalloc_low(PhyMemManager& phymem) {
+        //Refer to phy_test_noncontigalloc() for explanations
+        //Fragmented contiguous free space
+        PhyMemState* saved_state = phy_setstate_2_free_pgs_low(phymem);
+        if(!saved_state) return false;
+        PhyMemMap* returned_chunk = phymem.alloc_lowchunk(PID_KERNEL, 2*PG_SIZE, false);
+        if(!phy_check_returned_2pgchunk_contig(returned_chunk)) return false;
+        if(!check_phystate_merge_alloc_low(phymem, saved_state)) return false;
+        if(!phymem.free(returned_chunk)) {
+            test_failure("The free operation has returned false");
+            return false;
+        }
+        if(!check_phystate_chunk_free_low(phymem, saved_state, returned_chunk)) return false;
+        //"Perfect fit" situation
+        returned_chunk = phymem.alloc_lowchunk(PID_KERNEL, 2*PG_SIZE, false);
+        if(!phy_check_returned_2pgchunk_contig(returned_chunk)) return false;
+        if(!check_phystate_perfectfit_alloc_low(phymem, saved_state)) return false;
+        if(!phymem.free(returned_chunk->location)) {
+            test_failure("The free operation has returned false");
+            return false;
+        }
+        if(!check_phystate_chunk_free_low(phymem, saved_state, returned_chunk)) return false;
+        //Free space is too large
+        saved_state = phy_setstate_3pg_free_chunk_low(phymem);
+        if(!saved_state) return false;
+        returned_chunk = phymem.alloc_lowchunk(PID_KERNEL, 2*PG_SIZE, false);
+        if(!phy_check_returned_2pgchunk_contig(returned_chunk)) return false;
+        if(!check_phystate_split_alloc_low(phymem, saved_state)) return false;
+        if(!phymem.free(returned_chunk)) {
+            test_failure("The free operation has returned false");
+            return false;
+        }
+        if(!check_phystate_chunk_free_low(phymem, saved_state, returned_chunk)) return false;
+        
+        //Last test should return different results
+        saved_state = phy_setstate_rocky_freemem_low(phymem);
+        if(!saved_state) return false;
+        returned_chunk = phymem.alloc_lowchunk(PID_KERNEL, 2*PG_SIZE, false);
+        if(!phy_check_returned_2pgchunk_noncontig(returned_chunk)) return false;
+        if(!check_phystate_rockyalloc_noncontig_low(phymem, saved_state)) return false;
+        if(!phymem.free(returned_chunk)) {
+            test_failure("The free operation has returned false");
+            return false;
+        }
+        if(!check_phystate_rockyfree_noncontig_low(phymem, saved_state, returned_chunk)) return false;
+        
+        return true;;
+    }
+    
+    bool phy_test_rockyalloc_contig_low(PhyMemManager& phymem) {
+        //Refer to phy_test_rockyalloc() for explanations
+        PhyMemState* saved_state = phy_setstate_rocky_freemem_low(phymem);
+        if(!saved_state) return false;
+        PhyMemMap* returned_chunk = phymem.alloc_lowchunk(PID_KERNEL, 2*PG_SIZE, true);
+        if(!phy_check_returned_2pgchunk_contig(returned_chunk)) return false;
+        if(!check_phystate_rockyalloc_contig_low(phymem, saved_state)) return false;
+        if(!phymem.free(returned_chunk)) {
+            test_failure("The free operation has returned false");
+            return false;
+        }
+        if(!check_phystate_rockyfree_contig_low(phymem, saved_state)) return false;
+        
+        return true;
+    }
+    
+    bool phy_test_splitalloc_low(PhyMemManager& phymem) {
+        //Refer to phy_test_splitalloc() for explanations
+        PhyMemState* saved_state = phy_setstate_3pg_free_chunk_low(phymem);
+        if(!saved_state) return false;
+        PhyMemMap* returned_chunk = phymem.alloc_lowchunk(PID_KERNEL, 2*PG_SIZE, true);
+        if(!phy_check_returned_2pgchunk_contig(returned_chunk)) return false;
+        if(!check_phystate_split_alloc_low(phymem, saved_state)) return false;
+        if(!phymem.free(returned_chunk)) {
+            test_failure("The free operation has returned false");
+            return false;
+        }
+        if(!check_phystate_chunk_free_low(phymem, saved_state, returned_chunk)) return false;
+        
+        return true;
     }
     
     bool check_phystate_chunk_free(PhyMemManager& phymem,
@@ -339,6 +579,21 @@ namespace Tests {
         map_parser->clear_owners();
         map_parser->next_buddy = saved_state->free_highmem;
         saved_state->free_highmem = map_parser;
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+
+        return true;
+    }
+    
+    bool check_phystate_chunk_free_low(PhyMemManager& phymem,
+                                       PhyMemState* saved_state,
+                                       PhyMemMap* returned_chunk) {
+        PhyMemMap* map_parser = saved_state->phy_mmap;
+        while(map_parser->location != returned_chunk->location) {
+            map_parser = map_parser->next_mapitem;
+        }
+        map_parser->clear_owners();
+        map_parser->next_buddy = saved_state->free_lowmem;
+        saved_state->free_lowmem = map_parser;
         if(!cmp_phymem_state(phymem, saved_state)) return false;
 
         return true;
@@ -439,6 +694,17 @@ namespace Tests {
         return true;
     }
     
+    bool check_phystate_perfectfit_alloc_low(PhyMemManager& phymem,
+                                             PhyMemState* saved_state) {
+        PhyMemMap* allocation_region = saved_state->free_lowmem;
+        saved_state->free_lowmem = saved_state->free_lowmem->next_buddy;
+        allocation_region->add_owner(PID_KERNEL);
+        allocation_region->next_buddy = NULL;
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+
+        return true;
+    }
+    
     bool check_phystate_resvalloc(PhyMemManager& phymem,
                                   PhyMemState* saved_state,
                                   PhyMemMap* returned_chunk) {
@@ -479,10 +745,37 @@ namespace Tests {
         return true;
     }
     
+    bool check_phystate_rockyalloc_contig_low(PhyMemManager& phymem,
+                                              PhyMemState* saved_state) {
+        PhyMemMap* allocation_region = saved_state->free_lowmem->next_buddy;
+        allocation_region->size = 2*PG_SIZE;
+        allocation_region->add_owner(PID_KERNEL);
+        saved_state->free_lowmem->next_buddy = allocation_region->next_buddy->next_buddy;
+        allocation_region->next_buddy = NULL;
+        allocation_region->next_mapitem = allocation_region->next_mapitem->next_mapitem;
+        saved_state->free_mapitems = (PhyMemMap*) (((uint64_t) saved_state->free_mapitems) + 1);
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+
+        return true;
+    }
+    
     bool check_phystate_rockyalloc_noncontig(PhyMemManager& phymem,
                                              PhyMemState* saved_state) {
         PhyMemMap* allocation_region = saved_state->free_highmem;
         saved_state->free_highmem = saved_state->free_highmem->next_buddy->next_buddy;
+        allocation_region->add_owner(PID_KERNEL);
+        allocation_region = allocation_region->next_buddy;
+        allocation_region->add_owner(PID_KERNEL);
+        allocation_region->next_buddy = NULL;
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+
+        return true;
+    }
+    
+    bool check_phystate_rockyalloc_noncontig_low(PhyMemManager& phymem,
+                                             PhyMemState* saved_state) {
+        PhyMemMap* allocation_region = saved_state->free_lowmem;
+        saved_state->free_lowmem = saved_state->free_lowmem->next_buddy->next_buddy;
         allocation_region->add_owner(PID_KERNEL);
         allocation_region = allocation_region->next_buddy;
         allocation_region->add_owner(PID_KERNEL);
@@ -498,6 +791,17 @@ namespace Tests {
         allocated_block->clear_owners();
         allocated_block->next_buddy = saved_state->free_highmem->next_buddy;
         saved_state->free_highmem->next_buddy = allocated_block;
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+
+        return true;
+    }
+    
+    bool check_phystate_rockyfree_contig_low(PhyMemManager& phymem,
+                                             PhyMemState* saved_state) {
+        PhyMemMap* allocated_block = saved_state->free_lowmem->next_mapitem->next_mapitem;
+        allocated_block->clear_owners();
+        allocated_block->next_buddy = saved_state->free_lowmem->next_buddy;
+        saved_state->free_lowmem->next_buddy = allocated_block;
         if(!cmp_phymem_state(phymem, saved_state)) return false;
 
         return true;
@@ -521,6 +825,24 @@ namespace Tests {
         return true;
     }
     
+    bool check_phystate_rockyfree_noncontig_low(PhyMemManager& phymem,
+                                                PhyMemState* saved_state,
+                                                PhyMemMap* returned_chunk) {
+        PhyMemMap* map_parser = saved_state->phy_mmap;
+        while(map_parser->location != returned_chunk->location) {
+            map_parser = map_parser->next_mapitem;
+        }
+        PhyMemMap* chunk_beginning = map_parser;
+        map_parser->clear_owners();
+        map_parser = map_parser->next_buddy;
+        map_parser->clear_owners();
+        map_parser->next_buddy = saved_state->free_lowmem;
+        saved_state->free_lowmem = chunk_beginning;
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+
+        return true;
+    }
+    
     bool check_phystate_split_alloc(PhyMemManager& phymem,
                                     PhyMemState* saved_state) {        
         static PhyMemMap buffer;
@@ -532,6 +854,23 @@ namespace Tests {
         saved_state->free_highmem->next_buddy = NULL;
         saved_state->free_highmem->next_mapitem = &buffer;
         saved_state->free_highmem = &buffer;
+        saved_state->free_mapitems = (PhyMemMap*) (((uint64_t) saved_state->free_mapitems) - 1);
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+
+        return true;
+    }
+    
+    bool check_phystate_split_alloc_low(PhyMemManager& phymem,
+                                        PhyMemState* saved_state) {        
+        static PhyMemMap buffer;
+        buffer = *(saved_state->free_lowmem);
+        buffer.location+= 2*PG_SIZE;
+        buffer.size-= 2*PG_SIZE;
+        saved_state->free_lowmem->size = 2*PG_SIZE;
+        saved_state->free_lowmem->add_owner(PID_KERNEL);
+        saved_state->free_lowmem->next_buddy = NULL;
+        saved_state->free_lowmem->next_mapitem = &buffer;
+        saved_state->free_lowmem = &buffer;
         saved_state->free_mapitems = (PhyMemMap*) (((uint64_t) saved_state->free_mapitems) - 1);
         if(!cmp_phymem_state(phymem, saved_state)) return false;
 
