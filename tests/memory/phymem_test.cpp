@@ -309,8 +309,18 @@ namespace Tests {
         if(!phy_test_resvalloc(phymem)) return false;
         
         subtest_title("Finding a chunk");
-        fail_notimpl();
-        return false;
+        if(!phy_test_find(phymem)) return false;
+        
+        subtest_title("kill() test");
+        if(!phy_test_kill(phymem)) return false;
+        
+        subtest_title("Internal allocator");
+        if(!phy_test_internal_alloc(phymem)) return false;
+        
+        subtest_title("Arch-specific tests");
+        if(!phy_test_arch(phymem)) return false;
+
+        return true;
     }
     
     bool phy_test_contigalloc(PhyMemManager& phymem) {
@@ -345,6 +355,100 @@ namespace Tests {
             return false;
         }
         if(!check_phystate_chunk_free(phymem, saved_state, returned_chunk)) return false;
+        
+        return true;
+    }
+    
+    bool phy_test_find(PhyMemManager& phymem) {
+        item_title("Try to find the first chunk of phy_mmap with find_thischunk()");
+        PhyMemState* phymem_state = (PhyMemState*) &phymem;
+        PhyMemMap* map_parser = phymem_state->phy_mmap;
+        if(phymem.find_thischunk(map_parser->location) != map_parser) {
+            test_failure("find_thischunk() didn't find the first chunk");
+            return false;
+        }
+        
+        item_title("Try to find the second chunk of phy_mmap with find_thischunk()");
+        map_parser = map_parser->next_mapitem;
+        if(phymem.find_thischunk(map_parser->location) != map_parser) {
+            test_failure("find_thischunk() didn't find the second chunk");
+            return false;
+        }
+        
+        item_title("Try to find the last chunk of phy_mmap with find_thischunk()");
+        while(map_parser->next_mapitem) map_parser = map_parser->next_mapitem;
+        if(phymem.find_thischunk(map_parser->location) != map_parser) {
+            test_failure("find_thischunk() didn't find the last chunk");
+            return false;
+        }
+        
+        return true;
+    }
+    
+    bool phy_test_internal_alloc(PhyMemManager& phymem) {
+        item_title("Check that sizeof(PhyMemMap) is a power of 2");
+        int tmp = sizeof(PhyMemMap);
+        while(tmp%2 == 0) tmp = tmp/2;
+        if(tmp!=1) {
+            test_failure("sizeof(PhyMemMap) is not a power of 2");
+            return false;
+        }
+        
+        item_title("Check that all free map items are used before new ones are allocated");
+        PhyMemState* phymem_state = (PhyMemState*) &phymem;
+        int old_free_length = phymem_state->free_mapitems->buddy_length(), new_free_length;
+        while(phymem_state->free_mapitems) {
+            phymem.alloc_page(PID_KERNEL);
+            new_free_length = phymem_state->free_mapitems->buddy_length();
+            if(new_free_length > old_free_length) break;
+            old_free_length = new_free_length;
+        }
+        if(phymem_state->free_mapitems) {
+            test_failure("New map items were allocated before old ones were all used");
+            return false;
+        }
+        
+        item_title("Check the allocation process (number of items, number of pages used)");
+        PhyMemState* saved_state = save_phymem_state(phymem);
+        if(!saved_state) {
+            test_failure("Could not save PhyMemManager's state");
+            return false;
+        }
+        PhyMemMap* page_1 = phymem.alloc_page(PID_KERNEL);
+        if(!check_phystate_internal_alloc(phymem, saved_state)) return false;
+        
+        item_title("Check that memory map items are cleaned up when discarded");
+        PhyMemMap* page_2 = phymem.alloc_page(PID_KERNEL);
+        phymem.free(page_1);
+        phymem.free(page_2);
+        PhyMemMap* returned_chunk = phymem.alloc_chunk(PID_KERNEL, 2*PG_SIZE);
+        PhyMemMap should_be;
+        should_be.next_buddy = phymem_state->free_mapitems->next_buddy;
+        if(*(phymem_state->free_mapitems) != should_be) {
+            test_failure("Map items are not cleaned up when discarded");
+            return false;
+        }
+        phymem.free(returned_chunk);
+
+        return true;
+    }
+    
+    bool phy_test_kill(PhyMemManager& phymem) {
+        item_title("Put PhyMemManager in a state with two consecutive free pages, save it");
+        PhyMemState* saved_state = phy_setstate_2_free_pgs(phymem);
+        if(!saved_state) return false;
+        
+        item_title("Allocate two pages to a process, then kill the process");
+        phymem.alloc_page(42);
+        phymem.alloc_page(42);
+        phymem.kill(42);
+        
+        item_title("Check that we went back to the initially saved state");
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+        
+        item_title("Try to kill the kernel. Check that it fails.");
+        phymem.kill(PID_KERNEL);
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
         
         return true;
     }
@@ -403,9 +507,59 @@ namespace Tests {
     }
     
     bool phy_test_resvalloc(PhyMemManager& phymem) {
-        item_title("Find a reserved (non-allocatable) chunk in phy_mmap");
-        fail_notimpl();
-        return false;
+        item_title("Allocate a page, mark it reserved, free it, save PhyMemManager state");
+        PhyMemMap* resv_page = phymem.alloc_page(PID_KERNEL);
+        resv_page->allocatable = false;
+        phymem.free(resv_page);
+        if((resv_page->allocatable) || (resv_page->next_buddy)) {
+            test_failure("Pages don't stay reserved when freed");
+            return false;
+        }
+        PhyMemState* saved_state = save_phymem_state(phymem);
+        if(!saved_state) {
+            test_failure("Could not save PhyMemManager's state");
+            return false;
+        }
+        
+        item_title("Try to allocate the page with alloc_resvchunk(), check that it works");
+        PhyMemMap* returned_chunk = phymem.alloc_resvchunk(resv_page->location, PID_KERNEL);
+        if(!phy_check_returned_resvchunk(returned_chunk, resv_page)) return false;
+        if(!check_phystate_resvalloc(phymem, saved_state, returned_chunk)) return false;
+        
+        item_title("Try to allocate it to another PID, check that it fails");
+        returned_chunk = phymem.alloc_resvchunk(resv_page->location, 42);
+        if(returned_chunk) {
+            test_failure("Successive allocations are supposed to fail");
+            return false;
+        }
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+        
+        item_title("Check that owneradd() and ownerdel() do work");
+        if(!phymem.owneradd(resv_page, 42)) {
+            test_failure("owneradd() returned false");
+            return false;
+        }
+        if(resv_page->owners[1] != 42) {
+            test_failure("owneradd() claimed to work, but didn't");
+            return false;
+        }
+        if(!phymem.ownerdel(resv_page, 42)) {
+            test_failure("ownerdel() returned false");
+            return false;
+        }
+        if(resv_page->owners[1] != PID_NOBODY) {
+            test_failure("ownerdel() claimed to work, but didn't");
+            return false;
+        }
+        
+        item_title("Free the page, check that it went back to its initial state");
+        if(!phymem.free(resv_page)) {
+            test_failure("The free operation has returned false");
+            return false;
+        }
+        if(!check_phystate_resvfree(phymem, saved_state, resv_page)) return false;
+
+        return true;
     }
     
     bool phy_test_rockyalloc_contig(PhyMemManager& phymem) {
@@ -498,143 +652,184 @@ namespace Tests {
         return true;
     }
     
-    bool phy_check_returned_2pgchunk_contig(PhyMemMap* chunk) {
-        if(!chunk) {
+    bool phy_check_returned_2pgchunk_contig(PhyMemMap* returned_chunk) {
+        if(!returned_chunk) {
             test_failure("The pointer must be nonzero");
             return false;
         }
-        if(align_pgdown(chunk->location) != chunk->location) {
+        if(align_pgdown(returned_chunk->location) != returned_chunk->location) {
             test_failure("location must be page-aligned");
             return false;
         }
-        if(chunk->size != 2*PG_SIZE) {
+        if(returned_chunk->size != 2*PG_SIZE) {
             test_failure("size must be 2*PG_SIZE");
             return false;
         }
-        if((chunk->owners[0] != PID_KERNEL) || (chunk->owners[1] != PID_NOBODY)) {
+        if((returned_chunk->owners[0] != PID_KERNEL) || (returned_chunk->owners[1] != PID_NOBODY)) {
             test_failure("owners must only include PID_KERNEL");
             return false;
         }
-        if(chunk->allocatable == false) {
+        if(returned_chunk->allocatable == false) {
             test_failure("allocatable must be true");
             return false;
         }
-        if(chunk->next_buddy != NULL) {
+        if(returned_chunk->next_buddy != NULL) {
             test_failure("next_buddy must be NULL");
             return false;
         }
-        if(chunk->next_mapitem == NULL) {
+        if(returned_chunk->next_mapitem == NULL) {
             test_failure("next_mapitem must be nonzero");
             return false;
         }
-        if(chunk->shareable) {
+        if(returned_chunk->shareable) {
             test_failure("shareable must be false");
             return false;
         }
+        
         return true;
     }
     
-    bool phy_check_returned_2pgchunk_noncontig(PhyMemMap* chunk) {
+    bool phy_check_returned_2pgchunk_noncontig(PhyMemMap* returned_chunk) {
         //Checking the chunk
-        if(!chunk) {
+        if(!returned_chunk) {
             test_failure("The pointer must be nonzero");
             return false;
         }
-        if(align_pgdown(chunk->location) != chunk->location) {
+        if(align_pgdown(returned_chunk->location) != returned_chunk->location) {
             test_failure("location must be page-aligned");
             return false;
         }
-        if(chunk->size != PG_SIZE) {
+        if(returned_chunk->size != PG_SIZE) {
             test_failure("size must be PG_SIZE");
             return false;
         }
-        if((chunk->owners[0] != PID_KERNEL) || (chunk->owners[1] != PID_NOBODY)) {
+        if((returned_chunk->owners[0] != PID_KERNEL) || (returned_chunk->owners[1] != PID_NOBODY)) {
             test_failure("owners must only include PID_KERNEL");
             return false;
         }
-        if(chunk->allocatable == false) {
+        if(returned_chunk->allocatable == false) {
             test_failure("allocatable must be true");
             return false;
         }
-        if(chunk->next_buddy == NULL) {
+        if(returned_chunk->next_buddy == NULL) {
             test_failure("next_buddy must be nonzero");
             return false;
         }        
-        if(chunk->next_mapitem == NULL) {
+        if(returned_chunk->next_mapitem == NULL) {
             test_failure("next_mapitem must be nonzero");
             return false;
         }
-        if(chunk->shareable) {
+        if(returned_chunk->shareable) {
             test_failure("shareable must be false");
             return false;
         }
         
         //Checking its buddy
-        if(align_pgdown(chunk->next_buddy->location) != chunk->next_buddy->location) {
+        PhyMemMap* buddy = returned_chunk->next_buddy;
+        if(align_pgdown(buddy->location) != buddy->location) {
             test_failure("Buddy's location must be page-aligned");
             return false;
         }
-        if(chunk->next_buddy->size != PG_SIZE) {
+        if(buddy->size != PG_SIZE) {
             test_failure("Buddy's size must be PG_SIZE");
             return false;
         }
-        if((chunk->next_buddy->owners[0] != PID_KERNEL) ||
-          (chunk->next_buddy->owners[1] != PID_NOBODY)) {
+        if((buddy->owners[0] != PID_KERNEL) || (buddy->owners[1] != PID_NOBODY)) {
             test_failure("Buddy's owners must only include PID_KERNEL");
             return false;
         }
-        if(chunk->next_buddy->allocatable == false) {
+        if(buddy->allocatable == false) {
             test_failure("Buddy's allocatable must be true");
             return false;
         }
-        if(chunk->next_buddy->next_buddy != NULL) {
+        if(buddy->next_buddy != NULL) {
             test_failure("Buddy's next_buddy must be NULL");
             return false;
         }
-        if(chunk->next_buddy->next_mapitem == NULL) {
+        if(buddy->next_mapitem == NULL) {
             test_failure("Buddy's next_mapitem must be nonzero");
             return false;
         }
-        if(chunk->next_buddy->shareable) {
+        if(buddy->shareable) {
             test_failure("Buddy's shareable must be false");
             return false;
         }
+        
         return true;
     }
     
-    bool phy_check_returned_page(PhyMemMap* page) {
-        if(!page) {
+    bool phy_check_returned_page(PhyMemMap* returned_chunk) {
+        if(!returned_chunk) {
             test_failure("The pointer must be nonzero");
             return false;
         }
-        if(align_pgdown(page->location) != page->location) {
+        if(align_pgdown(returned_chunk->location) != returned_chunk->location) {
             test_failure("location must be page-aligned");
             return false;
         }
-        if(page->size != PG_SIZE) {
+        if(returned_chunk->size != PG_SIZE) {
             test_failure("size must be PG_SIZE");
             return false;
         }
-        if((page->owners[0] != PID_KERNEL) || (page->owners[1] != PID_NOBODY)) {
+        if((returned_chunk->owners[0] != PID_KERNEL) || (returned_chunk->owners[1] != PID_NOBODY)) {
             test_failure("owners must only include PID_KERNEL");
             return false;
         }
-        if(page->allocatable == false) {
+        if(returned_chunk->allocatable == false) {
             test_failure("allocatable must be true");
             return false;
         }
-        if(page->next_buddy != NULL) {
+        if(returned_chunk->next_buddy != NULL) {
             test_failure("next_buddy must be NULL");
             return false;
         }
-        if(page->next_mapitem == NULL) {
+        if(returned_chunk->next_mapitem == NULL) {
             test_failure("next_mapitem must be nonzero");
             return false;
         }
-        if(page->shareable) {
+        if(returned_chunk->shareable) {
             test_failure("shareable must be false");
             return false;
         }
+        
+        return true;
+    }
+    
+    bool phy_check_returned_resvchunk(PhyMemMap* returned_chunk,
+                                      PhyMemMap* resv_page) {
+        if(returned_chunk != resv_page) {
+            test_failure("Returned pointer must target the reserved page");
+            return false;
+        }
+        if(returned_chunk->location != resv_page->location) {
+            test_failure("location mismatches");
+            return false;
+        }
+        if(returned_chunk->size != PG_SIZE) {
+            test_failure("size must be PG_SIZE");
+            return false;
+        }
+        if((returned_chunk->owners[0] != PID_KERNEL) || (returned_chunk->owners[1] != PID_NOBODY)) {
+            test_failure("owners must only include PID_KERNEL");
+            return false;
+        }
+        if(returned_chunk->allocatable) {
+            test_failure("allocatable must be false");
+            return false;
+        }
+        if(returned_chunk->next_buddy != NULL) {
+            test_failure("next_buddy must be NULL");
+            return false;
+        }
+        if(returned_chunk->next_mapitem == NULL) {
+            test_failure("next_mapitem must be nonzero");
+            return false;
+        }
+        if(returned_chunk->shareable) {
+            test_failure("shareable must be false");
+            return false;
+        }
+        
         return true;
     }
 

@@ -428,9 +428,9 @@ VirMemManager::VirMemManager(PhyMemManager& physmem) : phymem(&physmem),
     knl_r_loc = (addr_t) &knl_r_start;
     knl_rw_loc = (addr_t) &knl_rw_start;
     addr_t kernel_pml4t = get_pml4t();
-    phy_knl_rx = phymem->find_this(get_target(knl_rx_loc, kernel_pml4t));
-    phy_knl_r = phymem->find_this(get_target(knl_r_loc, kernel_pml4t));
-    phy_knl_rw = phymem->find_this(get_target(knl_rw_loc, kernel_pml4t));
+    phy_knl_rx = phymem->find_thischunk(get_target(knl_rx_loc, kernel_pml4t));
+    phy_knl_r = phymem->find_thischunk(get_target(knl_r_loc, kernel_pml4t));
+    phy_knl_rw = phymem->find_thischunk(get_target(knl_rw_loc, kernel_pml4t));
 }
 
 VirMemMap* VirMemManager::map(const PhyMemMap* phys_chunk,

@@ -48,6 +48,7 @@ namespace Tests {
 
     //Arch-specific auxiliary functions
     PhyMemManager* phy_init_arch(PhyMemManager& phymem);
+    bool phy_test_arch(PhyMemManager& phymem);
     
     //State checkers : these functions are used to check that the when going from a known and saved
     //initial state of PhyMemManager and doing a well-defined set of operations on it, the state
@@ -57,8 +58,12 @@ namespace Tests {
     bool check_phystate_chunk_free(PhyMemManager& phymem,
                                    PhyMemState* saved_state,
                                    PhyMemMap* returned_chunk);
+    bool check_phystate_internal_alloc(PhyMemManager& phymem,
+                                       PhyMemState* saved_state);
     bool check_phystate_merge_alloc(PhyMemManager& phymem,
                                     PhyMemState* saved_state);
+    bool check_phystate_merge_alloc_low(PhyMemManager& phymem,
+                                        PhyMemState* saved_state);
     bool check_phystate_owneradd(PhyMemManager& phymem,
                                  PhyMemState* saved_state,
                                  PhyMemMap* shared_page);
@@ -67,6 +72,12 @@ namespace Tests {
                                  PhyMemMap* shared_page);
     bool check_phystate_perfectfit_alloc(PhyMemManager& phymem,
                                          PhyMemState* saved_state);
+    bool check_phystate_resvalloc(PhyMemManager& phymem,
+                                  PhyMemState* saved_state,
+                                  PhyMemMap* returned_chunk);
+    bool check_phystate_resvfree(PhyMemManager& phymem,
+                                 PhyMemState* saved_state,
+                                 PhyMemMap* returned_chunk);
     bool check_phystate_rockyalloc_contig(PhyMemManager& phymem,
                                           PhyMemState* saved_state);
     bool check_phystate_rockyalloc_noncontig(PhyMemManager& phymem,

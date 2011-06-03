@@ -65,8 +65,8 @@ class PhyMemManager {
         PhyMemMap* alloc_chunk(const PID initial_owner,  //Allocates a chunk of memory which is at
                                const addr_t size,        //least "size" large. The "contiguous" flag
                                bool contiguous = false); //forces it to be physically contiguous
-        PhyMemMap* alloc_resvchunk(const PID initial_owner,  //Get access to a reserved chunk of
-                                   const addr_t location);   //memory, if it is not allocated yet
+        PhyMemMap* alloc_resvchunk(const addr_t location,    //Get access to a reserved chunk of
+                                   const PID initial_owner); //memory, if it is not allocated yet
         bool free(PhyMemMap* chunk); //Free a chunk of memory (fast version)
         bool free(addr_t chunk_beginning); //Same as above, but slower and easier to use
 
@@ -81,7 +81,7 @@ class PhyMemManager {
                                //the higher-level version from MemAllocator when possible)
 
         //Finding a chunk in the map
-        PhyMemMap* find_this(addr_t location);
+        PhyMemMap* find_thischunk(addr_t location);
 
         //x86_64-specific methods
         PhyMemMap* alloc_lowpage(const PID initial_owner); //Allocate a page of low memory (<1MB)

@@ -18,6 +18,7 @@
 
 #include <align.h>
 #include <kmem_allocator.h>
+#include <phymem_test.h>
 #include <phymem_test_arch.h>
 #include <test_display.h>
 
@@ -314,6 +315,20 @@ namespace Tests {
         return &phymem;
     }
     
+    bool phy_test_arch(PhyMemManager& phymem) {
+        item_title("Repeat all allocation/liberation tests with the low memory allocators");
+        //Contiguous memory allocation and liberation
+        PhyMemState* saved_state = phy_setstate_2_free_pgs(phymem);
+        if(!saved_state) return false;
+        phymem.print_lowmmap();
+        PhyMemMap* returned_chunk = phymem.alloc_lowchunk(PID_KERNEL, 2*PG_SIZE, true);
+        if(!phy_check_returned_2pgchunk_contig(returned_chunk)) return false;
+        if(!check_phystate_merge_alloc_low(phymem, saved_state)) return false;
+        
+        fail_notimpl();
+        return false;
+    }
+    
     bool check_phystate_chunk_free(PhyMemManager& phymem,
                                    PhyMemState* saved_state,
                                    PhyMemMap* returned_chunk) {
@@ -328,11 +343,53 @@ namespace Tests {
 
         return true;
     }
+    
+    bool check_phystate_internal_alloc(PhyMemManager& phymem,
+                                       PhyMemState* saved_state) {
+        static PhyMemMap buffer[2];
+        //Allocate a page of map items
+        buffer[0] = *(saved_state->free_highmem);
+        buffer[0].location+= PG_SIZE;
+        buffer[0].size-= PG_SIZE;
+        saved_state->free_highmem->size = PG_SIZE;
+        saved_state->free_highmem->add_owner(PID_KERNEL);
+        saved_state->free_highmem->next_buddy = false;
+        saved_state->free_highmem->next_mapitem = &(buffer[0]);
+        saved_state->free_highmem = &(buffer[0]);
+        saved_state->free_mapitems = (PhyMemMap*) (PG_SIZE/sizeof(PhyMemMap) - 1);
+        //Allocate the requested page itself
+        buffer[1] = *(saved_state->free_highmem);
+        buffer[1].location+= PG_SIZE;
+        buffer[1].size-= PG_SIZE;
+        saved_state->free_highmem->size = PG_SIZE;
+        saved_state->free_highmem->add_owner(PID_KERNEL);
+        saved_state->free_highmem->next_buddy = false;
+        saved_state->free_highmem->next_mapitem = &(buffer[1]);
+        saved_state->free_highmem = &(buffer[1]);
+        saved_state->free_mapitems = (PhyMemMap*) (((uint64_t) saved_state->free_mapitems) - 1);
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+
+        return true;
+    }
 
     bool check_phystate_merge_alloc(PhyMemManager& phymem,
                                     PhyMemState* saved_state) {
         PhyMemMap* allocation_region = saved_state->free_highmem;
         saved_state->free_highmem = saved_state->free_highmem->next_buddy->next_buddy;
+        allocation_region->size = 2*PG_SIZE;
+        allocation_region->add_owner(PID_KERNEL);
+        allocation_region->next_buddy = NULL;
+        allocation_region->next_mapitem = allocation_region->next_mapitem->next_mapitem;
+        saved_state->free_mapitems = (PhyMemMap*) (((uint64_t) saved_state->free_mapitems) + 1);
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+
+        return true;
+    }
+    
+    bool check_phystate_merge_alloc_low(PhyMemManager& phymem,
+                                        PhyMemState* saved_state) {
+        PhyMemMap* allocation_region = saved_state->free_lowmem;
+        saved_state->free_lowmem = saved_state->free_lowmem->next_buddy->next_buddy;
         allocation_region->size = 2*PG_SIZE;
         allocation_region->add_owner(PID_KERNEL);
         allocation_region->next_buddy = NULL;
@@ -377,6 +434,32 @@ namespace Tests {
         saved_state->free_highmem = saved_state->free_highmem->next_buddy;
         allocation_region->add_owner(PID_KERNEL);
         allocation_region->next_buddy = NULL;
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+
+        return true;
+    }
+    
+    bool check_phystate_resvalloc(PhyMemManager& phymem,
+                                  PhyMemState* saved_state,
+                                  PhyMemMap* returned_chunk) {
+        PhyMemMap* map_parser = saved_state->phy_highmmap;
+        while(map_parser->location != returned_chunk->location) {
+            map_parser = map_parser->next_mapitem;
+        }
+        map_parser->add_owner(PID_KERNEL);
+        if(!cmp_phymem_state(phymem, saved_state)) return false;
+
+        return true;
+    }
+    
+    bool check_phystate_resvfree(PhyMemManager& phymem,
+                                 PhyMemState* saved_state,
+                                 PhyMemMap* returned_chunk) {
+        PhyMemMap* map_parser = saved_state->phy_highmmap;
+        while(map_parser->location != returned_chunk->location) {
+            map_parser = map_parser->next_mapitem;
+        }
+        map_parser->clear_owners();
         if(!cmp_phymem_state(phymem, saved_state)) return false;
 
         return true;
