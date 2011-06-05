@@ -358,6 +358,8 @@ IV/ MemAllocator
           alloc_shareable(). Nothing more, nothing less.
         * Check that free()-ing a shared page does in fact only remove the relevant owner in
           PhyMemManager, and does not actually free the page for all owners.
+        * Check reference counting : if owneradd() is called multiple times, then free() should be
+          called the same amount of time before the shared chunk is actually freed.
         * Same tests, but with the kernel as the allocating process, sender, or recipient
     9. kill() test
         * Restart one test which allocates some data, try to kill a process, check that all of its

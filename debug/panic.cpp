@@ -26,6 +26,10 @@ const char* PANIC_IMPOSSIBLE_KERNEL_FLAGS = "MemAllocator : Allocation of memory
 const char* PANIC_IMPOSSIBLE_SHARING = "MemAllocator : An impossible sharing operation (nonexistent\
  shared object, nonexistent source PID, object has not been allocated as shareable, impossible to\
  create recipient) has been forced";
+const char* PANIC_MAXIMAL_SHARING_REACHED = "MemAllocator : Congratulations! You have just shared\
+ one single page of physical memory with one single other process 2^32 times or more! As this is\
+ not a realistic use case, this is currently not supported by the memory managedment system. If you\
+ aimed at overflowing a counter - nice try!";
 const char* PANIC_MM_UNINITIALIZED = "MemAllocator : Called memory management functions while \
 memory management itself was not initialized yet";
 const char* PANIC_OUT_OF_MEMORY = "MemAllocator : Out of memory";

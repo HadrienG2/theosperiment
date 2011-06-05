@@ -457,12 +457,15 @@ VirMemMap* VirMemManager::map(const PhyMemMap* phys_chunk,
             if(!result) {
                 //If mapping has failed, we might have created a PID without an address space, which is
                 //a waste of precious memory space. Liberate it.
-                if(list_item->map_pointer == NULL) remove_pid(target);
+                if(list_item->map_pointer == NULL) {
+                    maplist_mutex.grab_spin();
+                    remove_pid(target);
+                }
             }
 
         list_item->mutex.release();
-
-    maplist_mutex.release();
+        
+    maplist_mutex.release();   
 
     return result;
 }

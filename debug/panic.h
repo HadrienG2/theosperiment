@@ -23,6 +23,9 @@ extern const char* PANIC_IMPOSSIBLE_KERNEL_FLAGS; //Someone attempted to force a
                                                   //to kernel with anything but RW-- flags
 extern const char* PANIC_IMPOSSIBLE_SHARING; //Someone attempted to force an impossible sharing
                                              //operation
+extern const char* PANIC_MAXIMAL_SHARING_REACHED; //Someone has attempted to share a single page of
+                                                  //memory with a single process more than 2^32
+                                                  //times.
 extern const char* PANIC_MM_UNINITIALIZED; //Someone called kalloc() and such with the force
                                            //switch on while they were not initialized yet
 extern const char* PANIC_OUT_OF_MEMORY; //MemAllocator runs out of memory
