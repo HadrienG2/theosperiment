@@ -681,10 +681,6 @@ namespace Tests {
             test_failure("next_mapitem must be nonzero");
             return false;
         }
-        if(returned_chunk->shareable) {
-            test_failure("shareable must be false");
-            return false;
-        }
         
         return true;
     }
@@ -719,10 +715,6 @@ namespace Tests {
             test_failure("next_mapitem must be nonzero");
             return false;
         }
-        if(returned_chunk->shareable) {
-            test_failure("shareable must be false");
-            return false;
-        }
         
         //Checking its buddy
         PhyMemMap* buddy = returned_chunk->next_buddy;
@@ -748,10 +740,6 @@ namespace Tests {
         }
         if(buddy->next_mapitem == NULL) {
             test_failure("Buddy's next_mapitem must be nonzero");
-            return false;
-        }
-        if(buddy->shareable) {
-            test_failure("Buddy's shareable must be false");
             return false;
         }
         
@@ -787,10 +775,6 @@ namespace Tests {
             test_failure("next_mapitem must be nonzero");
             return false;
         }
-        if(returned_chunk->shareable) {
-            test_failure("shareable must be false");
-            return false;
-        }
         
         return true;
     }
@@ -823,10 +807,6 @@ namespace Tests {
         }
         if(returned_chunk->next_mapitem == NULL) {
             test_failure("next_mapitem must be nonzero");
-            return false;
-        }
-        if(returned_chunk->shareable) {
-            test_failure("shareable must be false");
             return false;
         }
         

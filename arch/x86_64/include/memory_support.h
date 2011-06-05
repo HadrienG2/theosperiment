@@ -40,17 +40,14 @@ struct PhyMemMap {
                           //It should NOT be the case with memory-mapped I/O, as an example.
     PhyMemMap* next_buddy;
     PhyMemMap* next_mapitem;
-    uint32_t shareable; //Boolean. Indicates that the content of the page has been allocated in a
-                        //specific way which makes it suitable for sharing between processes.
-    uint32_t padding;
+    uint64_t padding;
     uint64_t padding2;
     PhyMemMap() : location(0),
                   size(0),
                   owners(PID_NOBODY),
                   allocatable(true),
                   next_buddy(NULL),
-                  next_mapitem(NULL),
-                  shareable(false) {};
+                  next_mapitem(NULL) {};
     //This mirrors the member functions of "owners"
     unsigned int add_owner(const PID new_owner) {return owners.add_pid(new_owner);}
     void clear_owners() {owners.clear_pids();}
@@ -95,8 +92,7 @@ struct VirMemMap {
     PhyMemMap* points_to; //Physical memory chunk this virtual memory chunk points to
     VirMemMap* next_buddy;
     VirMemMap* next_mapitem;
-    uint32_t shareable; //Boolean. Indicates that the content of the page has been allocated in a
-                        //specific way which makes it suitable for sharing between processes.
+    uint32_t padding; 
     uint64_t padding2;
     VirMemMap() : location(0),
                   size(0),
@@ -104,8 +100,7 @@ struct VirMemMap {
                   owner(NULL),
                   points_to(NULL),
                   next_buddy(NULL),
-                  next_mapitem(NULL),
-                  shareable(false) {};
+                  next_mapitem(NULL) {};
     //Algorithms finding things in or about the map
     VirMemMap* find_thischunk(const addr_t location) const;
     unsigned int length() const;
@@ -151,10 +146,20 @@ struct MallocMap {
     addr_t size;
     VirMemMap* belongs_to; //The chunk of virtual memory it belongs to.
     MallocMap* next_item;
+    uint32_t shareable; //Boolean. Indicates that the content of the page has been allocated in a
+                        //specific way which makes it suitable for sharing between processes.
+    uint32_t share_count; //For the shared copy of a shared chunk, indicates how many times the
+                          //chunk has been shared with this process. The process will have to free
+                          //its shared copy the same amount of time before it is actually freed.
+    uint64_t padding;
+    uint64_t padding_2;
+    uint64_t padding_3;
     MallocMap() : location(NULL),
                   size(NULL),
                   belongs_to(NULL),
-                  next_item(NULL) {};
+                  next_item(NULL),
+                  shareable(0),
+                  share_count(0) {};
     MallocMap* find_contigchunk(const addr_t size) const; //Try to find at least "size" contiguous
                                                           //bytes in this map
     MallocMap* find_contigchunk(const addr_t size, const VirMemFlags flags) const;
@@ -171,10 +176,20 @@ struct KnlMallocMap {
     addr_t size;
     PhyMemMap* belongs_to; //The chunk of *physical* memory it belongs to.
     KnlMallocMap* next_item;
+    uint32_t shareable; //Boolean. Indicates that the content of the page has been allocated in a
+                        //specific way which makes it suitable for sharing between processes.
+    uint32_t share_count; //For the shared copy of a shared chunk, indicates how many times the
+                          //chunk has been shared with this process. The process will have to free
+                          //its shared copy the same amount of time before it is actually freed.
+    uint64_t padding;
+    uint64_t padding_2;
+    uint64_t padding_3;
     KnlMallocMap() : location(NULL),
                      size(NULL),
                      belongs_to(NULL),
-                     next_item(NULL) {};
+                     next_item(NULL),
+                     shareable(0),
+                     share_count(0) {};
     KnlMallocMap* find_contigchunk(const addr_t size) const; //Try to find at least "size"
                                                              //contiguous bytes in this map
     KnlMallocMap* find_thischunk(const addr_t location) const;

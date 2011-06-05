@@ -61,6 +61,7 @@ class MemAllocator {
                      MallocPIDList* target,
                      const VirMemFlags flags,
                      const bool force);
+        MallocMap* shared_already(PhyMemMap* to_share, MallocPIDList* target_owner);
         addr_t knl_allocator(const addr_t size, const bool force);
         addr_t knl_allocator_shareable(addr_t size, const bool force);
         bool knl_liberator(const addr_t location);
@@ -69,6 +70,7 @@ class MemAllocator {
                               const VirMemFlags flags,
                               const bool force);
         addr_t share_to_knl(const addr_t location, MallocPIDList* source, const bool force);
+        KnlMallocMap* shared_to_knl_already(PhyMemMap* to_share);
         MallocPIDList* find_pid(const PID target); //Find the map list entry associated to this PID,
                                                    //return NULL if it does not exist.
         MallocPIDList* find_or_create_pid(PID target,  //Same as above, but try to create the entry

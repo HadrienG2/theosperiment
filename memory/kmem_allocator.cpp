@@ -210,7 +210,6 @@ addr_t MemAllocator::allocator_shareable(addr_t size,
         liberate_memory();
         return allocator_shareable(size, target, flags, force);
     }
-    phy_chunk->shareable = true;
     VirMemMap* vir_chunk = virmem->map(phy_chunk, target->map_owner, flags);
     if(!vir_chunk) {
         phymem->free(phy_chunk);
@@ -218,7 +217,6 @@ addr_t MemAllocator::allocator_shareable(addr_t size,
         liberate_memory();
         return allocator_shareable(size, target, flags, force);
     }
-    vir_chunk->shareable = true;
 
     //Putting that memory in a MallocMap block
     if(!free_mapitems) {
@@ -237,6 +235,7 @@ addr_t MemAllocator::allocator_shareable(addr_t size,
     allocated->location = vir_chunk->location;
     allocated->size = vir_chunk->size;
     allocated->belongs_to = vir_chunk;
+    allocated->shareable = true;
 
     //Putting that block in target->busy_map
     if(!(target->busy_map) || (allocated->location < target->busy_map->location)) {
@@ -262,20 +261,25 @@ void MemAllocator::liberate_memory() {
 
 bool MemAllocator::liberator(const addr_t location, MallocPIDList* target) {
     //How it works :
-    //  1.Find the relevant item in busy_map. If it fails, return NULL. Keep its predecessor around
-    //    too : that will be useful in step 2.
+    //  1.Find the relevant item in busy_map. If it fails, return false. Keep its predecessor around
+    //    too : that will be useful in step 2. Check the item's share_count : if it is higher than
+    //    1, decrement it and abort. If not, remove the item from busy_map.
     //  2.In the way, check if that item is the sole item belonging to its chunk of virtual memory
     //    in busy_map (examining the neighbours should be sufficient, since busy_map is sorted).
     // 3a.If so, liberate the chunk and remove any item of free_map belonging to it. If this results
     //    in busy_map being empty, free_map is necessarily empty too : remove that PID.
     // 3b.If not, move the busy_map item in free_map, merging it with neighbors if possible.
 
-    MallocMap *freed_item, *previous_item;
+    MallocMap *freed_item, *previous_item = NULL;
 
     //Step 1 : Finding the item in busy_map and taking it out of said map.
     if(target->busy_map == NULL) return false;
     if(target->busy_map->location == location) {
         freed_item = target->busy_map;
+        if(freed_item->share_count > 1) {
+            freed_item->share_count-= 1;
+            return true;
+        }
         target->busy_map = freed_item->next_item;
     } else {
         previous_item = target->busy_map;
@@ -287,6 +291,10 @@ bool MemAllocator::liberator(const addr_t location, MallocPIDList* target) {
             previous_item = previous_item->next_item;
         }
         if(!freed_item) return false;
+        if(freed_item->share_count > 1) {
+            freed_item->share_count-= 1;
+            return true;
+        }
         previous_item->next_item = freed_item->next_item;
     }
 
@@ -436,12 +444,24 @@ addr_t MemAllocator::share(const addr_t location,
         if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
     }
-    if(shared_item->belongs_to->shareable == false) {
+    if(shared_item->shareable == false) {
         if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
     }
     PID target_pid = target->map_owner;
     PhyMemMap* phy_item = shared_item->belongs_to->points_to;
+    //Check that the chunk is not shared with target already, if so simply increment the share_count
+    //of the shared object in target's address space and quit. If not, pursue sharing operation
+    MallocMap* already_shared = shared_already(phy_item, target);
+    if(already_shared) {
+        //Manage share_count overflows
+        if(already_shared->share_count == 0xffffffff) {
+            if(force) panic(PANIC_MAXIMAL_SHARING_REACHED);
+            return NULL;
+        }
+        already_shared->share_count+= 1;
+        return already_shared->location;
+    }
     if(phymem->owneradd(phy_item, target_pid) == false) {
         //If a new item has been allocated for sharing, delete it
         if(shared_item != source->busy_map->find_thischunk(location)) {
@@ -471,6 +491,8 @@ addr_t MemAllocator::share(const addr_t location,
     busy_item->location = shared_chunk->location;
     busy_item->size = shared_chunk->size;
     busy_item->belongs_to = shared_chunk;
+    busy_item->shareable = true;
+    busy_item->share_count = 1;
 
     //Insert the newly created item in target's busy_map
     if(!(target->busy_map) || (busy_item->location < target->busy_map->location)) {
@@ -487,6 +509,18 @@ addr_t MemAllocator::share(const addr_t location,
     }
 
     return busy_item->location;
+}
+
+MallocMap* MemAllocator::shared_already(PhyMemMap* to_share, MallocPIDList* target_owner) {
+    //This function checks if a physical page "to_share" is already shared with "target_owner", and
+    //if so returns a pointer to the MallocMap object associated with the shared object.
+    MallocMap* map_parser = target_owner->busy_map;
+    while(map_parser) {
+        if(map_parser->belongs_to->points_to == to_share) break;
+        map_parser = map_parser->next_item;
+    }
+    
+    return map_parser;
 }
 
 addr_t MemAllocator::knl_allocator(const addr_t size, const bool force) {
@@ -609,7 +643,6 @@ addr_t MemAllocator::knl_allocator_shareable(addr_t size, const bool force) {
         liberate_memory();
         return knl_allocator_shareable(size, force);
     }
-    phy_chunk->shareable = true;
 
     //Putting that memory in a MallocMap block
     if(!free_mapitems) {
@@ -627,6 +660,7 @@ addr_t MemAllocator::knl_allocator_shareable(addr_t size, const bool force) {
     allocated->location = phy_chunk->location;
     allocated->size = phy_chunk->size;
     allocated->belongs_to = phy_chunk;
+    allocated->shareable = true;
 
     //Putting that block in knl_busy_map
     if(!knl_busy_map || (allocated->location < knl_busy_map->location)) {
@@ -649,12 +683,17 @@ bool MemAllocator::knl_liberator(const addr_t location) {
     //This works a lot like liberator(), except that it uses knl_free_map and knl_busy_map and that
     //   -Since paging is disabled for the kernel, the chunk is only liberated through phymem
     //   -The kernel's structures are part of MemAllocator, they are never removed.
+    
     KnlMallocMap *freed_item, *previous_item = NULL;
 
     //Step 1 : Find the item in knl_busy_map and take it out of said map.
     if(!knl_busy_map) return false;
     if(knl_busy_map->location == location) {
         freed_item = knl_busy_map;
+        if(freed_item->share_count > 1) {
+            freed_item->share_count-= 1;
+            return true;
+        }
         knl_busy_map = freed_item->next_item;
     } else {
         previous_item = knl_busy_map;
@@ -666,6 +705,10 @@ bool MemAllocator::knl_liberator(const addr_t location) {
             previous_item = previous_item->next_item;
         }
         if(!freed_item) return false;
+        if(freed_item->share_count > 1) {
+            freed_item->share_count-= 1;
+            return true;
+        }
         previous_item->next_item = freed_item->next_item;
     }
 
@@ -807,11 +850,23 @@ addr_t MemAllocator::share_from_knl(const addr_t location,
         if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
     }
-    if(shared_item->belongs_to->shareable == false) {
+    if(shared_item->shareable == false) {
         if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
     }
     PhyMemMap* phy_item = shared_item->belongs_to;
+    //Check that the chunk is not shared with target already, if so simply increment the share_count
+    //of the shared object in target's address space and quit. If not, pursue sharing operation
+    MallocMap* already_shared = shared_already(phy_item, target);
+    if(already_shared) {
+        //Manage share_count overflows
+        if(already_shared->share_count == 0xffffffff) {
+            if(force) panic(PANIC_MAXIMAL_SHARING_REACHED);
+            return NULL;
+        }
+        already_shared->share_count+= 1;
+        return already_shared->location;
+    }
     PID target_pid = target->map_owner;
     if(phymem->owneradd(phy_item, target_pid) == false) {
         //If a new item has been allocated for sharing, delete it
@@ -841,6 +896,8 @@ addr_t MemAllocator::share_from_knl(const addr_t location,
     busy_item->location = shared_chunk->location;
     busy_item->size = shared_chunk->size;
     busy_item->belongs_to = shared_chunk;
+    busy_item->shareable = true;
+    busy_item->share_count = 1;
 
     //Insert the newly created item in target's busy_map
     if(!(target->busy_map) || (busy_item->location < target->busy_map->location)) {
@@ -863,6 +920,8 @@ addr_t MemAllocator::share_to_knl(const addr_t location,
                                   MallocPIDList* source,
                                   const bool force) {
     //Like sharer(), but the kernel is the recipient
+    
+    //TODO : Reference counting (check if the data isn't already shared)
 
     //Allocate management structures (we need at most two MallocMaps)
     if(!free_mapitems || !(free_mapitems->next_item)) {
@@ -884,11 +943,23 @@ addr_t MemAllocator::share_to_knl(const addr_t location,
         if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
     }
-    if(shared_item->belongs_to->shareable == false) {
+    if(shared_item->shareable == false) {
         if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
     }
     PhyMemMap* shared_chunk = shared_item->belongs_to->points_to;
+    //Check that the chunk is not shared with target already, if so simply increment the share_count
+    //of the shared object in target's address space and quit. If not, pursue sharing operation
+    KnlMallocMap* already_shared = shared_to_knl_already(shared_chunk);
+    if(already_shared) {
+        //Manage share_count overflows
+        if(already_shared->share_count == 0xffffffff) {
+            if(force) panic(PANIC_MAXIMAL_SHARING_REACHED);
+            return NULL;
+        }
+        already_shared->share_count+= 1;
+        return already_shared->location;
+    }
     if(phymem->owneradd(shared_chunk, PID_KERNEL) == false) {
         //If a new item has been allocated for sharing, delete it
         if(shared_item != source->busy_map->find_thischunk(location)) {
@@ -907,6 +978,8 @@ addr_t MemAllocator::share_to_knl(const addr_t location,
     busy_item->location = shared_chunk->location;
     busy_item->size = shared_chunk->size;
     busy_item->belongs_to = shared_chunk;
+    busy_item->shareable = true;
+    busy_item->share_count = 1;
 
     //Insert the newly created item in knl_busy_map
     if(!knl_busy_map || (busy_item->location < knl_busy_map->location)) {
@@ -923,6 +996,18 @@ addr_t MemAllocator::share_to_knl(const addr_t location,
     }
 
     return busy_item->location;
+}
+
+KnlMallocMap* MemAllocator::shared_to_knl_already(PhyMemMap* to_share) {
+    //This function checks if a physical page "to_share" is already shared with the kernel, and
+    //if so returns a pointer to the MallocMap object associated with the shared object.
+    KnlMallocMap* map_parser = knl_busy_map;
+    while(map_parser) {
+        if(map_parser->belongs_to == to_share) break;
+        map_parser = map_parser->next_item;
+    }
+    
+    return map_parser;
 }
 
 MallocPIDList* MemAllocator::find_pid(const PID target) {

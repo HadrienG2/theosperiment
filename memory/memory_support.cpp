@@ -92,7 +92,6 @@ bool PhyMemMap::operator==(const PhyMemMap& param) const {
     if(allocatable != param.allocatable) return false;
     if(next_buddy != param.next_buddy) return false;
     if(next_mapitem != param.next_mapitem) return false;
-    if(shareable != param.shareable) return false;
     return true;
 }
 
@@ -126,7 +125,6 @@ bool VirMemMap::operator==(const VirMemMap& param) const {
     if(points_to != param.points_to) return false;
     if(next_buddy != param.next_buddy) return false;
     if(next_mapitem != param.next_mapitem) return false;
-    if(shareable != param.shareable) return false;
     return true;
 }
 
@@ -176,6 +174,8 @@ bool MallocMap::operator==(const MallocMap& param) const {
     if(size != param.size) return false;
     if(belongs_to != param.belongs_to) return false;
     if(next_item != param.next_item) return false;
+    if(shareable != param.shareable) return false;
+    if(share_count != param.share_count) return false;
     return true;
 }
 
@@ -204,6 +204,8 @@ bool KnlMallocMap::operator==(const KnlMallocMap& param) const {
     if(size != param.size) return false;
     if(belongs_to != param.belongs_to) return false;
     if(next_item != param.next_item) return false;
+    if(shareable != param.shareable) return false;
+    if(share_count != param.share_count) return false;
     return true;
 }
 
