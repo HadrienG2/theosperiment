@@ -8,8 +8,8 @@ BS_ARCH = i686
 CXX_ARCH = -mcmodel=small -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow
 L_ARCH = -zmax-page-size=0x1000
 export MTOOLSRC = support/mtoolsrc.txt
-GENISO_PARAMS = -input-charset utf8 -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4
-GENISO_PARAMS += -boot-info-table -quiet -A "The OS-periment"
+GENISO_PARAMS = -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table
+GENISO_PARAMS += -quiet -A "The OS-periment"
 
 #Source files go here
 BS_ASM_SRC = $(wildcard arch/$(ARCH)/bootstrap/*.s arch/$(ARCH)/bootstrap/lib/*.s)
