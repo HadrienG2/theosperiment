@@ -1,4 +1,5 @@
-boot:           floppy
+boot:           cdrom
+ata0-master:    type=cdrom, path="cdimage.iso", status=inserted
 floppya:        1_44="floppy.img", status=inserted 
 magic_break:    enabled=1
 megs:           256

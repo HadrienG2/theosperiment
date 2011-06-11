@@ -2,5 +2,6 @@ default 0
 timeout 0
 
 title The OS-periment
+root (fd0)
 kernel /system/bs_kernel.bin.gz
 module /system/kernel.bin
