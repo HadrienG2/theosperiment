@@ -471,7 +471,12 @@ addr_t MemAllocator::share(const addr_t location,
         liberate_memory();
         return share(location, source, target, flags, force);
     }
-    VirMemMap* shared_chunk = virmem->map(phy_item, target_pid, flags);
+    VirMemMap* shared_chunk;
+    if(flags | VMEM_FLAGS_SAME) {
+        shared_chunk = virmem->map(phy_item, target_pid, shared_item->belongs_to->flags);
+    } else {
+        shared_chunk = virmem->map(phy_item, target_pid, flags);
+    }
     if(!shared_chunk) {
         phymem->ownerdel(phy_item, target_pid);
         //If a new item has been allocated for sharing, delete it
@@ -877,7 +882,12 @@ addr_t MemAllocator::share_from_knl(const addr_t location,
         liberate_memory();
         return share_from_knl(location, target, flags, force);
     }
-    VirMemMap* shared_chunk = virmem->map(phy_item, target_pid, flags);
+    VirMemMap* shared_chunk;
+    if(flags | VMEM_FLAGS_SAME) {
+        shared_chunk = virmem->map(phy_item, target_pid, VMEM_FLAGS_RW);
+    } else {
+        shared_chunk = virmem->map(phy_item, target_pid, flags);
+    }
     if(!shared_chunk) {
         phymem->ownerdel(phy_item, target_pid);
         //If a new item has been allocated for sharing, delete it
@@ -918,10 +928,9 @@ addr_t MemAllocator::share_from_knl(const addr_t location,
 
 addr_t MemAllocator::share_to_knl(const addr_t location,
                                   MallocPIDList* source,
+                                  const VirMemFlags flags,
                                   const bool force) {
     //Like sharer(), but the kernel is the recipient
-    
-    //TODO : Reference counting (check if the data isn't already shared)
 
     //Allocate management structures (we need at most two MallocMaps)
     if(!free_mapitems || !(free_mapitems->next_item)) {
@@ -929,7 +938,7 @@ addr_t MemAllocator::share_to_knl(const addr_t location,
         if(!free_mapitems || !(free_mapitems->next_item)) {
             if(!force) return NULL;
             liberate_memory();
-            return share_to_knl(location, source, force);
+            return share_to_knl(location, source, flags, force);
         }
     }
 
@@ -944,6 +953,12 @@ addr_t MemAllocator::share_to_knl(const addr_t location,
         return NULL;
     }
     if(shared_item->shareable == false) {
+        if(force) panic(PANIC_IMPOSSIBLE_SHARING);
+        return NULL;
+    }
+    //If "same" virtual memory flags are used, check that the original memory chunk has RW memory
+    //flags, as paging is disabled for the kernel
+    if((flags | VMEM_FLAGS_SAME) && (shared_item->belongs_to->flags != VMEM_FLAGS_RW)) {
         if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
     }
@@ -967,7 +982,7 @@ addr_t MemAllocator::share_to_knl(const addr_t location,
         }
         if(!force) return NULL;
         liberate_memory();
-        return share_to_knl(location, source, force);
+        return share_to_knl(location, source, flags, force);
     }
 
 
@@ -1254,7 +1269,7 @@ addr_t MemAllocator::owneradd(const addr_t location,
         //PID source shares something with kernel
 
         //Kernel does not support paging, so only default flags are supported
-        if(flags != VMEM_FLAGS_RW) {
+        if((flags != VMEM_FLAGS_RW) && (flags != VMEM_FLAGS_SAME)) {
             if(force) panic(PANIC_IMPOSSIBLE_KERNEL_FLAGS); //Stub !
             return NULL;
         }
@@ -1271,7 +1286,7 @@ addr_t MemAllocator::owneradd(const addr_t location,
         knl_mutex.grab_spin();          //the same order. As knl_mutex has higher chances of being
         maplist_mutex.release();        //sollicitated, grab it for the shortest time
 
-                result = share_to_knl(location, source_item, force);
+                result = share_to_knl(location, source_item, flags, force);
 
         knl_mutex.release();
         source_item->mutex.release();

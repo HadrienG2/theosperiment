@@ -79,6 +79,10 @@ const VirMemFlags VMEM_FLAG_A = (1<<3); //...absent (accessing it will result in
 const VirMemFlags VMEM_FLAG_K = (1<<4); //...Kernel (not invalidated during a context switch and not
                                         //accessible by user programs directly, used on kernel pages
                                         //which are common to all processes)
+const VirMemFlags VMEM_FLAGS_SAME = (1<<31); //This special virtual memory flag overrides all others,
+                                             //and is used for sharing. It means that the shared
+                                             //memory region is set up using the same flags than its
+                                             //"mother" region.
 const VirMemFlags VMEM_FLAGS_RX = VMEM_FLAG_R + VMEM_FLAG_X;
 const VirMemFlags VMEM_FLAGS_RW = VMEM_FLAG_R + VMEM_FLAG_W;
 
