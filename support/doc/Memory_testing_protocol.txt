@@ -361,6 +361,7 @@ IV/ MemAllocator
         * Check reference counting : if owneradd() is called multiple times, then free() should be
           called the same amount of time before the shared chunk is actually freed.
         * Same tests, but with the kernel as the allocating process, sender, or recipient
+        * Check effectiveness of flags, especially the VMEM_FLAGS_SAME one.
     9. kill() test
         * Restart one test which allocates some data, try to kill a process, check that all of its
           data has been liberated.

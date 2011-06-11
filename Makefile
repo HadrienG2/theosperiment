@@ -8,6 +8,8 @@ BS_ARCH = i686
 CXX_ARCH = -mcmodel=small -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow
 L_ARCH = -zmax-page-size=0x1000
 export MTOOLSRC = support/mtoolsrc.txt
+GENISO_PARAMS = -input-charset utf8 -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4
+GENISO_PARAMS += -boot-info-table -quiet -A "The OS-periment"
 
 #Source files go here
 BS_ASM_SRC = $(wildcard arch/$(ARCH)/bootstrap/*.s arch/$(ARCH)/bootstrap/lib/*.s)
@@ -73,29 +75,46 @@ endif
 LFLAGS = -s --warn-common --warn-once $(L_ARCH)
 
 #Definition of targets
-BS_BIN = bs_kernel.bin
+FLOPPY = floppy.img
+CDIMAGE = cdimage.iso
+BS_BIN = bin/bs_kernel.bin
 BS_GZ = $(BS_BIN).gz
-KNL_BIN = kernel.bin
+KNL_BIN = bin/kernel.bin
 BS_ASM_OBJ = $(BS_ASM_SRC:.s=.bsasm.o)
 BS_C_OBJ = $(BS_C_SRC:.c=.bsc.o)
 KNL_ASM_OBJ = $(KNL_ASM_SRC:.s=.knlasm.o)
 KNL_CPP_OBJ = $(KNL_CPP_SRC:.cpp=.knlcpp.o)
 
 #Make rules
-all: floppy
+all: floppy cdimage
+	@echo "Reminder : remember to run svn update, status, and commit frequently !"
 
 run: all
 	@echo c > comm_test
 	@nice -n 7 bochsdbg -qf support/bochsrc.txt -rc comm_test
 	@rm -f comm_test
 
-floppy: $(BS_GZ) $(KNL_BIN)
-	@rm -f floppy.img
-	@cp support/grub_floppy.img floppy.img
+floppy: $(FLOPPY)
+
+$(FLOPPY): $(BS_GZ) $(KNL_BIN)
+	@rm -f $(FLOPPY)
+	@cp support/grub_floppy.img $(FLOPPY)
 	@mcopy $(BS_GZ) K:/system
 	@mcopy $(KNL_BIN) K:/system
-	@mcopy support/menu.lst K:/boot/grub
-	@echo "Reminder : remember to run svn update, status, and commit frequently !"
+	@mcopy support/menu_floppy.lst K:/boot/grub/menu.lst
+
+cdimage: $(CDIMAGE)
+
+$(CDIMAGE): $(BS_GZ) $(KNL_BIN)
+	@rm -rf cdimage/*
+	@mkdir cdimage/boot
+	@mkdir cdimage/boot/grub
+	@cp support/stage2_eltorito cdimage/boot/grub
+	@mkdir cdimage/system
+	@cp $(BS_GZ) cdimage/system
+	@cp $(KNL_BIN) cdimage/system
+	@cp support/menu.lst cdimage/boot/grub/menu.lst
+	@genisoimage $(GENISO_PARAMS) -o $(CDIMAGE) cdimage
 
 bootstrap: $(BS_GZ)
 
@@ -124,6 +143,8 @@ $(KNL_BIN): $(KNL_ASM_OBJ) $(KNL_CPP_OBJ) $(HEADERS)
 
 clean:
 	@rm -f $(BS_GZ) $(BS_BIN) $(BS_ASM_OBJ) $(BS_C_OBJ) $(KNL_BIN) $(KNL_ASM_OBJ) $(KNL_CPP_OBJ)
+	@rm -rf cdimage/*
 
 mrproper: clean
-	@rm floppy.img
+	@rm -f $(FLOPPY) $(CDIMAGE)
+
