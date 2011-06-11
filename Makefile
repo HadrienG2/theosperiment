@@ -106,6 +106,7 @@ $(FLOPPY): $(BS_GZ) $(KNL_BIN)
 cdimage: $(CDIMAGE)
 
 $(CDIMAGE): $(BS_GZ) $(KNL_BIN)
+	@rm -rf $(CDIMAGE)
 	@rm -rf cdimage/*
 	@mkdir cdimage/boot
 	@mkdir cdimage/boot/grub
