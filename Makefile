@@ -7,7 +7,6 @@ ARCH = x86_64
 BS_ARCH = i686
 CXX_ARCH = -mcmodel=small -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow
 L_ARCH = -zmax-page-size=0x1000
-export MTOOLSRC = support/mtoolsrc.txt
 GENISO_PARAMS = -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table
 GENISO_PARAMS += -quiet -A "The OS-periment"
 
@@ -75,7 +74,6 @@ endif
 LFLAGS = -s --warn-common --warn-once $(L_ARCH)
 
 #Definition of targets
-FLOPPY = floppy.img
 CDIMAGE = cdimage.iso
 BS_BIN = bin/bs_kernel.bin
 BS_GZ = $(BS_BIN).gz
@@ -86,22 +84,13 @@ KNL_ASM_OBJ = $(KNL_ASM_SRC:.s=.knlasm.o)
 KNL_CPP_OBJ = $(KNL_CPP_SRC:.cpp=.knlcpp.o)
 
 #Make rules
-all: floppy cdimage
+all: cdimage
 	@echo "Reminder : remember to run svn update, status, and commit frequently !"
 
 run: all
 	@echo c > comm_test
 	@nice -n 7 bochsdbg -qf support/bochsrc.txt -rc comm_test
 	@rm -f comm_test
-
-floppy: $(FLOPPY)
-
-$(FLOPPY): $(BS_GZ) $(KNL_BIN)
-	@rm -f $(FLOPPY)
-	@cp support/grub_floppy.img $(FLOPPY)
-	@mcopy $(BS_GZ) K:/system
-	@mcopy $(KNL_BIN) K:/system
-	@mcopy support/menu_floppy.lst K:/boot/grub/menu.lst
 
 cdimage: $(CDIMAGE)
 
@@ -147,5 +136,5 @@ clean:
 	@rm -rf cdimage/*
 
 mrproper: clean
-	@rm -f $(FLOPPY) $(CDIMAGE)
+	@rm -f $(CDIMAGE)
 
