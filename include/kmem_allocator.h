@@ -69,7 +69,10 @@ class MemAllocator {
                               MallocPIDList* target,
                               const VirMemFlags flags,
                               const bool force);
-        addr_t share_to_knl(const addr_t location, MallocPIDList* source, const bool force);
+        addr_t share_to_knl(const addr_t location,
+                            MallocPIDList* source,
+                            const VirMemFlags flags,
+                            const bool force);
         KnlMallocMap* shared_to_knl_already(PhyMemMap* to_share);
         MallocPIDList* find_pid(const PID target); //Find the map list entry associated to this PID,
                                                    //return NULL if it does not exist.
@@ -104,7 +107,7 @@ class MemAllocator {
         addr_t owneradd(const addr_t location,
                         PID source,
                         PID target,
-                        const VirMemFlags flags = VMEM_FLAGS_RW,
+                        const VirMemFlags flags = VMEM_FLAGS_SAME,
                         const bool force = false);
 
         //Kill a process, more exactly free traces of it in MemAllocator, VirMemManager, and
@@ -131,7 +134,7 @@ bool kfree(const void* location, PID target = PID_KERNEL);
 void* kowneradd(const void* location,
                 const PID source,
                 PID target,
-                const VirMemFlags flags = VMEM_FLAGS_RW,
+                const VirMemFlags flags = VMEM_FLAGS_SAME,
                 const bool force = false);
 
 #endif
