@@ -55,6 +55,7 @@ namespace Tests {
         PhyMemMap* after_mapitems = NULL;
         PhyMemMap* map_parser = phymem_state->phy_mmap;
         unsigned int index = 0;
+        bool free_item_overlap = false;
         KernelMemoryMap* kmmap = kinfo.kmmap;
         PhyMemMap should_be;
         while(map_parser) {
@@ -65,17 +66,31 @@ namespace Tests {
             }
 
             //Define what each map item should be according to kmmap
-            uint64_t mapitem_start = align_pgup(kmmap[index].location);
-            uint64_t mapitem_end = align_pgup(kmmap[index].location + kmmap[index].size);
-            while(mapitem_start == mapitem_end) {
-                ++index;
+            uint64_t mapitem_start = 0, mapitem_end = 0;
+            if(kmmap[index].nature == NATURE_FRE) {
                 mapitem_start = align_pgup(kmmap[index].location);
-                mapitem_end = align_pgup(kmmap[index].location + kmmap[index].size);
+                mapitem_end = align_pgdown(kmmap[index].location+kmmap[index].size);
+            } else {
+                mapitem_start = align_pgdown(kmmap[index].location);
+                mapitem_end = align_pgup(kmmap[index].location+kmmap[index].size);
+            }
+            while(mapitem_start >= mapitem_end) {
+                ++index;
+                if(kmmap[index].nature == NATURE_FRE) {
+                    mapitem_start = align_pgup(kmmap[index].location);
+                    mapitem_end = align_pgdown(kmmap[index].location+kmmap[index].size);
+                } else {
+                    mapitem_start = align_pgdown(kmmap[index].location);
+                    mapitem_end = align_pgup(kmmap[index].location+kmmap[index].size);
+                }
+                mapitem_start = align_pgup(kmmap[index].location);
+                mapitem_end = align_pgup(kmmap[index].location+kmmap[index].size);
             }
             should_be = PhyMemMap();
             should_be.location = mapitem_start;
             should_be.size = mapitem_end-mapitem_start;
             should_be.allocatable = true;
+       
             for(; index < kinfo.kmmap_size; ++index) {
                 if(kmmap[index].location >= mapitem_end) break;
                 switch(kmmap[index].nature) {
@@ -86,7 +101,14 @@ namespace Tests {
                     case NATURE_KNL:
                         should_be.add_owner(PID_KERNEL);
                 }
-                if(kmmap[index].location + kmmap[index].size > mapitem_end) break;
+                if(kmmap[index].location + kmmap[index].size > mapitem_end) {
+                    if(!free_item_overlap) {
+                        free_item_overlap = true;
+                        break;
+                    } else {
+                        free_item_overlap = false;
+                    }
+                }
             }
             if(should_be.allocatable) {
                 should_be.next_buddy = map_parser->next_buddy;
@@ -126,7 +148,7 @@ namespace Tests {
             }
 
             //...and extra free map items storage space. In other cases, mapping has failed
-            if(*map_parser != should_be) {
+            if(*map_parser != should_be) {                
                 if(stored_mapitems) {
                     test_failure("Only one pack of map items should have been allocated");
                     return NULL;

@@ -23,6 +23,11 @@
 namespace Tests {
     static int title_count;
     static int sub_title_count;
+    
+    void test_beginning(const char* component_name) {
+        dbgout << set_window(screen_win);
+        dbgout << "Beginning " << component_name << " testing..." << endl;
+    }
 
     void reset_title() {
         title_count = 0;
@@ -71,11 +76,6 @@ namespace Tests {
         dbgout << "    * " << title << endl;
     }
 
-    void test_beginning(const char* component_name) {
-        dbgout << set_window(screen_win);
-        dbgout << "Beginning " << component_name << " testing..." << endl;
-    }
-
     void test_success() {
         dbgout << txtcolor(TXT_LIGHTGREEN) << "All tests were successfully completed !" << endl;
         dbgout << txtcolor(TXT_LIGHTGRAY) << endl;
@@ -89,5 +89,17 @@ namespace Tests {
     void fail_notimpl() {
         dbgout << txtcolor(TXT_YELLOW) << "  This test is not implemented yet !";
         dbgout << txtcolor(TXT_LIGHTGRAY) << endl;
+    }
+    
+    void bench_start() {
+        dbgout << txtcolor(TXT_LIGHTBLUE);
+        dbgout << "  Beginning of a benchmark, get ready for measurements...";
+        dbgout << txtcolor(TXT_LIGHTGRAY) << bp() << endl;
+    }
+    
+    void bench_stop() {
+        dbgout << txtcolor(TXT_LIGHTBLUE);
+        dbgout << "  End of benchmark reached, stop your chronometer !";
+        dbgout << txtcolor(TXT_LIGHTGRAY) << bp() << endl;
     }
 }

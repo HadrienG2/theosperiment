@@ -340,7 +340,7 @@ bool MemAllocator::liberator(const addr_t location, MallocPIDList* target) {
                 freed_item->next_item = free_mapitems;
                 free_mapitems = freed_item;
             }
-            previous_item = previous_item->next_item;
+            if(previous_item->next_item) previous_item = previous_item->next_item;
         }
 
         //If this PID's busy_map is now empty, its free_map is empty too : remove it
@@ -752,7 +752,7 @@ bool MemAllocator::knl_liberator(const addr_t location) {
                 freed_item->next_item = (KnlMallocMap*) free_mapitems;
                 free_mapitems = (MallocMap*) freed_item;
             }
-            previous_item = previous_item->next_item;
+            if(previous_item->next_item) previous_item = previous_item->next_item;
         }
 
         return true;

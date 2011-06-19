@@ -22,7 +22,9 @@ ifeq ($(Fdebug),1)
     KNL_CPP_SRC += $(wildcard arch/$(ARCH)/debug/*.cpp debug/*.cpp)
 endif
 ifeq ($(Ftests),1)
-    KNL_CPP_SRC += $(wildcard tests/common/*.cpp tests/memory/*.cpp arch/$(ARCH)/tests/memory/*.cpp)
+    KNL_CPP_SRC += $(wildcard tests/common/*.cpp arch/$(ARCH)/tests/common/*.cpp)
+    KNL_CPP_SRC += $(wildcard tests/memory/*.cpp arch/$(ARCH)/tests/memory/*.cpp)
+    KNL_CPP_SRC += $(wildcard tests/rpcbench/*.cpp)
 endif
 
 #Headers go there (Yeah, duplication sucks. If you know how to avoid it...)
@@ -100,10 +102,9 @@ $(CDIMAGE): $(BS_GZ) $(KNL_BIN)
 	@mkdir cdimage/boot
 	@mkdir cdimage/boot/grub
 	@cp support/stage2_eltorito cdimage/boot/grub
-	@mkdir cdimage/system
-	@cp $(BS_GZ) cdimage/system
-	@cp $(KNL_BIN) cdimage/system
-	@cp support/menu.lst cdimage/boot/grub/menu.lst
+	@cp $(BS_GZ) cdimage/boot
+	@cp $(KNL_BIN) cdimage/boot
+	@cp support/menu.lst cdimage/boot/grub
 	@genisoimage $(GENISO_PARAMS) -o $(CDIMAGE) cdimage
 
 bootstrap: $(BS_GZ)

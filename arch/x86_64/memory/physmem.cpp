@@ -377,7 +377,7 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
     current_item->next_mapitem = NULL;
 
     //Setup variables for the following initialization steps
-    current_location = align_pgup(kmmap[0].location);
+    current_location = align_pgdown(kmmap[0].location);
     next_location = align_pgup(kmmap[0].location+kmmap[0].size);
 
     //Fill first item
@@ -409,9 +409,14 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
         if(kmmap[index].location+kmmap[index].size>next_location) {
             //End of the chunk reached !
             //Prepare the next chunk to be filled, skipping chunks of zero size in the way
-            current_location = align_pgup(kmmap[index].location);
-            next_location = align_pgup(kmmap[index].location+kmmap[index].size);
-            if(next_location == current_location) continue;
+            if(kmmap[index].nature == NATURE_FRE) {
+                current_location = align_pgup(kmmap[index].location);
+                next_location = align_pgdown(kmmap[index].location+kmmap[index].size);
+            } else {
+                current_location = align_pgdown(kmmap[index].location);
+                next_location = align_pgup(kmmap[index].location+kmmap[index].size);
+            }
+            if(next_location <= current_location) continue;
             //If the previous chunk is free, add it to the free memory pool.
             if(current_item->owners[0] == PID_NOBODY && current_item->allocatable) {
                 if(!free_lowmem) {
@@ -463,9 +468,14 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
         if(kmmap[index].location+kmmap[index].size>next_location) {
             //End of the chunk reached !
             //Prepare the next chunk to be filled, skipping chunks of zero size in the way
-            current_location = align_pgup(kmmap[index].location);
-            next_location = align_pgup(kmmap[index].location+kmmap[index].size);
-            if(next_location == current_location) continue;
+            if(kmmap[index].nature == NATURE_FRE) {
+                current_location = align_pgup(kmmap[index].location);
+                next_location = align_pgdown(kmmap[index].location+kmmap[index].size);
+            } else {
+                current_location = align_pgdown(kmmap[index].location);
+                next_location = align_pgup(kmmap[index].location+kmmap[index].size);
+            }
+            if(next_location <= current_location) continue;
             //If the previous chunk is free, add it to the free memory pool.
             if(current_item->owners[0] == PID_NOBODY && current_item->allocatable) {
                 if(!free_lowmem) {
