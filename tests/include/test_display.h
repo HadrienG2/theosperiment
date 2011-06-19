@@ -20,7 +20,11 @@
 #define _TEST_DISPLAY_H_
 
 namespace Tests {
-    //Hierarchy
+    //Visual hierarchy
+    void test_beginning(const char* component_name); //Run at the beginning of a test.
+                                                     //Sets text display to full screen and displays
+                                                     //something like "Beginning <component_name>
+                                                     //testing..."
     void reset_title(); //Reset title counter to 1
     void reset_sub_title(); //Reset sub-title counter to 1
     void test_title(const char* title); //Display test title (e.g. "I/  Mytest")
@@ -28,13 +32,16 @@ namespace Tests {
     void item_title(const char* title); //Display test item title (e.g. "* A wonderful test")
 
     //Message display
-    void test_beginning(const char* component_name); //Run at the beginning of a test.
-                                                     //Sets text display to full screen and displays
-                                                     //something like "Beginning <component_name>
-                                                     //testing..."
     void test_success(); //Informs the user that all tests have been completed successfuly.
     void test_failure(const char* message); //Displays an error message
     void fail_notimpl(); //Warns the test user that a feature has not yet been implemented
+    
+    //Benchmarking
+    void bench_start(); //To be run in the beginning of a benchmark-type test. Starts the system
+                        //chronometer, if there's one, or else asks the tester to prepare himself for
+                        //hand measurements and give him some time.
+    void bench_stop(); //To be run in the end of a benchmark. Displays the measured time, if the
+                       //system could measure it, or else asks the tester to stop his measurement.
 }
 
 #endif

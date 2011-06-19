@@ -22,16 +22,16 @@
 #include <virtmem.h>
 
 #include <dbgstream.h>
-#include <memory_test.h>
+//#include <memory_test.h>
+#include <rpc_benchmark.h>
 
 extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << txtcolor(TXT_LIGHTGREEN) << "Kernel loaded: " << kinfo.cpu_info.core_amount;
     dbgout << " CPU core(s) around."  << txtcolor(TXT_LIGHTGRAY) << endl;
 
     //Put test suites here, as otherwise they might smash the work of already initialized components
-    dbgout << set_window(screen_win);
-    Tests::test_memory(kinfo);
-    dbgout << bp();
+    //Tests::test_memory(kinfo);
+    //dbgout << bp();
 
     dbgout << "* Setting up physical memory management..." << endl;
     PhyMemManager phymem(kinfo);
@@ -40,7 +40,9 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << "* Setting up memory allocator..." << endl;
     MemAllocator mallocator(phymem, virmem);
     setup_kalloc(mallocator);
-    dbgout << "All done !";
+    dbgout << "All done !" << endl;
+    
+    Tests::benchmark_rpc();
 
     return 0;
 }
