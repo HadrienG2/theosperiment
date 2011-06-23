@@ -98,14 +98,14 @@ cdimage: $(CDIMAGE)
 
 $(CDIMAGE): $(BS_GZ) $(KNL_BIN)
 	@rm -rf $(CDIMAGE)
-	@rm -rf cdimage/*
-	@mkdir cdimage/boot
-	@mkdir cdimage/boot/grub
-	@cp support/stage2_eltorito cdimage/boot/grub
-	@cp $(BS_GZ) cdimage/boot
-	@cp $(KNL_BIN) cdimage/boot
-	@cp support/menu.lst cdimage/boot/grub
-	@genisoimage $(GENISO_PARAMS) -o $(CDIMAGE) cdimage
+	@rm -rf bin/cdimage/*
+	@mkdir bin/cdimage/boot
+	@mkdir bin/cdimage/boot/grub
+	@cp support/stage2_eltorito bin/cdimage/boot/grub
+	@cp $(BS_GZ) bin/cdimage/boot
+	@cp $(KNL_BIN) bin/cdimage/boot
+	@cp support/menu.lst bin/cdimage/boot/grub
+	@genisoimage $(GENISO_PARAMS) -o $(CDIMAGE) bin/cdimage
 
 bootstrap: $(BS_GZ)
 
