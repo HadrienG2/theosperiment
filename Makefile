@@ -36,7 +36,7 @@ ifeq ($(Fdebug),1)
     HEADERS += $(wildcard arch/$(ARCH)/opt/debug/*.h opt/debug/*.h)
     BS_HEADERS += $(wildcard arch/$(ARCH)/bootstrap/opt/debug/*.h)
     INCLUDES += -Iarch/$(ARCH)/opt/debug/ -Iopt/debug/
-    BS_INCLUDES += -Iarch/$(ARCH)/opt/bootstrap/debug/
+    BS_INCLUDES += -Iarch/$(ARCH)/bootstrap/opt/debug/
 endif
 ifeq ($(Ftests),1)
     HEADERS += $(wildcard arch/$(ARCH)/opt/tests/include/*.h opt/tests/include/*.h)
