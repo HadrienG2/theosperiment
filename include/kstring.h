@@ -1,5 +1,7 @@
  /* Equivalent of cstring (aka string.h), but not a full implementation. Manipulates chunks of RAM,
     and maybe C-style strings and array in the future.
+    Also includes definition of the KString object, a high-level string container used for
+    communication between the kernel and processes.
 
       Copyright (C) 2011  Hadrien Grasland
 
@@ -23,5 +25,38 @@
 #include <address.h>
 
 void* memcpy(void* destination, const void* source, addr_t num);
+uint32_t strlen(const char* str);
+
+class KString {
+  private:
+    char* contents;
+    uint32_t len;
+  public:
+    //KString construction and destruction
+    KString() : contents(NULL), len(0) {};
+    KString(const char* source);
+    KString(KString& source);
+    ~KString();
+    KString& operator=(const char* source);
+    KString& operator=(const KString& source);
+    
+    //KString concatenation
+    KString& operator+=(const char* source);
+    KString& operator+=(const KString& source);
+    //No operator+. It can be implemented very easily, but not with good performance (when doing
+    //a = b+c, a new object is created, only to be copied to a and destroyed shortly thereafter)
+    
+    //KString comparison
+    bool operator==(const char* param) const;
+    bool operator==(const KString& param) const;
+    bool operator!=(const char* param) const {return !operator==(param);}
+    bool operator!=(const KString& param) const {return !operator==(param);}
+    
+    //KString indexed access
+    char& operator[](const uint32_t index) const {return contents[index];}
+    
+    //Length access
+    uint32_t length() const {return len;}
+};
 
 #endif
