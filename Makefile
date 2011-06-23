@@ -18,13 +18,13 @@ KNL_CPP_SRC = $(wildcard arch/$(ARCH)/interrupts/*.cpp arch/$(ARCH)/memory/*.cpp
 KNL_CPP_SRC += $(wildcard arch/$(ARCH)/synchronization/*.cpp init/*.cpp memory/*.cpp)
 KNL_CPP_SRC += $(wildcard process/*.cpp)
 ifeq ($(Fdebug),1)
-    BS_C_SRC += $(wildcard arch/$(ARCH)/bootstrap/debug/*.c)
-    KNL_CPP_SRC += $(wildcard arch/$(ARCH)/debug/*.cpp debug/*.cpp)
+    BS_C_SRC += $(wildcard arch/$(ARCH)/bootstrap/opt/debug/*.c)
+    KNL_CPP_SRC += $(wildcard arch/$(ARCH)/opt/debug/*.cpp opt/debug/*.cpp)
 endif
 ifeq ($(Ftests),1)
-    KNL_CPP_SRC += $(wildcard tests/common/*.cpp arch/$(ARCH)/tests/common/*.cpp)
-    KNL_CPP_SRC += $(wildcard tests/memory/*.cpp arch/$(ARCH)/tests/memory/*.cpp)
-    KNL_CPP_SRC += $(wildcard tests/rpcbench/*.cpp)
+    KNL_CPP_SRC += $(wildcard opt/tests/common/*.cpp arch/$(ARCH)/opt/tests/common/*.cpp)
+    KNL_CPP_SRC += $(wildcard opt/tests/memory/*.cpp arch/$(ARCH)/opt/tests/memory/*.cpp)
+    KNL_CPP_SRC += $(wildcard opt/tests/rpcbench/*.cpp)
 endif
 
 #Headers go there (Yeah, duplication sucks. If you know how to avoid it...)
@@ -33,14 +33,14 @@ BS_HEADERS=$(wildcard arch/$(ARCH)/bootstrap/include $(HEADERS))
 INCLUDES=-Iarch/$(ARCH)/include/ -Iinclude/
 BS_INCLUDES=-Iarch/$(ARCH)/bootstrap/include $(INCLUDES)
 ifeq ($(Fdebug),1)
-    HEADERS += $(wildcard arch/$(ARCH)/debug/*.h debug/*.h)
-    BS_HEADERS += $(wildcard arch/$(ARCH)/bootstrap/debug/*.h)
-    INCLUDES += -Iarch/$(ARCH)/debug/ -Idebug/
-    BS_INCLUDES += -Iarch/$(ARCH)/bootstrap/debug/
+    HEADERS += $(wildcard arch/$(ARCH)/opt/debug/*.h opt/debug/*.h)
+    BS_HEADERS += $(wildcard arch/$(ARCH)/bootstrap/opt/debug/*.h)
+    INCLUDES += -Iarch/$(ARCH)/opt/debug/ -Iopt/debug/
+    BS_INCLUDES += -Iarch/$(ARCH)/opt/bootstrap/debug/
 endif
 ifeq ($(Ftests),1)
-    HEADERS += $(wildcard arch/$(ARCH)/tests/include/*.h tests/include/*.h)
-    INCLUDES += -Iarch/$(ARCH)/tests/include -Itests/include
+    HEADERS += $(wildcard arch/$(ARCH)/opt/tests/include/*.h opt/tests/include/*.h)
+    INCLUDES += -Iarch/$(ARCH)/opt/tests/include -Iopt/tests/include
 endif
 
 #Compilation parameters for the bootstrap part
