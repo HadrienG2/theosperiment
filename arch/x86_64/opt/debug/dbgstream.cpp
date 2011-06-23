@@ -462,10 +462,8 @@ DebugOutput& DebugOutput::operator<<(const char input) {
 
 
 DebugOutput& DebugOutput::operator<<(const char* input) {
-    unsigned int index;
-
-    for(index=0; input[index]; ++index) {
-    *this << input[index];
+    for(unsigned int index=0; input[index]; ++index) {
+        *this << input[index];
     }
 
     return *this;
@@ -482,6 +480,14 @@ DebugOutput& DebugOutput::operator<<(const int64_t input) {
     *this << absolute_value;
     }
 
+    return *this;
+}
+
+DebugOutput& DebugOutput::operator<<(const KString& input) {
+    for(uint32_t index = 0; index < input.length(); ++index) {
+        *this << input[index];
+    }
+    
     return *this;
 }
 
