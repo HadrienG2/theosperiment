@@ -35,7 +35,7 @@ class KString {
     //KString construction and destruction
     KString() : contents(NULL), len(0) {};
     KString(const char* source);
-    KString(KString& source);
+    KString(const KString& source);
     ~KString();
     KString& operator=(const char* source);
     KString& operator=(const KString& source);

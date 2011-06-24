@@ -212,10 +212,15 @@ struct MallocPIDList {
     MallocPIDList* next_item;
     OwnerlessMutex mutex;
     uint16_t padding;
+    addr_t pool; //For pooled memory allocation purposes
+    uint64_t padding2;
+    uint64_t padding3;
+    uint64_t padding4;
     MallocPIDList() : map_owner(PID_NOBODY),
                       free_map(NULL),
                       busy_map(NULL),
-                      next_item(NULL) {};
+                      next_item(NULL),
+                      pool(NULL) {};
     //Comparing C-style structs is fairly straightforward and should be done by default
     //by the C++ compiler, but well...
     bool operator==(const MallocPIDList& param) const;
