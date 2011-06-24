@@ -366,7 +366,12 @@ IV/ MemAllocator
         * Restart one test which allocates some data, try to kill a process, check that all of its
           data has been liberated.
         * Same thing, but with the kernel. Check that its data has *not* been liberated.
-    a. Internal allocator
+    a. Pooled allocation
+        * Check that set_pool() sets up pooled allocation with a given pool, that it is then used by
+          malloc()
+        * Check that leave_pool() desactivates pooled allocation and returns the current state of
+          the pool
+    b. Internal allocator
         * Check that sizeof(MallocMap), sizeof(KnlMallocMap) and sizeof(MallocPIDList) are powers of
           2, and that sizeof(MallocMap) == sizeof(KnlMallocMap) (going from one to the other should
           be a matter of casting a pointer)

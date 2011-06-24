@@ -254,11 +254,6 @@ addr_t MemAllocator::allocator_shareable(addr_t size,
     return allocated->location;
 }
 
-void MemAllocator::liberate_memory() {
-    //Stub !
-    panic(PANIC_OUT_OF_MEMORY);
-}
-
 bool MemAllocator::liberator(const addr_t location, MallocPIDList* target) {
     //How it works :
     //  1.Find the relevant item in busy_map. If it fails, return false. Keep its predecessor around
@@ -1106,6 +1101,11 @@ bool MemAllocator::remove_pid(PID target) {
     return true;
 }
 
+void MemAllocator::liberate_memory() {
+    //Draft !
+    panic(PANIC_OUT_OF_MEMORY);
+}
+
 MemAllocator::MemAllocator(PhyMemManager& physmem, VirMemManager& virtmem) : phymem(&physmem),
                                                                              virmem(&virtmem),
                                                                              map_list(NULL),
@@ -1197,6 +1197,87 @@ addr_t MemAllocator::malloc_shareable(addr_t size,
     }
 
     return result;
+}
+
+addr_t MemAllocator::init_pool(const addr_t size,
+                               PID target,
+                               const VirMemFlags flags,
+                               const bool force) {
+    addr_t pool = malloc(size, target, flags, force);
+    if(!pool) return NULL;
+    set_pool(pool, target);
+    return pool;
+}
+
+addr_t MemAllocator::init_pool_shareable(const addr_t size,
+                                         PID target,
+                                         const VirMemFlags flags,
+                                         const bool force) {
+    addr_t pool = malloc_shareable(size, target, flags, force);
+    if(!pool) return NULL;
+    set_pool(pool, target);
+    return pool;
+}
+
+addr_t MemAllocator::leave_pool(PID target) {
+    MallocPIDList* list_item;
+    addr_t pool_state;
+    
+    if(target == PID_KERNEL) {
+        knl_mutex.grab_spin();
+            
+            pool_state = knl_pool;
+            knl_pool = NULL;
+            
+        knl_mutex.release();
+    } else {
+        maplist_mutex.grab_spin();
+            
+            list_item = find_pid(target);
+            if(!list_item) {
+                maplist_mutex.release();
+                return NULL;
+            }
+            
+        list_item->mutex.grab_spin();
+        maplist_mutex.release();
+            
+            pool_state = list_item->pool;
+            list_item->pool = NULL;
+            
+        list_item->mutex.release();
+    }
+    
+    return pool_state;
+}
+
+bool MemAllocator::set_pool(addr_t pool, PID target, const bool force) {
+    MallocPIDList* list_item;
+    
+    if(target == PID_KERNEL) {
+        knl_mutex.grab_spin();
+            
+            knl_pool = pool;
+            
+        knl_mutex.release();
+    } else {
+        maplist_mutex.grab_spin();
+            
+            list_item = find_or_create_pid(target, force);
+            if(!list_item) {
+                maplist_mutex.release();
+                return false;
+            }
+            
+        list_item->mutex.grab_spin();
+        maplist_mutex.release();
+            
+            list_item->pool = pool;
+            
+        list_item->mutex.release();
+    }
+    
+    return true;
 }
 
 bool MemAllocator::free(const addr_t location, PID target) {
@@ -1462,4 +1543,42 @@ void* kowneradd(const void* location,
         panic(PANIC_MM_UNINITIALIZED);
     }
     return (void*) kernel_allocator->owneradd((addr_t) location, source, target, flags, force);
+}
+
+void* kinit_pool(const addr_t size,
+                 PID target,
+                 const VirMemFlags flags,
+                 const bool force) {
+    if(!kernel_allocator) {
+        if(!force) return NULL;
+        //Stub !
+        panic(PANIC_MM_UNINITIALIZED);
+    }
+    return (void*) kernel_allocator->init_pool(size, target, flags, force);
+}
+
+void* kinit_pool_shareable(const addr_t size,
+                           PID target,
+                           const VirMemFlags flags,
+                           const bool force) {
+    if(!kernel_allocator) {
+        if(!force) return NULL;
+        //Stub !
+        panic(PANIC_MM_UNINITIALIZED);
+    }
+    return (void*) kernel_allocator->init_pool_shareable(size, target, flags, force);
+}
+
+void* kleave_pool(PID target) {
+    if(!kernel_allocator) return NULL;
+    return (void*) kernel_allocator->leave_pool(target);
+}
+
+bool kset_pool(void* pool, PID target, const bool force) {
+    if(!kernel_allocator) {
+        if(!force) return NULL;
+        //Stub !
+        panic(PANIC_MM_UNINITIALIZED);
+    }
+    return kernel_allocator->set_pool((addr_t) pool, target, force);
 }

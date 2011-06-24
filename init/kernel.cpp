@@ -40,7 +40,7 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << "* Setting up memory allocator..." << endl;
     MemAllocator mallocator(phymem, virmem);
     setup_kalloc(mallocator);
-    dbgout << "All done !" << endl;
+    dbgout << "All done !" << endl << sizeof(MallocPIDList);
     
     Tests::benchmark_rpc();
 
