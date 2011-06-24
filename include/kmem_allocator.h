@@ -106,30 +106,6 @@ class MemAllocator {
                                 PID target = PID_KERNEL,
                                 const VirMemFlags flags = VMEM_FLAGS_RW,
                                 const bool force = false);
-        
-        //Pooled memory allocation. Principle is, allocate a sufficiently large block of memory with
-        //init_pool(), then let malloc automatically allocate from the pool with very fast
-        //performance. Once you're done, call leave_pool() to go back to normal memory allocation.
-        //If, for some reason, you want to temporarily leave the pool and go back to it later, store
-        //the value returned by leave_pool(), which is the previous pool state, and call
-        //reinstate_pool() using it as a parameter later.
-        //
-        //Some things to keep in mind :
-        // * You can only free the whole pool, not individual objects (that's the principle)
-        // * You should make sure that pooled allocation is atomic as far as memory management is
-        //   concerned, to prevent unrelated allocation requests from going to the pool and possibly
-        //   causing pool overflow.
-        // * Do not forget to call leave_pool(). The memory manager won't do it for you.
-        addr_t init_pool(const addr_t size,
-                         PID target = PID_KERNEL,
-                         const VirMemFlags flags = VMEM_FLAGS_RW,
-                         const bool force = false);
-        addr_t init_pool_shareable(addr_t size,
-                                   PID target = PID_KERNEL,
-                                   const VirMemFlags flags = VMEM_FLAGS_RW,
-                                   const bool force = false);
-        addr_t leave_pool(PID target = PID_KERNEL); //Returns previous pool state
-        bool set_pool(addr_t pool, PID target = PID_KERNEL, const bool force = false);
 
         //Free previously allocated memory. Returns false if location or process does not exist,
         //true otherwise
@@ -148,6 +124,33 @@ class MemAllocator {
         //Kill a process, more exactly remove all traces of it from MemAllocator, VirMemManager, and
         //PhyMemManager
         void kill(PID target);
+        
+        //Pooled memory allocation. The idea is to allocate a large enough block of memory with
+        //init_pool(), then let malloc automatically allocate from that pool with very fast
+        //performance. Once you're done, call leave_pool() to go back to normal memory allocation.
+        //If, for some reason, you want to temporarily leave the pool and go back to it later, store
+        //the value returned by leave_pool(), which is the previous pool state, and call
+        //reinstate_pool() using it as a parameter later.
+        //
+        //Some things to keep in mind :
+        // * You can only free the whole pool, not individual objects (that's the principle), so
+        //   keep a pointer to it.
+        // * You should make sure that pooled allocation is atomic as far as memory management is
+        //   concerned, to prevent unrelated allocation requests from going to the pool and possibly
+        //   causing pool overflow.
+        // * To ensure better performance, pooled allocation comes with zero safety checks. This
+        //   means in particular no protection against pool overflow, so don't forget to call
+        //   leave_pool() when you're done.
+        addr_t init_pool(const addr_t size,
+                         PID target = PID_KERNEL,
+                         const VirMemFlags flags = VMEM_FLAGS_RW,
+                         const bool force = false);
+        addr_t init_pool_shareable(addr_t size,
+                                   PID target = PID_KERNEL,
+                                   const VirMemFlags flags = VMEM_FLAGS_RW,
+                                   const bool force = false);
+        addr_t leave_pool(PID target = PID_KERNEL); //Returns previous pool state
+        bool set_pool(addr_t pool, PID target = PID_KERNEL, const bool force = false);
 
         //Debug methods. Will go out in final release.
         void print_maplist();

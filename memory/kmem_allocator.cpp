@@ -1120,7 +1120,7 @@ MemAllocator::MemAllocator(PhyMemManager& physmem, VirMemManager& virtmem) : phy
 addr_t MemAllocator::malloc(const addr_t size, PID target, const VirMemFlags flags, const bool force) {
     MallocPIDList* list_item;
     addr_t result;
-
+    
     if(target == PID_KERNEL) {
         //Kernel does not support paging, so only default flags are supported
         if(flags != VMEM_FLAGS_RW) {
@@ -1128,27 +1128,37 @@ addr_t MemAllocator::malloc(const addr_t size, PID target, const VirMemFlags fla
             return NULL;
         }
         knl_mutex.grab_spin();
-
-            result = knl_allocator(size, force);
-
+            
+            if(knl_pool) {
+                result = knl_pool;
+                knl_pool+= size;
+            } else {
+                result = knl_allocator(size, force);
+            }
+            
         knl_mutex.release();
     } else {
         maplist_mutex.grab_spin();
-
+            
             list_item = find_or_create_pid(target, force);
             if(!list_item) {
                 maplist_mutex.release();
                 return NULL;
             }
-
+            
         list_item->mutex.grab_spin();
         maplist_mutex.release();
-
-            result = allocator(size, list_item, flags, force);
-
+            
+            if(list_item->pool) {
+                result = list_item->pool;
+                list_item->pool+= size;
+            } else {
+                result = allocator(size, list_item, flags, force);
+            }
+            
         list_item->mutex.release();
     }
-
+    
     return result;
 }
 
@@ -1166,118 +1176,44 @@ addr_t MemAllocator::malloc_shareable(addr_t size,
             return NULL;
         }
         knl_mutex.grab_spin();
-
-            //Allocate that chunk (special kernel case)
-            result = knl_allocator_shareable(size, force);
-
+            
+            if(knl_pool) {
+                result = knl_pool;
+                knl_pool+= size;
+            } else {
+                result = knl_allocator_shareable(size, force);
+            }
+            
         knl_mutex.release();
     } else {
         maplist_mutex.grab_spin();
-
+            
             list_item = find_or_create_pid(target, force);
             if(!list_item) {
                 maplist_mutex.release();
                 return NULL;
             }
-
+            
             list_item->mutex.grab_spin();
-
-                //Allocate that chunk
-                result = allocator_shareable(size, list_item, flags, force);
-
-                if(!result) {
-                    //If mapping has failed, we might have created a PID without an address space,
-                    //which is a waste of precious memory space. Liberate it.
-                    if(!(list_item->free_map) && !(list_item->busy_map)) remove_pid(target);
+                
+                if(list_item->pool) {
+                    result = list_item->pool;
+                    list_item->pool+= size;
+                } else {
+                    result = allocator_shareable(size, list_item, flags, force);
+                    if(!result) {
+                        //If mapping has failed, we might have created a PID without an address space,
+                        //which is a waste of precious memory space. Liberate it.
+                        if(!(list_item->free_map) && !(list_item->busy_map)) remove_pid(target);
+                    }
                 }
-
+                
             list_item->mutex.release();
-
+            
         maplist_mutex.release();
     }
-
+    
     return result;
-}
-
-addr_t MemAllocator::init_pool(const addr_t size,
-                               PID target,
-                               const VirMemFlags flags,
-                               const bool force) {
-    addr_t pool = malloc(size, target, flags, force);
-    if(!pool) return NULL;
-    set_pool(pool, target);
-    return pool;
-}
-
-addr_t MemAllocator::init_pool_shareable(const addr_t size,
-                                         PID target,
-                                         const VirMemFlags flags,
-                                         const bool force) {
-    addr_t pool = malloc_shareable(size, target, flags, force);
-    if(!pool) return NULL;
-    set_pool(pool, target);
-    return pool;
-}
-
-addr_t MemAllocator::leave_pool(PID target) {
-    MallocPIDList* list_item;
-    addr_t pool_state;
-    
-    if(target == PID_KERNEL) {
-        knl_mutex.grab_spin();
-            
-            pool_state = knl_pool;
-            knl_pool = NULL;
-            
-        knl_mutex.release();
-    } else {
-        maplist_mutex.grab_spin();
-            
-            list_item = find_pid(target);
-            if(!list_item) {
-                maplist_mutex.release();
-                return NULL;
-            }
-            
-        list_item->mutex.grab_spin();
-        maplist_mutex.release();
-            
-            pool_state = list_item->pool;
-            list_item->pool = NULL;
-            
-        list_item->mutex.release();
-    }
-    
-    return pool_state;
-}
-
-bool MemAllocator::set_pool(addr_t pool, PID target, const bool force) {
-    MallocPIDList* list_item;
-    
-    if(target == PID_KERNEL) {
-        knl_mutex.grab_spin();
-            
-            knl_pool = pool;
-            
-        knl_mutex.release();
-    } else {
-        maplist_mutex.grab_spin();
-            
-            list_item = find_or_create_pid(target, force);
-            if(!list_item) {
-                maplist_mutex.release();
-                return false;
-            }
-            
-        list_item->mutex.grab_spin();
-        maplist_mutex.release();
-            
-            list_item->pool = pool;
-            
-        list_item->mutex.release();
-    }
-    
-    return true;
 }
 
 bool MemAllocator::free(const addr_t location, PID target) {
@@ -1414,6 +1350,87 @@ void MemAllocator::kill(PID target) {
     if(target == PID_KERNEL) return; //Find a more constructive way to commit suicide
 
     remove_pid(target);
+}
+
+addr_t MemAllocator::init_pool(const addr_t size,
+                               PID target,
+                               const VirMemFlags flags,
+                               const bool force) {
+    addr_t pool = malloc(size, target, flags, force);
+    if(!pool) return NULL;
+    set_pool(pool, target);
+    return pool;
+}
+
+addr_t MemAllocator::init_pool_shareable(const addr_t size,
+                                         PID target,
+                                         const VirMemFlags flags,
+                                         const bool force) {
+    addr_t pool = malloc_shareable(size, target, flags, force);
+    if(!pool) return NULL;
+    set_pool(pool, target);
+    return pool;
+}
+
+addr_t MemAllocator::leave_pool(PID target) {
+    MallocPIDList* list_item;
+    addr_t pool_state;
+    
+    if(target == PID_KERNEL) {
+        knl_mutex.grab_spin();
+            
+            pool_state = knl_pool;
+            knl_pool = NULL;
+            
+        knl_mutex.release();
+    } else {
+        maplist_mutex.grab_spin();
+            
+            list_item = find_pid(target);
+            if(!list_item) {
+                maplist_mutex.release();
+                return NULL;
+            }
+            
+        list_item->mutex.grab_spin();
+        maplist_mutex.release();
+            
+            pool_state = list_item->pool;
+            list_item->pool = NULL;
+            
+        list_item->mutex.release();
+    }
+    
+    return pool_state;
+}
+
+bool MemAllocator::set_pool(addr_t pool, PID target, const bool force) {
+    MallocPIDList* list_item;
+    
+    if(target == PID_KERNEL) {
+        knl_mutex.grab_spin();
+            
+            knl_pool = pool;
+            
+        knl_mutex.release();
+    } else {
+        maplist_mutex.grab_spin();
+            
+            list_item = find_or_create_pid(target, force);
+            if(!list_item) {
+                maplist_mutex.release();
+                return false;
+            }
+            
+        list_item->mutex.grab_spin();
+        maplist_mutex.release();
+            
+            list_item->pool = pool;
+            
+        list_item->mutex.release();
+    }
+    
+    return true;
 }
 
 void MemAllocator::print_maplist() {
