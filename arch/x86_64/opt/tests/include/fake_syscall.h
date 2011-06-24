@@ -1,7 +1,7 @@
- /* Equivalent of cstring (aka string.h), but not a full implementation. Manipulates chunks of RAM,
-    and maybe C-style strings and array in the future.
+ /* The functions inside of here emulate the overhead of a system call. Usable for
+    benchmarking purposes.
 
-    Copyright (C) 2011  Hadrien Grasland
+      Copyright (C) 2011  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -17,13 +17,12 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include <kstring.h>
+#ifndef _FAKE_SYSCALL_H_
+#define _FAKE_SYSCALL_H_
 
-void* memcpy(void* destination, const void* source, addr_t num) {
-    const char* new_source = (const char*) source;
-    char* new_dest = (char*) destination;
+void fake_syscall(); //The overhead of a system call is taken as that of two context switches
+                     //and two lock allocation/liberation cycles.
 
-    for(addr_t i=0; i<num; ++i) new_dest[i] = new_source[i];
+void fake_context_switch(); //Emulates the overhead of a context switch as closely as possible
 
-    return destination;
-}
+#endif
