@@ -17,12 +17,13 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA    02110-1301    USA */
 
 #include <align.h>
+#include <new.h>
 #include <physmem.h>
 
 #include <dbgstream.h>
 
 bool PhyMemManager::alloc_mapitems() {
-    addr_t remaining_freemem, used_space;
+    size_t remaining_freemem, used_space;
     PhyMemMap *allocated_mem, *current_item, *free_mem = NULL;
 
     //Find an available chunk of memory
@@ -38,11 +39,11 @@ bool PhyMemManager::alloc_mapitems() {
     current_item = (PhyMemMap*) (allocated_mem->location);
     free_mapitems = current_item;
     for(used_space = sizeof(PhyMemMap); used_space<PG_SIZE; used_space+= sizeof(PhyMemMap)) {
-        *current_item = PhyMemMap();
+        current_item = new(current_item) PhyMemMap();
         current_item->next_buddy = current_item+1;
         ++current_item;
     }
-    *current_item = PhyMemMap();
+    current_item = new(current_item) PhyMemMap();
     current_item->next_buddy = NULL;
 
     //Maybe there is some spare memory after allocating our chunk ?
@@ -50,7 +51,7 @@ bool PhyMemManager::alloc_mapitems() {
     if(remaining_freemem) {
         free_mem = free_mapitems;
         free_mapitems = (PhyMemMap*) free_mapitems->next_buddy;
-        *free_mem = PhyMemMap();
+        free_mem = new(free_mem) PhyMemMap();
         free_mem->location = allocated_mem->location+PG_SIZE;
         free_mem->size = remaining_freemem;
         free_mem->next_mapitem = allocated_mem->next_mapitem;
@@ -70,10 +71,10 @@ bool PhyMemManager::alloc_mapitems() {
 }
 
 PhyMemMap* PhyMemManager::chunk_allocator(const PID initial_owner,
-                                          const addr_t size,
+                                          const size_t size,
                                           PhyMemMap* map_used,
                                           bool contiguous) {
-    addr_t remaining_freemem = 0, to_be_allocd = 0;
+    size_t remaining_freemem = 0, to_be_allocd = 0;
     PhyMemMap *previous_free = NULL, *new_free = NULL, *current_item, *previous_item, *result;
 
     //Make sure there's space for storing a new memory map item
@@ -160,7 +161,6 @@ PhyMemMap* PhyMemManager::chunk_allocator(const PID initial_owner,
         current_item->size-= remaining_freemem;
         new_free = free_mapitems;
         free_mapitems = free_mapitems->next_buddy;
-        *new_free = PhyMemMap();
         new_free->location = current_item->location+current_item->size;
         new_free->size = remaining_freemem;
         new_free->next_mapitem = current_item->next_mapitem;
@@ -196,7 +196,7 @@ PhyMemMap* PhyMemManager::chunk_allocator(const PID initial_owner,
 }
 
 PhyMemMap* PhyMemManager::resvchunk_allocator(const PID initial_owner,
-                                              const addr_t location) {
+                                              const size_t location) {
     PhyMemMap* requested_chunk = phy_mmap->find_thischunk(location);
 
     if(requested_chunk &&
@@ -316,7 +316,7 @@ void PhyMemManager::merge_with_next(PhyMemMap* first_item) {
     first_item->next_buddy = next_item->next_buddy;
 
     //Now, trash "next_mapitem" in our free_mapitems structures.
-    *next_item = PhyMemMap();
+    next_item = new(next_item) PhyMemMap();
     next_item->next_buddy = free_mapitems;
     free_mapitems = next_item;
 }
@@ -343,7 +343,7 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
     //      -Pages of nature Bootstrap and Kernel belong to the kernel
     //      -Pages of nature Free and Reserved belong to nobody (PID_NOBODY)
 
-    addr_t phymmap_location, phymmap_size, current_location, next_location;
+    size_t phymmap_location, phymmap_size, current_location, next_location;
     unsigned int index, storage_index, remaining_space; //Remaining space in the allocated chunk
     const KernelMemoryMap* kmmap = kinfo.kmmap;
     PhyMemMap *current_item, *last_free = NULL;
@@ -369,11 +369,11 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
     remaining_space = phymmap_size-sizeof(PhyMemMap);
     current_item = phy_mmap;
     for(; remaining_space; remaining_space-= sizeof(PhyMemMap)) {
-        *current_item = PhyMemMap();
+        current_item = new(current_item) PhyMemMap();
         current_item->next_mapitem = current_item+1;
         ++current_item;
     }
-    *current_item = PhyMemMap();
+    current_item = new(current_item) PhyMemMap();
     current_item->next_mapitem = NULL;
 
     //Setup variables for the following initialization steps
@@ -543,7 +543,7 @@ PhyMemMap* PhyMemManager::alloc_page(const PID initial_owner) {
     return result;
 }
 
-PhyMemMap* PhyMemManager::alloc_chunk(const PID initial_owner, const addr_t size, bool contiguous) {
+PhyMemMap* PhyMemManager::alloc_chunk(const PID initial_owner, const size_t size, bool contiguous) {
     PhyMemMap* result;
 
     mmap_mutex.grab_spin();
@@ -557,7 +557,7 @@ PhyMemMap* PhyMemManager::alloc_chunk(const PID initial_owner, const addr_t size
     return result;
 }
 
-PhyMemMap* PhyMemManager::alloc_resvchunk(const addr_t location, const PID initial_owner) {
+PhyMemMap* PhyMemManager::alloc_resvchunk(const size_t location, const PID initial_owner) {
     PhyMemMap* result;
 
     mmap_mutex.grab_spin();
@@ -580,7 +580,7 @@ bool PhyMemManager::free(PhyMemMap* chunk) {
     return result;
 }
 
-bool PhyMemManager::free(addr_t chunk_beginning) {
+bool PhyMemManager::free(size_t chunk_beginning) {
     bool result;
     PhyMemMap* chunk;
 
@@ -634,7 +634,7 @@ void PhyMemManager::kill(PID target) {
     mmap_mutex.release();
 }
 
-PhyMemMap* PhyMemManager::find_thischunk(addr_t location) {
+PhyMemMap* PhyMemManager::find_thischunk(size_t location) {
     mmap_mutex.grab_spin();
 
         PhyMemMap* result = phy_mmap->find_thischunk(location);
@@ -666,7 +666,7 @@ PhyMemMap* PhyMemManager::alloc_lowpage(const PID initial_owner) {
 }
 
 PhyMemMap* PhyMemManager::alloc_lowchunk(const PID initial_owner,
-                                         const addr_t size,
+                                         const size_t size,
                                          bool contiguous) {
     PhyMemMap *result, *lowmem_end = phy_mmap;
 

@@ -31,38 +31,18 @@ namespace Tests {
     void rpc_server_init_bench(); //Used to evaluate the time taken by the initialization of many
                                   //"heavy" servers
     
-    //Support structures and globals
-    extern KString type_normal;
-    extern uint32_t value_size_normal;
-    extern uint64_t default_value_normal;
-    
-    extern KString type_ptr;
-    extern uint32_t value_size_ptr;
-    extern addr_t default_value_ptr;
-    
+    //Support structures
     struct ParamDescriptor {
         KString type;
         uint32_t value_size;
         void* default_value;
-        ParamDescriptor() : type(type_normal),
-                            value_size(value_size_normal),
-                            default_value((void*) &default_value_normal) {}
     };
-
-    extern void* function_pointer_normal;
-    extern KString name_normal;
-    extern uint32_t params_amount_normal;
-    extern ParamDescriptor* params_normal;
     
     struct ServerCallDescriptor {
         void* function_pointer;
         KString name;
         uint32_t params_amount;
         ParamDescriptor* params;
-        ServerCallDescriptor() : function_pointer(function_pointer_normal),
-                                 name(name_normal),
-                                 params_amount(params_amount_normal),
-                                 params(params_normal) {}
     };
 }
 

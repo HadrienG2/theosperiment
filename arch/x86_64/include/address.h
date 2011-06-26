@@ -1,5 +1,5 @@
- /* A very simple header with one goal : create an addr_t type that is an unsigned integer of the proper
-    addressing size of each architecture.
+ /* A very simple header with one goal : create an size_t type that is an unsigned integer of the
+    same size as the standard pointer type, and its NULL value.
 
       Copyright (C) 2010  Hadrien Grasland
 
@@ -24,6 +24,6 @@
 
 #define NULL 0
 
-typedef uint64_t addr_t; //On x86_64, addresses are unsigned 64-bit integers
+typedef uint64_t size_t; //On x86_64, addresses are unsigned 64-bit integers
 
 #endif

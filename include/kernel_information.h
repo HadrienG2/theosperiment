@@ -40,8 +40,8 @@ struct KernelCPUInfo {
 } __attribute__ ((packed));
 
 struct KernelMemoryMap {
-  addr_t location;
-  addr_t size;
+  size_t location;
+  size_t size;
   KItemNature nature;
   char* name;   //String naming the area. For free and reserved memory it's either "Low Mem" or "High Mem".
                 //Bootstrap kernel is called "Bootstrap", its separate parts have a precise naming

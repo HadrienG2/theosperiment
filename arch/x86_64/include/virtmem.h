@@ -50,16 +50,16 @@ class VirMemManager {
         PhyMemMap* phy_knl_rx;
         PhyMemMap* phy_knl_r;
         PhyMemMap* phy_knl_rw;
-        addr_t knl_rx_loc;
-        addr_t knl_r_loc;
-        addr_t knl_rw_loc;
+        size_t knl_rx_loc;
+        size_t knl_r_loc;
+        size_t knl_rw_loc;
         //Support methods
         bool alloc_mapitems(); //Get some memory map storage space
         bool alloc_listitems(); //Get some map list storage space
         VirMemMap* chunk_mapper(const PhyMemMap* phys_chunk,
                                 const VirMemFlags flags,
                                 VirMapList* target,
-                                addr_t location = NULL);
+                                size_t location = NULL);
         bool chunk_liberator(VirMemMap* chunk);
         VirMapList* find_pid(const PID target); //Find the map list entry associated to this PID,
                                                 //return NULL if it does not exist.

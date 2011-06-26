@@ -85,15 +85,15 @@ namespace Tests {
         if(!virinit_check_listitems(virmem_state)) return NULL;
 
         item_title("Check the information about virtual kernel location");
-        if(virmem_state->knl_rx_loc != (addr_t) &knl_rx_start) {
+        if(virmem_state->knl_rx_loc != (size_t) &knl_rx_start) {
             test_failure("Knl RX segment location is wrong");
             return NULL;
         }
-        if(virmem_state->knl_r_loc != (addr_t) &knl_r_start) {
+        if(virmem_state->knl_r_loc != (size_t) &knl_r_start) {
             test_failure("Knl R segment location is wrong");
             return NULL;
         }
-        if(virmem_state->knl_rw_loc != (addr_t) &knl_rw_start) {
+        if(virmem_state->knl_rw_loc != (size_t) &knl_rw_start) {
             test_failure("Knl RW segment location is wrong");
             return NULL;
         }
@@ -112,7 +112,7 @@ namespace Tests {
     bool virinit_check_mapitems(VirMemState* virmem_state) {
         //A well-aligned page of empty map items should be put in free_mapitems.
         //Check alignment, bad alignment means that map items have leaked.
-        addr_t mapitems_location = (addr_t) virmem_state->free_mapitems;
+        size_t mapitems_location = (size_t) virmem_state->free_mapitems;
         if(mapitems_location != align_pgdown(mapitems_location)) {
             test_failure("Map items have leaked");
             return false;
@@ -162,7 +162,7 @@ namespace Tests {
         //A well-aligned page of empty list items should be put in free_listitems, except for the
         //first item which should have went in map_list.
         //Check alignment, bad alignment means that list items have leaked.
-        addr_t listitems_location = (addr_t) virmem_state->map_list;
+        size_t listitems_location = (size_t) virmem_state->map_list;
         if(listitems_location != align_pgdown(listitems_location)) {
             test_failure("List items have leaked");
             return false;

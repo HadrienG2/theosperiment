@@ -36,10 +36,10 @@ typedef struct StartupDriveInfo StartupDriveInfo;
 
 struct ArchSpecificCPUInfo { //On x86_64, this is basically the information returned by CPUID
   Arch arch;
-  addr_t vendor_string;
+  uint64_t vendor_string;
   uint8_t family;
   uint8_t model;
-  addr_t processor_name;
+  uint64_t processor_name;
   uint8_t stepping;
   uint16_t instruction_exts[2]; //The contents follow
     //word 1 : SSE
@@ -72,7 +72,7 @@ struct StartupDriveInfo {
 } __attribute__ ((packed));
 
 struct ArchSpecificKInfo {
-  addr_t startup_drive; /* 64-bit pointer to a StartupDriveInfo structure */
+  size_t startup_drive; /* 64-bit pointer to a StartupDriveInfo structure */
 } __attribute__ ((packed));
 
 #endif 

@@ -46,18 +46,18 @@ struct KernelCPUInfo {
 } __attribute__ ((packed));
 
 struct KernelMemoryMap {
-  addr_t location;
-  addr_t size;
+  size_t location;
+  size_t size;
   KItemNature nature;
-  addr_t name; //char* to a string naming the area. For free and reserved memory it's either "Low Mem" or "High Mem".
+  size_t name; //char* to a string naming the area. For free and reserved memory it's either "Low Mem" or "High Mem".
                //Bootstrap kernel is called "Bootstrap", its separate parts have a precise naming
                //Kernel and modules are called by their GRUB modules names
 } __attribute__ ((packed));
 
 struct KernelInformation {
-  addr_t command_line; //char* to the kernel command line
+  size_t command_line; //char* to the kernel command line
   uint32_t kmmap_size; //Number of entries in kernel memory map
-  addr_t kmmap; //Pointer to the kernel memory map
+  size_t kmmap; //Pointer to the kernel memory map
   KernelCPUInfo cpu_info; //Information about the processor we run on
   ArchSpecificKInfo arch_info; //Other arch-specific information
 } __attribute__ ((packed));

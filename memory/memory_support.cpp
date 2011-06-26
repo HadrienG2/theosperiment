@@ -19,10 +19,10 @@
 #include <address.h>
 #include <memory_support.h>
 
-PhyMemMap* PhyMemMap::find_contigchunk(const addr_t requested_size) const {
+PhyMemMap* PhyMemMap::find_contigchunk(const size_t requested_size) const {
     PhyMemMap* current_item = (PhyMemMap*) this;
     PhyMemMap* result = NULL;
-    addr_t current_size = 0, next_location = 0;
+    size_t current_size = 0, next_location = 0;
 
     //Explore the map, looking for contiguous chunks of free memory
     while(current_item) {
@@ -52,7 +52,7 @@ PhyMemMap* PhyMemMap::find_contigchunk(const addr_t requested_size) const {
     return result;
 }
 
-PhyMemMap* PhyMemMap::find_thischunk(const addr_t location) const {
+PhyMemMap* PhyMemMap::find_thischunk(const size_t location) const {
     PhyMemMap* current_item = (PhyMemMap*) this;
     if(current_item->location > location) return NULL;
 
@@ -95,7 +95,7 @@ bool PhyMemMap::operator==(const PhyMemMap& param) const {
     return true;
 }
 
-VirMemMap* VirMemMap::find_thischunk(const addr_t location) const {
+VirMemMap* VirMemMap::find_thischunk(const size_t location) const {
     VirMemMap* current_item = (VirMemMap*) this;
     if(current_item->location > location) return NULL;
 
@@ -137,7 +137,7 @@ bool VirMapList::operator==(const VirMapList& param) const {
     return true;
 }
 
-MallocMap* MallocMap::find_contigchunk(const addr_t requested_size) const {
+MallocMap* MallocMap::find_contigchunk(const size_t requested_size) const {
     MallocMap* current_item = (MallocMap*) this;
 
     while(current_item) {
@@ -147,7 +147,7 @@ MallocMap* MallocMap::find_contigchunk(const addr_t requested_size) const {
     return current_item;
 }
 
-MallocMap* MallocMap::find_contigchunk(const addr_t requested_size, const VirMemFlags flags) const {
+MallocMap* MallocMap::find_contigchunk(const size_t requested_size, const VirMemFlags flags) const {
     MallocMap* current_item = (MallocMap*) this;
 
     while(current_item) {
@@ -159,7 +159,7 @@ MallocMap* MallocMap::find_contigchunk(const addr_t requested_size, const VirMem
     return current_item;
 }
 
-MallocMap* MallocMap::find_thischunk(const addr_t location) const {
+MallocMap* MallocMap::find_thischunk(const size_t location) const {
     MallocMap* current_item = (MallocMap*) this;
 
     while(current_item) {
@@ -179,7 +179,7 @@ bool MallocMap::operator==(const MallocMap& param) const {
     return true;
 }
 
-KnlMallocMap* KnlMallocMap::find_contigchunk(const addr_t requested_size) const {
+KnlMallocMap* KnlMallocMap::find_contigchunk(const size_t requested_size) const {
     KnlMallocMap* current_item = (KnlMallocMap*) this;
 
     while(current_item) {
@@ -189,7 +189,7 @@ KnlMallocMap* KnlMallocMap::find_contigchunk(const addr_t requested_size) const 
     return current_item;
 }
 
-KnlMallocMap* KnlMallocMap::find_thischunk(const addr_t location) const {
+KnlMallocMap* KnlMallocMap::find_thischunk(const size_t location) const {
     KnlMallocMap* current_item = (KnlMallocMap*) this;
 
     while(current_item) {

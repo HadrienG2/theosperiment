@@ -19,12 +19,13 @@
 #include <align.h>
 #include <kmem_allocator.h>
 #include <kstring.h>
+#include <new.h>
 
 #include <dbgstream.h>
 #include <panic.h>
 
 bool MemAllocator::alloc_mapitems() {
-    addr_t used_space;
+    size_t used_space;
     PhyMemMap* allocated_chunk;
     MallocMap* current_item;
 
@@ -36,11 +37,11 @@ bool MemAllocator::alloc_mapitems() {
     free_mapitems = (MallocMap*) (allocated_chunk->location);
     current_item = free_mapitems;
     for(used_space = sizeof(MallocMap); used_space < PG_SIZE; used_space+=sizeof(MallocMap)) {
-        *current_item = MallocMap();
+        current_item = new(current_item) MallocMap();
         current_item->next_item = current_item+1;
         ++current_item;
     }
-    *current_item = MallocMap();
+    current_item = new(current_item) MallocMap();
     current_item->next_item = NULL;
 
     //All good !
@@ -48,7 +49,7 @@ bool MemAllocator::alloc_mapitems() {
 }
 
 bool MemAllocator::alloc_listitems() {
-    addr_t used_space;
+    size_t used_space;
     PhyMemMap* allocated_chunk;
     MallocPIDList* current_item;
 
@@ -60,18 +61,18 @@ bool MemAllocator::alloc_listitems() {
     free_listitems = (MallocPIDList*) (allocated_chunk->location);
     current_item = free_listitems;
     for(used_space = sizeof(MallocPIDList); used_space < PG_SIZE; used_space+=sizeof(MallocPIDList)) {
-        *current_item = MallocPIDList();
+        current_item = new(current_item) MallocPIDList();
         current_item->next_item = current_item+1;
         ++current_item;
     }
-    *current_item = MallocPIDList();
+    current_item = new(current_item) MallocPIDList();
     current_item->next_item = NULL;
 
     //All good !
     return true;
 }
 
-addr_t MemAllocator::allocator(const addr_t size,
+size_t MemAllocator::allocator(const size_t size,
                                MallocPIDList* target,
                                const VirMemFlags flags,
                                const bool force) {
@@ -189,7 +190,7 @@ addr_t MemAllocator::allocator(const addr_t size,
         }
 
         //Free it
-        *hole = MallocMap();
+        hole = new(hole) MallocMap();
         hole->next_item = free_mapitems;
         free_mapitems = hole;
     }
@@ -197,7 +198,7 @@ addr_t MemAllocator::allocator(const addr_t size,
     return allocated->location;
 }
 
-addr_t MemAllocator::allocator_shareable(addr_t size,
+size_t MemAllocator::allocator_shareable(size_t size,
                                          MallocPIDList* target,
                                          const VirMemFlags flags,
                                          const bool force) {
@@ -254,7 +255,7 @@ addr_t MemAllocator::allocator_shareable(addr_t size,
     return allocated->location;
 }
 
-bool MemAllocator::liberator(const addr_t location, MallocPIDList* target) {
+bool MemAllocator::liberator(const size_t location, MallocPIDList* target) {
     //How it works :
     //  1.Find the relevant item in busy_map. If it fails, return false. Keep its predecessor around
     //    too : that will be useful in step 2. Check the item's share_count : if it is higher than
@@ -307,7 +308,7 @@ bool MemAllocator::liberator(const addr_t location, MallocPIDList* target) {
         VirMemMap* belonged_to = freed_item->belongs_to;
         phymem->ownerdel(belonged_to->points_to, target->map_owner);
         virmem->free(belonged_to);
-        *freed_item = MallocMap();
+        freed_item = new(freed_item) MallocMap();
         freed_item->next_item = free_mapitems;
         free_mapitems = freed_item;
 
@@ -316,7 +317,7 @@ bool MemAllocator::liberator(const addr_t location, MallocPIDList* target) {
         while((target->free_map) && (target->free_map->belongs_to == belonged_to)) {
             freed_item = target->free_map;
             target->free_map = freed_item->next_item;
-            *freed_item = MallocMap();
+            freed_item = new(freed_item) MallocMap();
             freed_item->next_item = free_mapitems;
             free_mapitems = freed_item;
         }
@@ -331,7 +332,7 @@ bool MemAllocator::liberator(const addr_t location, MallocPIDList* target) {
             if(previous_item->next_item->belongs_to == belonged_to) {
                 freed_item = previous_item->next_item;
                 previous_item->next_item = freed_item->next_item;
-                *freed_item = MallocMap();
+                freed_item = new(freed_item) MallocMap();
                 freed_item->next_item = free_mapitems;
                 free_mapitems = freed_item;
             }
@@ -357,7 +358,7 @@ bool MemAllocator::liberator(const addr_t location, MallocPIDList* target) {
             target->free_map->size+= freed_item->size;
 
             //Clean things up
-            *freed_item = MallocMap();
+            freed_item = new(freed_item) MallocMap();
             freed_item->next_item = free_mapitems;
             free_mapitems = freed_item;
         } else {
@@ -377,7 +378,7 @@ bool MemAllocator::liberator(const addr_t location, MallocPIDList* target) {
           (freed_item->belongs_to == map_parser->belongs_to)) {
             //Merge map_parser with freed_item and clean freed_item up
             map_parser->size+= freed_item->size;
-            *freed_item = MallocMap();
+            freed_item = new(freed_item) MallocMap();
             freed_item->next_item = free_mapitems;
             free_mapitems = freed_item;
 
@@ -386,7 +387,7 @@ bool MemAllocator::liberator(const addr_t location, MallocPIDList* target) {
               (map_parser->belongs_to == map_parser->next_item->belongs_to)) {
                 freed_item = map_parser->next_item;
                 map_parser->size+= freed_item->size;
-                *freed_item = MallocMap();
+                freed_item = new(freed_item) MallocMap();
                 freed_item->next_item = free_mapitems;
                 free_mapitems = freed_item;
             }
@@ -399,7 +400,7 @@ bool MemAllocator::liberator(const addr_t location, MallocPIDList* target) {
                 map_parser->next_item->size+= freed_item->size;
 
                 //Clean things up
-                *freed_item = MallocMap();
+                freed_item = new(freed_item) MallocMap();
                 freed_item->next_item = free_mapitems;
                 free_mapitems = freed_item;
             } else {
@@ -414,7 +415,7 @@ bool MemAllocator::liberator(const addr_t location, MallocPIDList* target) {
     return true;
 }
 
-addr_t MemAllocator::share(const addr_t location,
+size_t MemAllocator::share(const size_t location,
                            MallocPIDList* source,
                            MallocPIDList* target,
                            const VirMemFlags flags,
@@ -523,7 +524,7 @@ MallocMap* MemAllocator::shared_already(PhyMemMap* to_share, MallocPIDList* targ
     return map_parser;
 }
 
-addr_t MemAllocator::knl_allocator(const addr_t size, const bool force) {
+size_t MemAllocator::knl_allocator(const size_t size, const bool force) {
     //This works a lot like allocator(), except that it uses knl_free_map and knl_busy_map and that
     //since paging is disabled for the kernel, the chunk is allocated through
     //PhyMemManager::alloc_chunk with contiguous flag on, and not mapped through virmem.
@@ -625,7 +626,7 @@ addr_t MemAllocator::knl_allocator(const addr_t size, const bool force) {
         }
 
         //Free it
-        *hole = KnlMallocMap();
+        hole = new(hole) KnlMallocMap();
         hole->next_item = (KnlMallocMap*) free_mapitems;
         free_mapitems = (MallocMap*) hole;
     }
@@ -633,7 +634,7 @@ addr_t MemAllocator::knl_allocator(const addr_t size, const bool force) {
     return allocated->location;
 }
 
-addr_t MemAllocator::knl_allocator_shareable(addr_t size, const bool force) {
+size_t MemAllocator::knl_allocator_shareable(size_t size, const bool force) {
     //allocator_shareable(), but modified in the same way as above
 
     //Allocating memory
@@ -679,7 +680,7 @@ addr_t MemAllocator::knl_allocator_shareable(addr_t size, const bool force) {
     return allocated->location;
 }
 
-bool MemAllocator::knl_liberator(const addr_t location) {
+bool MemAllocator::knl_liberator(const size_t location) {
     //This works a lot like liberator(), except that it uses knl_free_map and knl_busy_map and that
     //   -Since paging is disabled for the kernel, the chunk is only liberated through phymem
     //   -The kernel's structures are part of MemAllocator, they are never removed.
@@ -724,7 +725,7 @@ bool MemAllocator::knl_liberator(const addr_t location) {
         //this data with other processes, in which case freeing it would be a bit brutal for those.
         PhyMemMap* belonged_to = freed_item->belongs_to;
         phymem->ownerdel(belonged_to, PID_KERNEL);
-        *freed_item = KnlMallocMap();
+        freed_item = new(freed_item) KnlMallocMap();
         freed_item->next_item = (KnlMallocMap*) free_mapitems;
         free_mapitems = (MallocMap*) freed_item;
 
@@ -733,7 +734,7 @@ bool MemAllocator::knl_liberator(const addr_t location) {
         while(knl_free_map && (knl_free_map->belongs_to == belonged_to)) {
             freed_item = knl_free_map;
             knl_free_map = knl_free_map->next_item;
-            *freed_item = KnlMallocMap();
+            freed_item = new(freed_item) KnlMallocMap();
             freed_item->next_item = (KnlMallocMap*) free_mapitems;
             free_mapitems = (MallocMap*) freed_item;
         }
@@ -743,7 +744,7 @@ bool MemAllocator::knl_liberator(const addr_t location) {
             if(previous_item->next_item->belongs_to == belonged_to) {
                 freed_item = previous_item->next_item;
                 previous_item->next_item = freed_item->next_item;
-                *freed_item = KnlMallocMap();
+                freed_item = new(freed_item) KnlMallocMap();
                 freed_item->next_item = (KnlMallocMap*) free_mapitems;
                 free_mapitems = (MallocMap*) freed_item;
             }
@@ -767,7 +768,7 @@ bool MemAllocator::knl_liberator(const addr_t location) {
             knl_free_map->size+= freed_item->size;
 
             //Clean things up
-            *freed_item = KnlMallocMap();
+            freed_item = new(freed_item) KnlMallocMap();
             freed_item->next_item = (KnlMallocMap*) free_mapitems;
             free_mapitems = (MallocMap*) freed_item;
         } else {
@@ -787,7 +788,7 @@ bool MemAllocator::knl_liberator(const addr_t location) {
           (freed_item->belongs_to == map_parser->belongs_to)) {
             //Merge map_parser with freed_item and clean freed_item up
             map_parser->size+= freed_item->size;
-            *freed_item = KnlMallocMap();
+            freed_item = new(freed_item) KnlMallocMap();
             freed_item->next_item = (KnlMallocMap*) free_mapitems;
             free_mapitems = (MallocMap*) freed_item;
 
@@ -796,7 +797,7 @@ bool MemAllocator::knl_liberator(const addr_t location) {
               (map_parser->belongs_to == map_parser->next_item->belongs_to)) {
                 freed_item = map_parser->next_item;
                 map_parser->size+= freed_item->size;
-                *freed_item = KnlMallocMap();
+                freed_item = new(freed_item) KnlMallocMap();
                 freed_item->next_item = (KnlMallocMap*) free_mapitems;
                 free_mapitems = (MallocMap*) freed_item;
             }
@@ -809,7 +810,7 @@ bool MemAllocator::knl_liberator(const addr_t location) {
                 map_parser->next_item->size+= freed_item->size;
 
                 //Clean things up
-                *freed_item = KnlMallocMap();
+                freed_item = new(freed_item) KnlMallocMap();
                 freed_item->next_item = (KnlMallocMap*) free_mapitems;
                 free_mapitems = (MallocMap*) freed_item;
             } else {
@@ -824,7 +825,7 @@ bool MemAllocator::knl_liberator(const addr_t location) {
     return true;
 }
 
-addr_t MemAllocator::share_from_knl(const addr_t location,
+size_t MemAllocator::share_from_knl(const size_t location,
                                     MallocPIDList* target,
                                     const VirMemFlags flags,
                                     const bool force) {
@@ -921,7 +922,7 @@ addr_t MemAllocator::share_from_knl(const addr_t location,
     return busy_item->location;
 }
 
-addr_t MemAllocator::share_to_knl(const addr_t location,
+size_t MemAllocator::share_to_knl(const size_t location,
                                   MallocPIDList* source,
                                   const VirMemFlags flags,
                                   const bool force) {
@@ -1094,7 +1095,7 @@ bool MemAllocator::remove_pid(PID target) {
 
     //Free its entry
     while(deleted_item->busy_map) liberator(deleted_item->busy_map->location, deleted_item);
-    *deleted_item = MallocPIDList();
+    deleted_item = new(deleted_item) MallocPIDList();
     deleted_item->next_item = free_listitems;
     free_listitems = deleted_item;
 
@@ -1111,15 +1112,16 @@ MemAllocator::MemAllocator(PhyMemManager& physmem, VirMemManager& virtmem) : phy
                                                                              map_list(NULL),
                                                                              knl_free_map(NULL),
                                                                              knl_busy_map(NULL),
+                                                                             knl_pool(NULL),
                                                                              free_mapitems(NULL),
                                                                              free_listitems(NULL) {
     alloc_mapitems();
     alloc_listitems();
 }
 
-addr_t MemAllocator::malloc(const addr_t size, PID target, const VirMemFlags flags, const bool force) {
+size_t MemAllocator::malloc(const size_t size, PID target, const VirMemFlags flags, const bool force) {
     MallocPIDList* list_item;
-    addr_t result;
+    size_t result;
     
     if(target == PID_KERNEL) {
         //Kernel does not support paging, so only default flags are supported
@@ -1162,12 +1164,12 @@ addr_t MemAllocator::malloc(const addr_t size, PID target, const VirMemFlags fla
     return result;
 }
 
-addr_t MemAllocator::malloc_shareable(addr_t size,
+size_t MemAllocator::malloc_shareable(size_t size,
                                       PID target,
                                       const VirMemFlags flags,
                                       const bool force) {
     MallocPIDList* list_item;
-    addr_t result;
+    size_t result;
 
     if(target == PID_KERNEL) {
         //Kernel does not support paging, so only default flags are supported
@@ -1216,7 +1218,7 @@ addr_t MemAllocator::malloc_shareable(addr_t size,
     return result;
 }
 
-bool MemAllocator::free(const addr_t location, PID target) {
+bool MemAllocator::free(const size_t location, PID target) {
     MallocPIDList* list_item;
     bool result;
 
@@ -1248,13 +1250,13 @@ bool MemAllocator::free(const addr_t location, PID target) {
     return result;
 }
 
-addr_t MemAllocator::owneradd(const addr_t location,
+size_t MemAllocator::owneradd(const size_t location,
                               PID source,
                               PID target,
                               const VirMemFlags flags,
                               const bool force) {
     MallocPIDList *source_item, *target_item;
-    addr_t result = NULL;
+    size_t result = NULL;
 
     if(source == PID_KERNEL) {
         //Kernel shares something with PID target
@@ -1352,29 +1354,29 @@ void MemAllocator::kill(PID target) {
     remove_pid(target);
 }
 
-addr_t MemAllocator::init_pool(const addr_t size,
+size_t MemAllocator::init_pool(const size_t size,
                                PID target,
                                const VirMemFlags flags,
                                const bool force) {
-    addr_t pool = malloc(size, target, flags, force);
+    size_t pool = malloc(size, target, flags, force);
     if(!pool) return NULL;
     set_pool(pool, target);
     return pool;
 }
 
-addr_t MemAllocator::init_pool_shareable(const addr_t size,
+size_t MemAllocator::init_pool_shareable(const size_t size,
                                          PID target,
                                          const VirMemFlags flags,
                                          const bool force) {
-    addr_t pool = malloc_shareable(size, target, flags, force);
+    size_t pool = malloc_shareable(size, target, flags, force);
     if(!pool) return NULL;
     set_pool(pool, target);
     return pool;
 }
 
-addr_t MemAllocator::leave_pool(PID target) {
+size_t MemAllocator::leave_pool(PID target) {
     MallocPIDList* list_item;
-    addr_t pool_state;
+    size_t pool_state;
     
     if(target == PID_KERNEL) {
         knl_mutex.grab_spin();
@@ -1404,7 +1406,7 @@ addr_t MemAllocator::leave_pool(PID target) {
     return pool_state;
 }
 
-bool MemAllocator::set_pool(addr_t pool, PID target, const bool force) {
+bool MemAllocator::set_pool(size_t pool, PID target, const bool force) {
     MallocPIDList* list_item;
     
     if(target == PID_KERNEL) {
@@ -1526,7 +1528,7 @@ void setup_kalloc(MemAllocator& allocator) {
     kernel_allocator = &allocator;
 }
 
-void* kalloc(const addr_t size, PID target, const VirMemFlags flags, const bool force) {
+void* kalloc(const size_t size, PID target, const VirMemFlags flags, const bool force) {
     if(!kernel_allocator) {
         if(!force) return NULL;
         //Stub !
@@ -1535,7 +1537,7 @@ void* kalloc(const addr_t size, PID target, const VirMemFlags flags, const bool 
     return (void*) kernel_allocator->malloc(size, target, flags, force);
 }
 
-void* kalloc_shareable(addr_t size, PID target, const VirMemFlags flags, const bool force) {
+void* kalloc_shareable(size_t size, PID target, const VirMemFlags flags, const bool force) {
     if(!kernel_allocator) {
         if(!force) return NULL;
         //Stub !
@@ -1544,9 +1546,9 @@ void* kalloc_shareable(addr_t size, PID target, const VirMemFlags flags, const b
     return (void*) kernel_allocator->malloc_shareable(size, target, flags, force);
 }
 
-bool kfree(const void* location, PID target) {
+bool kfree(void* location, PID target) {
     if(!kernel_allocator) return false;
-    return (void*) kernel_allocator->free((addr_t) location, target);
+    return (void*) kernel_allocator->free((size_t) location, target);
 }
 
 void* kowneradd(const void* location,
@@ -1559,10 +1561,10 @@ void* kowneradd(const void* location,
         //Stub !
         panic(PANIC_MM_UNINITIALIZED);
     }
-    return (void*) kernel_allocator->owneradd((addr_t) location, source, target, flags, force);
+    return (void*) kernel_allocator->owneradd((size_t) location, source, target, flags, force);
 }
 
-void* kinit_pool(const addr_t size,
+void* kinit_pool(const size_t size,
                  PID target,
                  const VirMemFlags flags,
                  const bool force) {
@@ -1574,7 +1576,7 @@ void* kinit_pool(const addr_t size,
     return (void*) kernel_allocator->init_pool(size, target, flags, force);
 }
 
-void* kinit_pool_shareable(const addr_t size,
+void* kinit_pool_shareable(const size_t size,
                            PID target,
                            const VirMemFlags flags,
                            const bool force) {
@@ -1597,5 +1599,5 @@ bool kset_pool(void* pool, PID target, const bool force) {
         //Stub !
         panic(PANIC_MM_UNINITIALIZED);
     }
-    return kernel_allocator->set_pool((addr_t) pool, target, force);
+    return kernel_allocator->set_pool((size_t) pool, target, force);
 }

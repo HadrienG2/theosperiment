@@ -38,9 +38,9 @@ namespace Tests {
         PhyMemMap* phy_knl_rx;
         PhyMemMap* phy_knl_r;
         PhyMemMap* phy_knl_rw;
-        addr_t knl_rx_loc;
-        addr_t knl_r_loc;
-        addr_t knl_rw_loc;
+        size_t knl_rx_loc;
+        size_t knl_r_loc;
+        size_t knl_rw_loc;
     };
 
     //Arch-specific tests of the initial content of map_list

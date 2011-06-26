@@ -20,6 +20,7 @@
 #include <fake_syscall.h>
 #include <kmem_allocator.h>
 #include <kstring.h>
+#include <new.h>
 #include <rpc_benchmark.h>
 #include <test_display.h>
 
@@ -37,26 +38,26 @@ namespace Tests {
         fail_notimpl();
     }
     
-    KString type_normal("supa_dupa_octa_lengthy_uint64_t");
+    const char* type_normal = "supa_dupa_octa_lengthy_uint64_t";
     uint32_t value_size_normal = 8;
     uint64_t default_value_normal = 0xDEADBEEFBADB002E;
     
-    KString type_ptr("crazy_silly_nutty_zombie_void*");
-    uint32_t value_size_ptr = sizeof(addr_t);
-    addr_t default_value_ptr = 0x10000000;
+    const char* type_ptr = "crazy_silly_nutty_zombie_void*";
+    uint32_t value_size_ptr = sizeof(size_t);
+    size_t default_value_ptr = 0x10000000;
     
     void* function_pointer_normal = NULL;
-    KString name_normal("InsanelyLongReturnType insanely_long_function_name");
+    const char* name_normal = "InsanelyLongReturnType insanely_long_function_name";
     uint32_t params_amount_normal = 10;
-    ParamDescriptor params_buffer[10];
-    ParamDescriptor* params_normal = params_buffer;
-    
-    ServerCallDescriptor dummy_desc;
+    ParamDescriptor* params_normal = NULL;
     
     void rpc_server_init_bench() {
-        //Won't compile, must be ported to the new structure format
-        const int NUMBER_OF_SERVERS = 50;
-        const int NUMBER_OF_CALLS = 30;
+        ParamDescriptor params_buffer[10];
+        for(int i=0; i<8; ++i) {
+            params_buffer[i].type = type_normal;
+            params_buffer[i].value_size = value_size_normal;
+            params_buffer[i].default_value = (void*) &default_value_normal;
+        }
         params_buffer[0].default_value = NULL;
         params_buffer[8].type = type_ptr;
         params_buffer[8].value_size = value_size_ptr;
@@ -64,6 +65,16 @@ namespace Tests {
         params_buffer[9].type = type_ptr;
         params_buffer[9].value_size = value_size_ptr;
         params_buffer[9].default_value = (void*) &default_value_ptr;
+        params_normal = params_buffer;
+        
+        ServerCallDescriptor dummy_desc;
+        dummy_desc.function_pointer = function_pointer_normal;
+        dummy_desc.name = name_normal;
+        dummy_desc.params_amount = params_amount_normal;
+        dummy_desc.params = params_normal;
+        
+        const int NUMBER_OF_SERVERS = 50;
+        const int NUMBER_OF_CALLS = 30;
         
         for(int i = 0; i < NUMBER_OF_SERVERS; ++i) {
             //Emulate system call overhead
@@ -71,15 +82,14 @@ namespace Tests {
             
             //First, fully parse the server's management structures once to determine how much
             //memory must be allocated as a whole.
-            addr_t to_be_allocd = sizeof(ServerCallDescriptor)*NUMBER_OF_CALLS;
+            size_t to_be_allocd = sizeof(ServerCallDescriptor)*NUMBER_OF_CALLS;
             for(int current_call = 0; current_call < NUMBER_OF_CALLS; ++current_call) {                
-                to_be_allocd+= sizeof(char)*dummy_desc.name.length();
+                to_be_allocd+= dummy_desc.name.heap_size();
                 to_be_allocd+= sizeof(ParamDescriptor)*dummy_desc.params_amount;
                 for(uint32_t j = 0; j < dummy_desc.params_amount; ++j) {
-                    ParamDescriptor& source_param = dummy_desc.params[j];
-                    to_be_allocd += source_param.type.length();
-                    if(source_param.default_value != NULL) {
-                        to_be_allocd += source_param.value_size;
+                    to_be_allocd += dummy_desc.params[j].type.heap_size();
+                    if(dummy_desc.params[j].default_value != NULL) {
+                        to_be_allocd += dummy_desc.params[j].value_size;
                     }
                 }
             }
@@ -93,21 +103,15 @@ namespace Tests {
             }
             
             //Allocate server call descriptors
-            ServerCallDescriptor* call_descs =
-              (ServerCallDescriptor*) kalloc(sizeof(ServerCallDescriptor)*NUMBER_OF_CALLS);
+            ServerCallDescriptor* call_descs = new ServerCallDescriptor[NUMBER_OF_CALLS];
             
             //Fill each individual descriptor...
             for(int current_call = 0; current_call < NUMBER_OF_CALLS; ++current_call) {
                 ServerCallDescriptor& current_desc = call_descs[current_call];
-                //* Function pointer
                 current_desc.function_pointer = dummy_desc.function_pointer;
-                //* Function name
                 current_desc.name = dummy_desc.name;
-                //* Amount of parameters
                 current_desc.params_amount = dummy_desc.params_amount;
-                //* Parameter descriptors
-                current_desc.params =
-                  (ParamDescriptor*) kalloc(sizeof(ParamDescriptor)*dummy_desc.params_amount);
+                current_desc.params = new ParamDescriptor[dummy_desc.params_amount];
                 for(uint32_t j = 0; j < dummy_desc.params_amount; ++j) {
                     ParamDescriptor& current_param = current_desc.params[j];
                     ParamDescriptor& source_param = dummy_desc.params[j];
@@ -121,7 +125,7 @@ namespace Tests {
             }
             
             kleave_pool();
-            //kfree(allocd_buffer);*/
+            //kfree(allocd_buffer);
         }
     }
 }
