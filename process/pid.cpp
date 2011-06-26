@@ -16,6 +16,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA    02110-1301    USA */
  
+#include <new.h>
 #include <pid.h>
 #include <kmem_allocator.h>
 
@@ -26,7 +27,7 @@ PIDs& PIDs::copy_pids(const PIDs& source) {
     PIDs* dest_parser = this;
     while(source_parser) {
         if(dest_parser->next_item == NULL) {
-            dest_parser->next_item = (PIDs*) kalloc(sizeof(PIDs), PID_KERNEL, VMEM_FLAGS_RW, true);
+            dest_parser->next_item = new(PID_KERNEL, VMEM_FLAGS_RW, true) PIDs();
         }
         dest_parser = dest_parser->next_item;
         dest_parser->current_pid = source_parser->current_pid;
@@ -59,7 +60,7 @@ unsigned int PIDs::add_pid(const PID new_pid) {
         if(parser->next_item->current_pid == new_pid) return 2;
         parser = parser->next_item;
     }
-    parser->next_item = (PIDs*) kalloc(sizeof(PIDs));
+    parser->next_item = new PIDs();
     if(parser->next_item == NULL) return 0;
     parser->next_item->current_pid = new_pid;
     

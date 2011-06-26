@@ -103,7 +103,7 @@ namespace Tests {
     bool malinit_check_mapitems(MemAllocatorState* mallocator_state) {
         //A well-aligned page of empty map items should be put in free_mapitems.
         //Check alignment, bad alignment means that map items have leaked.
-        addr_t mapitems_location = (addr_t) mallocator_state->free_mapitems;
+        size_t mapitems_location = (size_t) mallocator_state->free_mapitems;
         if(mapitems_location != align_pgdown(mapitems_location)) {
             test_failure("Map items have leaked");
             return false;
@@ -152,7 +152,7 @@ namespace Tests {
     bool malinit_check_listitems(MemAllocatorState* mallocator_state) {
         //A well-aligned page of empty list items should be put in free_listitems.
         //Check alignment, bad alignment means that map items have leaked.
-        addr_t listitems_location = (addr_t) mallocator_state->free_listitems;
+        size_t listitems_location = (size_t) mallocator_state->free_listitems;
         if(listitems_location != align_pgdown(listitems_location)) {
             test_failure("List items have leaked");
             return false;

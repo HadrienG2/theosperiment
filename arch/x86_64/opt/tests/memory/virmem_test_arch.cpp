@@ -33,21 +33,21 @@ namespace Tests {
     }
 
     bool virinit_check_knl_location(VirMemState* virmem_state) {
-        addr_t kernel_pml4t = virmem_state->map_list->pml4t_location;
+        size_t kernel_pml4t = virmem_state->map_list->pml4t_location;
 
-        addr_t knl_phy_rx_loc = x86paging::get_target(virmem_state->knl_rx_loc, kernel_pml4t);
+        size_t knl_phy_rx_loc = x86paging::get_target(virmem_state->knl_rx_loc, kernel_pml4t);
         PhyMemMap* phy_knl_rx = virmem_state->phymem->find_thischunk(knl_phy_rx_loc);
         if(phy_knl_rx != virmem_state->phy_knl_rx) {
             test_failure("Knl RX segment location is wrong");
             return false;
         }
-        addr_t knl_phy_r_loc = x86paging::get_target(virmem_state->knl_r_loc, kernel_pml4t);
+        size_t knl_phy_r_loc = x86paging::get_target(virmem_state->knl_r_loc, kernel_pml4t);
         PhyMemMap* phy_knl_r = virmem_state->phymem->find_thischunk(knl_phy_r_loc);
         if(phy_knl_r != virmem_state->phy_knl_r) {
             test_failure("Knl R segment location is wrong");
             return false;
         }
-        addr_t knl_phy_rw_loc = x86paging::get_target(virmem_state->knl_rw_loc, kernel_pml4t);
+        size_t knl_phy_rw_loc = x86paging::get_target(virmem_state->knl_rw_loc, kernel_pml4t);
         PhyMemMap* phy_knl_rw = virmem_state->phymem->find_thischunk(knl_phy_rw_loc);
         if(phy_knl_rw != virmem_state->phy_knl_rw) {
             test_failure("Knl RW segment location is wrong");

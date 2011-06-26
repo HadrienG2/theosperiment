@@ -19,14 +19,16 @@
 
 #include <align.h>
 #include <kmaths.h>
+#include <new.h>
 #include <virtmem.h>
 #include <x86paging.h>
 #include <x86paging_parser.h>
+
 #include <dbgstream.h>
 #include <display_paging.h>
 
 bool VirMemManager::alloc_mapitems() {
-    addr_t used_space;
+    size_t used_space;
     PhyMemMap* allocated_chunk;
     VirMemMap* current_item;
 
@@ -38,11 +40,11 @@ bool VirMemManager::alloc_mapitems() {
     free_mapitems = (VirMemMap*) (allocated_chunk->location);
     current_item = free_mapitems;
     for(used_space = sizeof(VirMemMap); used_space < PG_SIZE; used_space+=sizeof(VirMemMap)) {
-        *current_item = VirMemMap();
+        current_item = new(current_item) VirMemMap();
         current_item->next_buddy = current_item+1;
         ++current_item;
     }
-    *current_item = VirMemMap();
+    current_item = new(current_item) VirMemMap();
     current_item->next_buddy = NULL;
 
     //All good !
@@ -50,7 +52,7 @@ bool VirMemManager::alloc_mapitems() {
 }
 
 bool VirMemManager::alloc_listitems() {
-    addr_t used_space;
+    size_t used_space;
     PhyMemMap* allocated_chunk;
     VirMapList* current_item;
 
@@ -62,11 +64,11 @@ bool VirMemManager::alloc_listitems() {
     free_listitems = (VirMapList*) (allocated_chunk->location);
     current_item = free_listitems;
     for(used_space = sizeof(VirMapList); used_space < PG_SIZE; used_space+=sizeof(VirMapList)) {
-        *current_item = VirMapList();
+        current_item = new(current_item) VirMapList();
         current_item->next_item = current_item+1;
         ++current_item;
     }
-    *current_item = VirMapList();
+    current_item = new(current_item) VirMapList();
     current_item->next_item = NULL;
 
     //All good !
@@ -76,7 +78,7 @@ bool VirMemManager::alloc_listitems() {
 VirMemMap* VirMemManager::chunk_mapper(const PhyMemMap* phys_chunk,
                                        const VirMemFlags flags,
                                        VirMapList* target,
-                                       addr_t location) {
+                                       size_t location) {
     //We have two goals here :
     // -To map that chunk of physical memory in the virtual memory map of the target.
     // -To put it in its virtual address space, too.
@@ -84,7 +86,7 @@ VirMemMap* VirMemManager::chunk_mapper(const PhyMemMap* phys_chunk,
     //mapped at any location. If it is not NULL, it means that the chunk must be mapped at this
     //precise location, and that allocation will fail if that is not doable.
 
-    addr_t total_size, offset, tmp;
+    size_t total_size, offset, tmp;
     VirMemMap *result, *map_parser = NULL, *last_item;
     PhyMemMap *chunk_parser;
 
@@ -152,7 +154,7 @@ VirMemMap* VirMemManager::chunk_mapper(const PhyMemMap* phys_chunk,
                 //Check collisions with it
                 if(target->map_pointer->location < location+total_size) {
                     //Required location is not available
-                    *result = VirMemMap();
+                    result = new(result) VirMemMap();
                     result->next_buddy = free_mapitems;
                     free_mapitems = result;
                     return NULL;
@@ -171,7 +173,7 @@ VirMemMap* VirMemManager::chunk_mapper(const PhyMemMap* phys_chunk,
                 //Check collisions with the item before it
                 if(last_item->location+last_item->size > location) {
                     //Required location is not available
-                    *result = VirMemMap();
+                    result = new(result) VirMemMap();
                     result->next_buddy = free_mapitems;
                     free_mapitems = result;
                     return NULL;
@@ -180,7 +182,7 @@ VirMemMap* VirMemManager::chunk_mapper(const PhyMemMap* phys_chunk,
                 if(map_parser) {
                     if(map_parser->location < location + total_size) {
                         //Required location is not available
-                        *result = VirMemMap();
+                        result = new(result) VirMemMap();
                         result->next_buddy = free_mapitems;
                         free_mapitems = result;
                         return NULL;
@@ -247,7 +249,7 @@ bool VirMemManager::chunk_liberator(VirMemMap* chunk) {
                                  phymem);
 
         //Remove the rest
-        *current_item = VirMemMap();
+        current_item = new(current_item) VirMemMap();
         current_item->next_buddy = free_mapitems;
         free_mapitems = current_item;
         current_item = next_item;
@@ -349,7 +351,7 @@ bool VirMemManager::remove_pid(PID target) {
     while(deleted_item->map_pointer) chunk_liberator(deleted_item->map_pointer);
     remove_all_paging(deleted_item);
     phymem->free(deleted_item->pml4t_location);
-    *deleted_item = VirMapList();
+    deleted_item = new(deleted_item) VirMapList();
     deleted_item->next_item = free_listitems;
     free_listitems = deleted_item;
 
@@ -381,7 +383,7 @@ bool VirMemManager::flag_adjust(VirMemMap* chunk,
 bool VirMemManager::remove_all_paging(VirMapList* target) {
     using namespace x86paging;
 
-    addr_t total_address_space = PG_SIZE*PTABLE_LENGTH; //Size of a page table
+    size_t total_address_space = PG_SIZE*PTABLE_LENGTH; //Size of a page table
     total_address_space*= PTABLE_LENGTH; //Size of a PD
     total_address_space*= PTABLE_LENGTH; //Size of a PDPT
     total_address_space*= PTABLE_LENGTH; //Size of the whole PML4T
@@ -424,10 +426,10 @@ VirMemManager::VirMemManager(PhyMemManager& physmem) : phymem(&physmem),
 
     //Know where the kernel is in the physical and virtual address space
     extern char knl_rx_start, knl_r_start, knl_rw_start;
-    knl_rx_loc = (addr_t) &knl_rx_start;
-    knl_r_loc = (addr_t) &knl_r_start;
-    knl_rw_loc = (addr_t) &knl_rw_start;
-    addr_t kernel_pml4t = get_pml4t();
+    knl_rx_loc = (size_t) &knl_rx_start;
+    knl_r_loc = (size_t) &knl_r_start;
+    knl_rw_loc = (size_t) &knl_rw_start;
+    size_t kernel_pml4t = get_pml4t();
     phy_knl_rx = phymem->find_thischunk(get_target(knl_rx_loc, kernel_pml4t));
     phy_knl_r = phymem->find_thischunk(get_target(knl_r_loc, kernel_pml4t));
     phy_knl_rw = phymem->find_thischunk(get_target(knl_rw_loc, kernel_pml4t));

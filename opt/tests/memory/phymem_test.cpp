@@ -116,7 +116,7 @@ namespace Tests {
             should_be.next_mapitem = map_parser->next_mapitem;
 
             //Manage two map items which we know will differ from kmmap : memory map storage space..
-            if(map_parser->location == (addr_t) phymem_state->phy_mmap) {
+            if(map_parser->location == (size_t) phymem_state->phy_mmap) {
                 if(stored_data) {
                     //Failure ahead, we've already found where phy_mmap is stored
                     test_failure("A location appears twice in phy_mmap");
@@ -165,7 +165,7 @@ namespace Tests {
                 }
                 PhyMemMap* free_mapitems_parser = phymem_state->free_mapitems;
                 while(free_mapitems_parser) {
-                    if(align_pgdown((addr_t) free_mapitems_parser) == should_be.location) break;
+                    if(align_pgdown((size_t) free_mapitems_parser) == should_be.location) break;
                     free_mapitems_parser = free_mapitems_parser->next_buddy;
                 }
                 if(!free_mapitems_parser) {
@@ -244,7 +244,7 @@ namespace Tests {
             map_parser = map_parser->next_mapitem;
             ++should_be_ptr;
         }
-        if((addr_t) should_be_ptr >= stored_data->location + stored_data->size) {
+        if((size_t) should_be_ptr >= stored_data->location + stored_data->size) {
             test_failure("Storage space overflow");
             return NULL;
         }
@@ -258,16 +258,16 @@ namespace Tests {
             map_parser = map_parser->next_buddy;
             ++should_be_ptr;
         }
-        if((addr_t) should_be_ptr < stored_data->location + stored_data->size) {
+        if((size_t) should_be_ptr < stored_data->location + stored_data->size) {
             test_failure("Allocated map items leaked");
             return NULL;
         }
-        if((addr_t) should_be_ptr > stored_data->location + stored_data->size) {
+        if((size_t) should_be_ptr > stored_data->location + stored_data->size) {
             test_failure("Storage space overflow");
             return NULL;
         }
         //Manage free mapitems allocated at the end of PhyMemManager()
-        if((addr_t) new_mapitem != stored_mapitems->location) {
+        if((size_t) new_mapitem != stored_mapitems->location) {
             test_failure("Map item allocation failed");
             return NULL;
         }
@@ -280,11 +280,11 @@ namespace Tests {
             map_parser = map_parser->next_buddy;
             ++should_be_ptr;
         }
-        if((addr_t) should_be_ptr < stored_mapitems->location + stored_mapitems->size) {
+        if((size_t) should_be_ptr < stored_mapitems->location + stored_mapitems->size) {
             test_failure("Allocated map items leaked");
             return NULL;
         }
-        if((addr_t) should_be_ptr > stored_mapitems->location + stored_mapitems->size) {
+        if((size_t) should_be_ptr > stored_mapitems->location + stored_mapitems->size) {
             test_failure("Storage space overflow");
             return NULL;
         }

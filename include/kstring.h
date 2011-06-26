@@ -24,7 +24,7 @@
 
 #include <address.h>
 
-void* memcpy(void* destination, const void* source, addr_t num);
+void* memcpy(void* destination, const void* source, size_t num);
 uint32_t strlen(const char* str);
 
 class KString {
@@ -57,6 +57,9 @@ class KString {
     
     //Length access
     uint32_t length() const {return len;}
+    
+    //Returns the size of the heap object associated to this string
+    uint32_t heap_size();
 };
 
 #endif

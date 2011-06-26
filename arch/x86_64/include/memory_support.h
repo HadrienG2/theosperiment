@@ -32,8 +32,8 @@ typedef struct VirMapList VirMapList;
 //Represents an item in a map of the physical memory, managed as a chained list at the moment.
 //Size should be a divisor of 0x1000 (current size : 0x40) to ease the early allocation process.
 struct PhyMemMap {
-    addr_t location;
-    addr_t size;
+    size_t location;
+    size_t size;
     PIDs owners;
     uint32_t allocatable; //Boolean. Indicates that this memory chunk can be reserved by memory
                           //allocation algorithms.
@@ -54,10 +54,10 @@ struct PhyMemMap {
     void del_owner(const PID old_owner) {owners.del_pid(old_owner);}
     bool has_owner(const PID the_owner) const {return owners.has_pid(the_owner);}
     //Algorithms finding things in or about the map
-    PhyMemMap* find_contigchunk(const addr_t size) const; //The returned chunk, along with its next
+    PhyMemMap* find_contigchunk(const size_t size) const; //The returned chunk, along with its next
                                                           //neighbours, forms a contiguous chunk
                                                           //of free memory at least "size" large.
-    PhyMemMap* find_thischunk(const addr_t location) const;
+    PhyMemMap* find_thischunk(const size_t location) const;
     unsigned int buddy_length() const;
     unsigned int length() const;
     //Comparing map items is fairly straightforward and should be done by default
@@ -89,8 +89,8 @@ const VirMemFlags VMEM_FLAGS_RW = VMEM_FLAG_R + VMEM_FLAG_W;
 //Represents an item in a map of the virtual memory, managed as a chained list at the moment.
 //Size should be a divisor of 0x1000 (current size : 0x40) to ease the early allocation process.
 struct VirMemMap {
-    addr_t location;
-    addr_t size;
+    size_t location;
+    size_t size;
     VirMemFlags flags;
     VirMapList* owner;
     PhyMemMap* points_to; //Physical memory chunk this virtual memory chunk points to
@@ -106,7 +106,7 @@ struct VirMemMap {
                   next_buddy(NULL),
                   next_mapitem(NULL) {};
     //Algorithms finding things in or about the map
-    VirMemMap* find_thischunk(const addr_t location) const;
+    VirMemMap* find_thischunk(const size_t location) const;
     unsigned int length() const;
     //Comparing map items is fairly straightforward and should be done by default
     //by the C++ compiler, but well...
@@ -121,7 +121,7 @@ struct VirMemMap {
 struct VirMapList {
     PID map_owner;
     VirMemMap* map_pointer;
-    addr_t pml4t_location;
+    size_t pml4t_location;
     VirMapList* next_item;
     OwnerlessMutex mutex;
     uint16_t padding2;
@@ -146,8 +146,8 @@ struct VirMapList {
 //allocated and used parts of pages. Each list uses the following structure.
 //Its size should again be a divisor of 0x1000 (currently : 0x20)
 struct MallocMap {
-    addr_t location;
-    addr_t size;
+    size_t location;
+    size_t size;
     VirMemMap* belongs_to; //The chunk of virtual memory it belongs to.
     MallocMap* next_item;
     uint32_t shareable; //Boolean. Indicates that the content of the page has been allocated in a
@@ -164,10 +164,10 @@ struct MallocMap {
                   next_item(NULL),
                   shareable(0),
                   share_count(0) {};
-    MallocMap* find_contigchunk(const addr_t size) const; //Try to find at least "size" contiguous
+    MallocMap* find_contigchunk(const size_t size) const; //Try to find at least "size" contiguous
                                                           //bytes in this map
-    MallocMap* find_contigchunk(const addr_t size, const VirMemFlags flags) const;
-    MallocMap* find_thischunk(const addr_t location) const;
+    MallocMap* find_contigchunk(const size_t size, const VirMemFlags flags) const;
+    MallocMap* find_thischunk(const size_t location) const;
     //Comparing C-style structs is fairly straightforward and should be done by default
     //by the C++ compiler, but well...
     bool operator==(const MallocMap& param) const;
@@ -176,8 +176,8 @@ struct MallocMap {
 
 //There is a derivative of the previous structure for the kernel, as it has virtual memory disabled.
 struct KnlMallocMap {
-    addr_t location;
-    addr_t size;
+    size_t location;
+    size_t size;
     PhyMemMap* belongs_to; //The chunk of *physical* memory it belongs to.
     KnlMallocMap* next_item;
     uint32_t shareable; //Boolean. Indicates that the content of the page has been allocated in a
@@ -194,9 +194,9 @@ struct KnlMallocMap {
                      next_item(NULL),
                      shareable(0),
                      share_count(0) {};
-    KnlMallocMap* find_contigchunk(const addr_t size) const; //Try to find at least "size"
+    KnlMallocMap* find_contigchunk(const size_t size) const; //Try to find at least "size"
                                                              //contiguous bytes in this map
-    KnlMallocMap* find_thischunk(const addr_t location) const;
+    KnlMallocMap* find_thischunk(const size_t location) const;
     //Comparing C-style structs is fairly straightforward and should be done by default
     //by the C++ compiler, but well...
     bool operator==(const KnlMallocMap& param) const;
@@ -212,7 +212,7 @@ struct MallocPIDList {
     MallocPIDList* next_item;
     OwnerlessMutex mutex;
     uint16_t padding;
-    addr_t pool; //For pooled memory allocation purposes
+    size_t pool; //For pooled memory allocation purposes
     uint64_t padding2;
     uint64_t padding3;
     uint64_t padding4;

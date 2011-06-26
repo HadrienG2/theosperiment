@@ -103,7 +103,7 @@ namespace Tests {
 
         //Count the amount of items in free_mapitems
         source_parser = phymem_state->free_mapitems;
-        addr_t free_count = 0;
+        size_t free_count = 0;
         while(source_parser) {
             //Move to the next item
             ++free_count;
@@ -233,7 +233,7 @@ namespace Tests {
             ++free_length;
             free_parser = free_parser->next_buddy;
         }
-        if(free_length != (addr_t) (state->free_mapitems)) {
+        if(free_length != (size_t) (state->free_mapitems)) {
             test_failure("free_mapitems mismatch");
             return false;
         }
@@ -914,7 +914,7 @@ namespace Tests {
         //First check if only the two requested pages have been allocated in the provided space,
         //which is the most common case
         unsigned int remaining_space = 2*PG_SIZE;
-        addr_t final_location;
+        size_t final_location;
         if(free_phy_mem->size <= remaining_space) {
             remaining_space-= free_phy_mem->size;
             final_location = free_phy_mem->next_buddy->location+remaining_space;
@@ -928,7 +928,7 @@ namespace Tests {
         //been allocated, and stuff from free_mapitems is in one of them.
         remaining_space = 3*PG_SIZE;
         bool free_mapitems_found = false;
-        addr_t free_mapitems_location = (addr_t) (phymem_state->free_mapitems);
+        size_t free_mapitems_location = (size_t) (phymem_state->free_mapitems);
         PhyMemMap* studied_item = free_phy_mem;
         while(remaining_space) {
             if(studied_item->size <= remaining_space) {

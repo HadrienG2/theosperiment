@@ -38,7 +38,7 @@ class MemAllocator {
         MallocPIDList* map_list;
         KnlMallocMap* knl_free_map; //A sorted map of ready-to-use chunks of memory for the kernel
         KnlMallocMap* knl_busy_map; //A sorted map of the chunks of memory used by the kernel
-        addr_t knl_pool;
+        size_t knl_pool;
         MallocMap* free_mapitems; //A collection of ready to use memory map items
         MallocPIDList* free_listitems; //A collection of ready to use map list items
         OwnerlessMutex maplist_mutex; //Hold that mutex when parsing or modifying the map list
@@ -51,16 +51,16 @@ class MemAllocator {
         //Support functions
         
         //Allocation, liberation and sharing functions -- normal processes
-        addr_t allocator(const addr_t size,
+        size_t allocator(const size_t size,
                          MallocPIDList* target,
                          const VirMemFlags flags,
                          const bool force);
-        addr_t allocator_shareable(addr_t size,
+        size_t allocator_shareable(size_t size,
                                    MallocPIDList* target,
                                    const VirMemFlags flags,
                                    const bool force);
-        bool liberator(const addr_t location, MallocPIDList* target);
-        addr_t share(const addr_t location,
+        bool liberator(const size_t location, MallocPIDList* target);
+        size_t share(const size_t location,
                      MallocPIDList* source,
                      MallocPIDList* target,
                      const VirMemFlags flags,
@@ -68,14 +68,14 @@ class MemAllocator {
         MallocMap* shared_already(PhyMemMap* to_share, MallocPIDList* target_owner);
         
         //Allocation, liberation and sharing when the kernel is involved
-        addr_t knl_allocator(const addr_t size, const bool force);
-        addr_t knl_allocator_shareable(addr_t size, const bool force);
-        bool knl_liberator(const addr_t location);
-        addr_t share_from_knl(const addr_t location,
+        size_t knl_allocator(const size_t size, const bool force);
+        size_t knl_allocator_shareable(size_t size, const bool force);
+        bool knl_liberator(const size_t location);
+        size_t share_from_knl(const size_t location,
                               MallocPIDList* target,
                               const VirMemFlags flags,
                               const bool force);
-        addr_t share_to_knl(const addr_t location,
+        size_t share_to_knl(const size_t location,
                             MallocPIDList* source,
                             const VirMemFlags flags,
                             const bool force);
@@ -95,27 +95,27 @@ class MemAllocator {
         MemAllocator(PhyMemManager& physmem, VirMemManager& virtmem);
 
         //Allocate memory to a process, returns location
-        addr_t malloc(const addr_t size,
+        size_t malloc(const size_t size,
                       PID target = PID_KERNEL,
                       const VirMemFlags flags = VMEM_FLAGS_RW,
                       const bool force = false);
 
         //Same as above, but the storage space is alone in its chunk, which allows sharing the data
         //inside with other processes without giving them access to other data
-        addr_t malloc_shareable(addr_t size,
+        size_t malloc_shareable(size_t size,
                                 PID target = PID_KERNEL,
                                 const VirMemFlags flags = VMEM_FLAGS_RW,
                                 const bool force = false);
 
         //Free previously allocated memory. Returns false if location or process does not exist,
         //true otherwise
-        bool free(const addr_t location, PID target);
+        bool free(const size_t location, PID target);
 
         //Give another process access to that data under the limits of "flags".
         //Note that by doing so, the current owner loses property of that data : free will only
         //remove his right to access the data, and not the data itself.
         //Also, always allocate data used for this with malloc_shareable.
-        addr_t owneradd(const addr_t location,
+        size_t owneradd(const size_t location,
                         PID source,
                         PID target,
                         const VirMemFlags flags = VMEM_FLAGS_SAME,
@@ -141,16 +141,16 @@ class MemAllocator {
         // * To ensure better performance, pooled allocation comes with zero safety checks. This
         //   means in particular no protection against pool overflow, so don't forget to call
         //   leave_pool() when you're done.
-        addr_t init_pool(const addr_t size,
+        size_t init_pool(const size_t size,
                          PID target = PID_KERNEL,
                          const VirMemFlags flags = VMEM_FLAGS_RW,
                          const bool force = false);
-        addr_t init_pool_shareable(addr_t size,
+        size_t init_pool_shareable(size_t size,
                                    PID target = PID_KERNEL,
                                    const VirMemFlags flags = VMEM_FLAGS_RW,
                                    const bool force = false);
-        addr_t leave_pool(PID target = PID_KERNEL); //Returns previous pool state
-        bool set_pool(addr_t pool, PID target = PID_KERNEL, const bool force = false);
+        size_t leave_pool(PID target = PID_KERNEL); //Returns previous pool state
+        bool set_pool(size_t pool, PID target = PID_KERNEL, const bool force = false);
 
         //Debug methods. Will go out in final release.
         void print_maplist();
@@ -158,27 +158,31 @@ class MemAllocator {
         void print_freemap(const PID owner);
 };
 
-//Functions for use inside of the kernel
+//Setting up the official kernel allocator
 void setup_kalloc(MemAllocator& allocator);
-void* kalloc(const addr_t size,
+
+//Alocation, freeing, sharing
+void* kalloc(const size_t size,
              PID target = PID_KERNEL,
              const VirMemFlags flags = VMEM_FLAGS_RW,
              const bool force = false);
-void* kalloc_shareable(addr_t size,
+void* kalloc_shareable(size_t size,
                        PID target = PID_KERNEL,
                        const VirMemFlags flags = VMEM_FLAGS_RW,
                        const bool force = false);
-bool kfree(const void* location, PID target = PID_KERNEL);
+bool kfree(void* location, PID target = PID_KERNEL);
 void* kowneradd(const void* location,
                 const PID source,
                 PID target,
                 const VirMemFlags flags = VMEM_FLAGS_SAME,
                 const bool force = false);
-void* kinit_pool(const addr_t size,
+
+//Pooled allocation
+void* kinit_pool(const size_t size,
                  PID target = PID_KERNEL,
                  const VirMemFlags flags = VMEM_FLAGS_RW,
                  const bool force = false);
-void* kinit_pool_shareable(addr_t size,
+void* kinit_pool_shareable(size_t size,
                            PID target = PID_KERNEL,
                            const VirMemFlags flags = VMEM_FLAGS_RW,
                            const bool force = false);
