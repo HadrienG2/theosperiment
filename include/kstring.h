@@ -59,7 +59,7 @@ class KString {
     uint32_t length() const {return len;}
     
     //Returns the size of the heap object associated to this string
-    uint32_t heap_size();
+    size_t heap_size();
 };
 
 #endif

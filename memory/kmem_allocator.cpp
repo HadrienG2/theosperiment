@@ -1120,6 +1120,7 @@ MemAllocator::MemAllocator(PhyMemManager& physmem, VirMemManager& virtmem) : phy
 }
 
 size_t MemAllocator::malloc(const size_t size, PID target, const VirMemFlags flags, const bool force) {
+    if(!size) return NULL;
     MallocPIDList* list_item;
     size_t result;
     

@@ -19,37 +19,48 @@
 #ifndef _NEW_H_
 #define _NEW_H_
 
+#include <address.h>
 #include <kmem_allocator.h>
 
-#include <dbgstream.h>
+//State of the new allocator, and functions which alter it
+extern bool fake_allocation; //Allocation is not actually performed, instead the number of bytes
+                             //that would have been allocated is written in the following integer.
+extern size_t would_be_allocd;
+inline void start_faking_allocation() {fake_allocation = true;}
+inline void stop_faking_allocation() {fake_allocation = false;}
 
-//Operator new and a special version with full mallocator powers
-inline void* operator new(const size_t size) throw() {return kalloc(size);}
+//new operator
 inline void* operator new(const size_t size,
                           PID target,
                           const VirMemFlags flags = VMEM_FLAGS_RW,
                           const bool force = false) throw() {
-    return kalloc(size, target, flags, force);
+    if(!fake_allocation) {
+        return kalloc(size, target, flags, force);
+    } else {
+        would_be_allocd = size;
+        return NULL;
+    }
 }
+inline void* operator new(const size_t size) throw() {return operator new(size, PID_KERNEL);}
 
 //Array versions of new
-inline void* operator new[](const size_t size) throw() {return operator new(size);}
 inline void* operator new[](const size_t size,
                             PID target,
                             const VirMemFlags flags = VMEM_FLAGS_RW,
                             const bool force = false) throw() {
     return operator new(size, target, flags, force);
 }
+inline void* operator new[](const size_t size) throw() {return operator new[](size, PID_KERNEL);}
 
 //Placement new
 inline void* operator new(const size_t, void* place) throw() {return place;}
 
 //Operator delete and, again, the special version
-inline void operator delete(void* ptr) throw() {kfree(ptr);}
 inline void operator delete(void* ptr, PID target) throw() {kfree(ptr, target);}
+inline void operator delete(void* ptr) throw() {operator delete(ptr, PID_KERNEL);}
 
 //Array versions of delete
-inline void operator delete[](void* ptr) throw() {operator delete(ptr);}
 inline void operator delete[](void* ptr, PID target) throw() {operator delete(ptr, target);}
+inline void operator delete[](void* ptr) throw() {operator delete[](ptr, PID_KERNEL);}
 
 #endif

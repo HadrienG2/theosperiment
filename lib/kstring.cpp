@@ -19,6 +19,7 @@
 
 #include <kmem_allocator.h>
 #include <kstring.h>
+#include <new.h>
 
 void* memcpy(void* destination, const void* source, size_t num) {
     const char* new_source = (const char*) source;
@@ -37,13 +38,13 @@ uint32_t strlen(const char* str) {
 
 KString::KString(const char* source) {
     len = strlen(source);
-    contents = (char*) kalloc((len+1)*sizeof(char));
+    contents = new char[len+1];
     memcpy((void*) contents, (const void*) source, len+1);
 }
 
 KString::KString(const KString& source) {
     len = source.len;
-    contents = (char*) kalloc((len+1)*sizeof(char));
+    contents = new char[len+1];
     memcpy((void*) contents, (const void*) source.contents, len);
 }
 
@@ -55,8 +56,8 @@ KString& KString::operator=(const char* source) {
     uint32_t source_len = strlen(source);
     if(source_len != len) {
         len = source_len;
-        if(contents) kfree((void*) contents);
-        contents = (char*) kalloc((len+1)*sizeof(char));
+        if(contents) delete[] contents;
+        contents = new char[len+1];
     }
     memcpy((void*) contents, (const void*) source, len);
 
@@ -68,8 +69,8 @@ KString& KString::operator=(const KString& source) {
 
     if(source.len != len) {
         len = source.len;
-        if(contents) kfree((void*) contents);
-        contents = (char*) kalloc((len+1)*sizeof(char));
+        if(contents) delete[] contents;
+        contents = new char[len+1];
     }
     memcpy((void*) contents, (const void*) source.contents, len+1);
 
@@ -85,13 +86,13 @@ KString& KString::operator+=(const char* source) {
     if(!source_len) return *this;
     
     //Creation of the concatenated string
-    char* buffer = (char*) kalloc((len+source_len+1)*sizeof(char));
+    char* buffer = new char[len+source_len+1];
     memcpy((void*) buffer, (const void*) contents, len);
-    buffer = (char*) (((size_t) buffer) + len*sizeof(char));
+    buffer+= len;
     memcpy((void*) buffer, (const void*) source, source_len+1);
     
     //Replacement of the contents of the string
-    kfree((void*) contents);
+    delete[] contents;
     contents = buffer;
     len+= source_len;
     return *this;
@@ -105,13 +106,13 @@ KString& KString::operator+=(const KString& source) {
     if(!source.len) return *this;
     
     //Creation of the concatenated string
-    char* buffer = (char*) kalloc((len+source.len+1)*sizeof(char));
+    char* buffer = new char[len+source.len+1];
     memcpy((void*) buffer, (const void*) contents, len);
-    buffer = (char*) (((size_t) buffer) + len*sizeof(char));
+    buffer+= len;
     memcpy((void*) buffer, (const void*) source.contents, source.len+1);
     
     //Replacement of the contents of the string
-    kfree((void*) contents);
+    delete[] contents;
     contents = buffer;
     len+= source.len;
     return *this;
@@ -134,6 +135,14 @@ bool KString::operator==(const KString& param) const {
     return true;
 }
 
-uint32_t KString::heap_size() {
-    return (len+1)*sizeof(char);
+size_t KString::heap_size() {
+    start_faking_allocation();
+    
+        char* not_really_allocd = new char[len+1];
+        size_t to_be_allocd = would_be_allocd;
+        not_really_allocd = NULL;
+    
+    stop_faking_allocation();
+    
+    return to_be_allocd;
 }

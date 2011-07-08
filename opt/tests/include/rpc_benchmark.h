@@ -31,11 +31,14 @@ namespace Tests {
     void rpc_server_init_bench(); //Used to evaluate the time taken by the initialization of many
                                   //"heavy" servers
     
+    
     //Support structures
     struct ParamDescriptor {
         KString type;
         uint32_t value_size;
         void* default_value;
+        size_t heap_size();
+        ParamDescriptor& operator=(ParamDescriptor& source);
     };
     
     struct ServerCallDescriptor {
@@ -43,6 +46,8 @@ namespace Tests {
         KString name;
         uint32_t params_amount;
         ParamDescriptor* params;
+        size_t heap_size();
+        ServerCallDescriptor& operator=(ServerCallDescriptor& source);
     };
 }
 

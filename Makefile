@@ -84,6 +84,7 @@ BS_ASM_OBJ = $(BS_ASM_SRC:.s=.bsasm.o)
 BS_C_OBJ = $(BS_C_SRC:.c=.bsc.o)
 KNL_ASM_OBJ = $(KNL_ASM_SRC:.s=.knlasm.o)
 KNL_CPP_OBJ = $(KNL_CPP_SRC:.cpp=.knlcpp.o)
+TMP_FILES = $(BS_ASM_SRC:.s=.s~) $(BS_C_SRC:.c=.c~) $(KNL_ASM_SRC:.s=.s~) $(KNL_CPP_SRC:.cpp=.cpp~)
 
 #Make rules
 all: cdimage
@@ -134,7 +135,7 @@ $(KNL_BIN): $(KNL_ASM_OBJ) $(KNL_CPP_OBJ) $(HEADERS)
 
 clean:
 	@rm -f $(BS_GZ) $(BS_BIN) $(BS_ASM_OBJ) $(BS_C_OBJ) $(KNL_BIN) $(KNL_ASM_OBJ) $(KNL_CPP_OBJ)
-	@rm -rf cdimage/*
+	@rm -rf cdimage/* $(TMP_FILES) Makefile~
 
 mrproper: clean
 	@rm -f $(CDIMAGE)
