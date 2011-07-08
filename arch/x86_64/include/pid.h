@@ -20,8 +20,9 @@
 #define _PID_H_
 
 #include <address.h>
+#include <hack_stdint.h>
 
-typedef unsigned int PID;
+typedef uint32_t PID;
 const PID PID_NOBODY = 0;
 const PID PID_KERNEL = 1;
 
@@ -46,6 +47,7 @@ class PIDs {
         void del_pid(const PID old_pid);
         bool has_pid(const PID the_pid) const;
         unsigned int length() const;
+        size_t heap_size() const {return sizeof(PIDs)*(length()-1);}
         PID operator[](const unsigned int index) const; //Accessing the contents in an
                                                         //implementation-independent, read-only way.
         

@@ -30,9 +30,7 @@ namespace Tests {
 
         reset_title();
         test_title("Server startup impact");
-        bench_start();
         rpc_server_init_bench();
-        bench_stop();
         
         test_title("Client startup impact");
         fail_notimpl();
@@ -73,59 +71,99 @@ namespace Tests {
         dummy_desc.params_amount = params_amount_normal;
         dummy_desc.params = params_normal;
         
-        const int NUMBER_OF_SERVERS = 50;
-        const int NUMBER_OF_CALLS = 30;
+        const unsigned int NUMBER_OF_SERVERS = 50;
+        const unsigned int NUMBER_OF_CALLS = 30;
         
-        for(int i = 0; i < NUMBER_OF_SERVERS; ++i) {
+        bench_start();
+        
+        for(unsigned int i = 0; i < NUMBER_OF_SERVERS; ++i) {
             //Emulate system call overhead
             fake_syscall();
             
             //First, fully parse the server's management structures once to determine how much
-            //memory must be allocated as a whole.
-            size_t to_be_allocd = sizeof(ServerCallDescriptor)*NUMBER_OF_CALLS;
-            for(int current_call = 0; current_call < NUMBER_OF_CALLS; ++current_call) {                
-                to_be_allocd+= dummy_desc.name.heap_size();
-                to_be_allocd+= sizeof(ParamDescriptor)*dummy_desc.params_amount;
-                for(uint32_t j = 0; j < dummy_desc.params_amount; ++j) {
-                    to_be_allocd += dummy_desc.params[j].type.heap_size();
-                    if(dummy_desc.params[j].default_value != NULL) {
-                        to_be_allocd += dummy_desc.params[j].value_size;
-                    }
-                }
+            //memory must be allocated as a whole. Use "fake new" to measure the overhead of array
+            //allocation.
+            start_faking_allocation();
+                ServerCallDescriptor* not_really_allocd = new ServerCallDescriptor[NUMBER_OF_CALLS];
+                size_t to_be_allocd = would_be_allocd;
+                not_really_allocd = NULL;
+            stop_faking_allocation();
+            
+            for(unsigned int current_call = 0; current_call < NUMBER_OF_CALLS; ++current_call) {                
+                to_be_allocd+= dummy_desc.heap_size();
             }
             
-            //Then allocate all dynamic data at once, and prepare a moving pointer within it for
-            //actual pointer "allocation".
+            //Then allocate all dynamic data at once. This memory will never be liberated, it is
+            //not a bug, but rather an attempt to best emulate system startup.
             void* allocd_buffer = kinit_pool(to_be_allocd);
             if(!allocd_buffer) {
                 test_failure("Could not allocate server data");
                 return;
             }
             
-            //Allocate server call descriptors
-            ServerCallDescriptor* call_descs = new ServerCallDescriptor[NUMBER_OF_CALLS];
-            
-            //Fill each individual descriptor...
-            for(int current_call = 0; current_call < NUMBER_OF_CALLS; ++current_call) {
-                ServerCallDescriptor& current_desc = call_descs[current_call];
-                current_desc.function_pointer = dummy_desc.function_pointer;
-                current_desc.name = dummy_desc.name;
-                current_desc.params_amount = dummy_desc.params_amount;
-                current_desc.params = new ParamDescriptor[dummy_desc.params_amount];
-                for(uint32_t j = 0; j < dummy_desc.params_amount; ++j) {
-                    ParamDescriptor& current_param = current_desc.params[j];
-                    ParamDescriptor& source_param = dummy_desc.params[j];
-                    current_param.type = source_param.type;
-                    if(source_param.default_value == NULL) continue;
-                    current_param.default_value = kalloc(source_param.value_size);
-                    memcpy((void*) current_param.default_value,
-                            (const void*) source_param.default_value,
-                            source_param.value_size);
-                }
+            //Allocate and fill server call descriptors
+            ServerCallDescriptor* call_descs = new ServerCallDescriptor[NUMBER_OF_CALLS]();
+            for(unsigned int j = 0; j < NUMBER_OF_CALLS; ++j) {
+                call_descs[j] = dummy_desc;
             }
             
             kleave_pool();
-            //kfree(allocd_buffer);
         }
+        
+        bench_stop();
+    }
+    
+    size_t ParamDescriptor::heap_size() {
+        size_t to_be_allocd = type.heap_size();
+        if(default_value != NULL) {
+            to_be_allocd+= value_size;
+        }
+        return to_be_allocd;
+    }
+    
+    ParamDescriptor& ParamDescriptor::operator=(ParamDescriptor& source) {
+        if(&source == this) return *this;
+        
+        type = source.type;
+        value_size = source.value_size;
+        if(source.default_value == NULL) {
+            default_value = NULL;
+        } else {
+            default_value = kalloc(source.value_size);
+            memcpy(default_value, source.default_value, source.value_size);
+        }
+        
+        return *this;
+    }
+    
+    size_t ServerCallDescriptor::heap_size() {
+        //Use "fake new" to measure the overhead of array allocation
+        size_t to_be_allocd = name.heap_size();
+        
+        start_faking_allocation();
+            ParamDescriptor* not_really_allocd = new ParamDescriptor[params_amount];
+            to_be_allocd+= would_be_allocd;
+            not_really_allocd = NULL;
+        stop_faking_allocation();
+        
+        for(uint32_t i = 0; i < params_amount; ++i) {
+            to_be_allocd+= params[i].heap_size();
+        }
+        
+        return to_be_allocd;
+    }
+    
+    ServerCallDescriptor& ServerCallDescriptor::operator=(ServerCallDescriptor& source) {
+        if(&source == this) return *this;
+        
+        function_pointer = source.function_pointer;
+        name = source.name;
+        params_amount = source.params_amount;
+        params = new ParamDescriptor[source.params_amount];
+        for(uint32_t i = 0; i < source.params_amount; ++i) {
+            params[i] = source.params[i];
+        }
+        
+        return *this;
     }
 }
