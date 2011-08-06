@@ -90,11 +90,11 @@ const unsigned int BOR_TOPLEFT = 4;
 const unsigned int BOR_TOPRIGHT = 5;
 const unsigned int BOR_BOTTOMLEFT = 6;
 const unsigned int BOR_BOTTOMRIGHT = 7;
-extern const char BOR_SINGLE[8];
-extern const char BOR_DOUBLE[8];
-extern const char BOR_THICK[8];
-extern const char BOR_BLOCK[8];
-const char* border_array(const DebugWindowBorder border); //Find which array you want
+extern const unsigned char BOR_SINGLE[8];
+extern const unsigned char BOR_DOUBLE[8];
+extern const unsigned char BOR_THICK[8];
+extern const unsigned char BOR_BLOCK[8];
+const unsigned char* border_array(const DebugWindowBorder border); //Find which array you want
 
 //Other litteral constants
 const char endl = '\n';

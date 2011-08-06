@@ -29,6 +29,28 @@ typedef struct VirMapList VirMapList;
 //*********** Physical memory management ***********
 //**************************************************
 
+//Represent a list of PIDs
+struct PIDs {
+    PID current_pid;
+    PIDs* next_item;
+    uint32_t padding;
+    
+    //Constructors and destructors
+    PIDs() : current_pid(PID_NOBODY),
+                         next_item(NULL) {}
+    PIDs(const PID& first) : current_pid(first),
+                             next_item(NULL) {}
+
+    //Various utility function
+    bool has_pid(const PID& the_pid) const;
+    unsigned int length() const;
+    PIDs& operator=(const PID& param); //Set the contents of a blank PIDs to a single PID
+    
+    //Comparison of PIDs
+    bool operator==(const PIDs& param) const;
+    bool operator!=(const PIDs& param) const {return !(*this==param);}
+} __attribute__((packed));
+
 //Represents an item in a map of the physical memory, managed as a chained list at the moment.
 //Size should be a divisor of 0x1000 (current size : 0x40) to ease the early allocation process.
 struct PhyMemMap {
@@ -40,7 +62,7 @@ struct PhyMemMap {
                           //It should NOT be the case with memory-mapped I/O, as an example.
     PhyMemMap* next_buddy;
     PhyMemMap* next_mapitem;
-    uint64_t padding;
+    uint32_t padding;
     uint64_t padding2;
     PhyMemMap() : location(0),
                   size(0),
@@ -49,9 +71,6 @@ struct PhyMemMap {
                   next_buddy(NULL),
                   next_mapitem(NULL) {};
     //This mirrors the member functions of "owners"
-    unsigned int add_owner(const PID new_owner) {return owners.add_pid(new_owner);}
-    void clear_owners() {owners.clear_pids();}
-    void del_owner(const PID old_owner) {owners.del_pid(old_owner);}
     bool has_owner(const PID the_owner) const {return owners.has_pid(the_owner);}
     //Algorithms finding things in or about the map
     PhyMemMap* find_contigchunk(const size_t size) const; //The returned chunk, along with its next

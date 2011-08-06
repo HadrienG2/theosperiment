@@ -33,7 +33,7 @@ bool PhyMemManager::alloc_mapitems() {
     //We only need one page in this chunk : adjust the properties of the chunk we just found
     remaining_freemem = allocated_mem->size - PG_SIZE;
     allocated_mem->size = PG_SIZE;
-    allocated_mem->add_owner(PID_KERNEL);
+    allocated_mem->owners = PID_KERNEL;
 
     //Store our brand new free memory map items in the allocated mem
     current_item = (PhyMemMap*) (allocated_mem->location);
@@ -45,6 +45,55 @@ bool PhyMemManager::alloc_mapitems() {
     }
     current_item = new(current_item) PhyMemMap();
     current_item->next_buddy = NULL;
+
+    //Maybe there is some spare memory after allocating our chunk ?
+    //If so, don't forget it.
+    if(remaining_freemem) {
+        free_mem = free_mapitems;
+        free_mapitems = (PhyMemMap*) free_mapitems->next_buddy;
+        free_mem = new(free_mem) PhyMemMap();
+        free_mem->location = allocated_mem->location+PG_SIZE;
+        free_mem->size = remaining_freemem;
+        free_mem->next_mapitem = allocated_mem->next_mapitem;
+        free_mem->next_buddy = allocated_mem->next_buddy;
+        allocated_mem->next_mapitem = free_mem;
+    }
+
+    //Update free memory information
+    if(free_mem) {
+        free_highmem = free_mem;
+    } else {
+        free_highmem = allocated_mem->next_buddy;
+    }
+    allocated_mem->next_buddy = NULL;
+
+    return true;
+}
+
+bool PhyMemManager::alloc_pids() {
+    size_t remaining_freemem, used_space;
+    PIDs *current_item;
+    PhyMemMap *allocated_mem, *free_mem = NULL;
+
+    //Find an available chunk of memory
+    allocated_mem = free_highmem;
+    if(!allocated_mem) return false;
+
+    //We only need one page in this chunk : adjust the properties of the chunk we just found
+    remaining_freemem = allocated_mem->size - PG_SIZE;
+    allocated_mem->size = PG_SIZE;
+    allocated_mem->owners = PID_KERNEL;
+
+    //Store our brand new PIDs in the allocated mem
+    current_item = (PIDs*) (allocated_mem->location);
+    free_pids = current_item;
+    for(used_space = sizeof(PhyMemMap); used_space<PG_SIZE; used_space+= sizeof(PhyMemMap)) {
+        current_item = new(current_item) PIDs();
+        current_item->next_item = current_item+1;
+        ++current_item;
+    }
+    current_item = new(current_item) PIDs();
+    current_item->next_item = NULL;
 
     //Maybe there is some spare memory after allocating our chunk ?
     //If so, don't forget it.
@@ -99,7 +148,7 @@ PhyMemMap* PhyMemManager::chunk_allocator(const PID initial_owner,
         if(map_used == phy_highmmap) {
             if(!free_highmem) return NULL;
             current_item = free_highmem->find_contigchunk(size);
-            if(current_item!= free_highmem) {
+            if((current_item) && (current_item != free_highmem)) {
                 previous_free = free_highmem;
                 while(previous_free->next_buddy != current_item) {
                     previous_free = previous_free->next_buddy;
@@ -108,7 +157,7 @@ PhyMemMap* PhyMemManager::chunk_allocator(const PID initial_owner,
         } else {
             if(!free_lowmem) return NULL;
             current_item = free_lowmem->find_contigchunk(size);
-            if(current_item!= free_lowmem) {
+            if((current_item) && (current_item!= free_lowmem)) {
                 previous_free = free_lowmem;
                 while(previous_free->next_buddy != current_item) {
                     previous_free = previous_free->next_buddy;
@@ -117,7 +166,7 @@ PhyMemMap* PhyMemManager::chunk_allocator(const PID initial_owner,
         }
     }
     if(!current_item) return NULL;
-    current_item->add_owner(initial_owner);
+    current_item->owners = initial_owner;
     result = current_item;
 
     //Three situations may occur :
@@ -137,7 +186,7 @@ PhyMemMap* PhyMemManager::chunk_allocator(const PID initial_owner,
             chunk_liberator(result);
             return NULL;
         }
-        current_item->add_owner(initial_owner);
+        current_item->owners = initial_owner;
 
         //Check if the situation changed
         if(current_item->size < to_be_allocd) {
@@ -201,7 +250,7 @@ PhyMemMap* PhyMemManager::resvchunk_allocator(const PID initial_owner,
 
     if(requested_chunk &&
        (requested_chunk->allocatable == 0) &&
-       (requested_chunk->owners[0] == PID_NOBODY)) {
+       (requested_chunk->has_owner(PID_NOBODY))) {
         bool result = chunk_owneradd(requested_chunk, initial_owner);
         if(result) {
             return requested_chunk;
@@ -223,7 +272,7 @@ bool PhyMemManager::chunk_liberator(PhyMemMap* chunk) {
         next_item = current_item->next_buddy;
 
         //Free current item from its owners and buddies
-        current_item->clear_owners();
+        pids_liberator(current_item->owners);
         current_item->next_buddy = NULL;
 
         //If it is allocatable, add current item to the appropriate list of free memory map items.
@@ -273,21 +322,52 @@ bool PhyMemManager::chunk_liberator(PhyMemMap* chunk) {
     return true;
 }
 
+void PhyMemManager::pids_liberator(PIDs& target) {
+    PIDs *to_delete = target.next_item, *following_one;
+    
+    while(to_delete) {
+        following_one = to_delete->next_item;
+        to_delete = new(to_delete) PIDs;
+        to_delete->next_item = free_pids;
+        free_pids = to_delete;
+        to_delete = following_one;
+    }
+    target.next_item = NULL;
+}
+
 bool PhyMemManager::chunk_owneradd(PhyMemMap* chunk, const PID new_owner) {
-    unsigned int result;
     PhyMemMap* current_item = chunk;
-
-    do {
-        result = current_item->add_owner(new_owner);
-        if(!result) break;
+    
+    //Add the new PIDs to the chunk, and all of its buddies
+    while(current_item) {
+        //Check if there are some PIDs left in free_pids, attempt to allocate if needed
+        if(!free_pids) {
+            if(!alloc_pids()) break;
+        }
+        //Add a new owner to the chunk
+        PIDs*& next_owner = current_item->owners.next_item;
+        PIDs* old_next_owner = next_owner;
+        next_owner = free_pids;
+        free_pids = free_pids->next_item;
+        next_owner->next_item = old_next_owner;
+        //Set up the new owner to an appropriate value
+        *next_owner = new_owner;
+        //Examine next chunk buddy
         current_item = current_item->next_buddy;
-    } while(current_item);
-
-    if(!result) {
+    }
+    
+    if(current_item) {
         //Revert changes and quit
         PhyMemMap* parser = chunk;
         while(parser!=current_item) {
-            parser->del_owner(new_owner);
+            //Remove the new PIDs from the chunk's owners, but keep a pointer to it
+            PIDs*& next_owner = parser->owners.next_item;
+            PIDs* old_next_owner = next_owner;
+            next_owner = next_owner->next_item;
+            //Free the PIDs and put it back in free_pids
+            old_next_owner->next_item = free_pids;
+            free_pids = new(old_next_owner) PIDs();
+            //Examine next altered chunk buddy
             parser = parser->next_buddy;
         }
         return false;
@@ -298,11 +378,44 @@ bool PhyMemManager::chunk_owneradd(PhyMemMap* chunk, const PID new_owner) {
 
 bool PhyMemManager::chunk_ownerdel(PhyMemMap* chunk, const PID former_owner) {
     PhyMemMap* current_item = chunk;
-    do {
-        current_item->del_owner(former_owner);
+    
+    while(current_item) {
+        PIDs& current_owners = current_item->owners;
+        PIDs* former_item = NULL;
+        
+        //Take the PIDs to be removed out of the current item's owners, store it in former_item if
+        //it is to be freed        
+        if(current_owners.current_pid == former_owner) {
+            if(!current_owners.next_item) {
+                current_owners.current_pid = PID_NOBODY;
+            } else {
+                former_item = current_owners.next_item;
+                current_owners.current_pid = current_owners.next_item->current_pid;
+                current_owners.next_item = current_owners.next_item->next_item;
+            }
+        } else {
+            PIDs* parser = &current_owners;
+            while(parser->next_item) {
+                if(parser->next_item->current_pid == former_owner) {
+                    former_item = parser->next_item;
+                    parser->next_item = parser->next_item->next_item;
+                    break;
+                }
+                parser = parser->next_item;
+            }
+        }
+        
+        //Free the former_item, if there's one
+        if(former_item) {
+            former_item->next_item = free_pids;
+            free_pids = new(former_item) PIDs;
+        }
+        
+        //Go to next item in the buddy list
         current_item = current_item->next_buddy;
-    } while(current_item);
-    if(chunk->owners[0] == PID_NOBODY) chunk_liberator(chunk);
+    }
+    
+    if(chunk->has_owner(PID_NOBODY)) chunk_liberator(chunk);
 
     return true;
 }
@@ -390,7 +503,7 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
             break;
         case NATURE_BSK:
         case NATURE_KNL:
-            current_item->add_owner(PID_KERNEL);
+            current_item->owners = PID_KERNEL;
     }
 
     //Fill management structures until we reach the index where we're storing our data
@@ -403,7 +516,7 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
                     break;
                 case NATURE_BSK:
                 case NATURE_KNL:
-                    current_item->add_owner(PID_KERNEL);
+                    current_item->owners = PID_KERNEL;
             }
         }
         if(kmmap[index].location+kmmap[index].size>next_location) {
@@ -418,7 +531,7 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
             }
             if(next_location <= current_location) continue;
             //If the previous chunk is free, add it to the free memory pool.
-            if(current_item->owners[0] == PID_NOBODY && current_item->allocatable) {
+            if(current_item->has_owner(PID_NOBODY) && current_item->allocatable) {
                 if(!free_lowmem) {
                     free_lowmem = current_item;
                 } else {
@@ -434,7 +547,7 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
             switch(kmmap[index].nature) {
                 case NATURE_BSK:
                 case NATURE_KNL:
-                    current_item->add_owner(PID_KERNEL);
+                    current_item->owners = PID_KERNEL;
             }
         }
     }
@@ -443,7 +556,7 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
     current_item = current_item->next_mapitem;
     current_item->location = phymmap_location;
     current_item->size = phymmap_size;
-    current_item->add_owner(PID_KERNEL);
+    current_item->owners = PID_KERNEL;
     next_location = align_pgup(kmmap[storage_index].location+kmmap[storage_index].size);
     //Add up what remains of the storage space being used (if any) in the map
     if(phymmap_location+phymmap_size < kmmap[storage_index].location+kmmap[storage_index].size) {
@@ -462,7 +575,7 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
                     break;
                 case NATURE_BSK:
                 case NATURE_KNL:
-                    current_item->add_owner(PID_KERNEL);
+                    current_item->owners = PID_KERNEL;
             }
         }
         if(kmmap[index].location+kmmap[index].size>next_location) {
@@ -477,7 +590,7 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
             }
             if(next_location <= current_location) continue;
             //If the previous chunk is free, add it to the free memory pool.
-            if(current_item->owners[0] == PID_NOBODY && current_item->allocatable) {
+            if(current_item->has_owner(PID_NOBODY) && current_item->allocatable) {
                 if(!free_lowmem) {
                     free_lowmem = current_item;
                 } else {
@@ -493,7 +606,7 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
             switch(kmmap[index].nature) {
                 case NATURE_BSK:
                 case NATURE_KNL:
-                    current_item->add_owner(PID_KERNEL);
+                    current_item->owners = PID_KERNEL;
             }
         }
     }
@@ -512,7 +625,7 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
     //free high memory chunk.
     current_item = phy_mmap;
     while(current_item->location < 0x100000) {
-        if(current_item->owners[0] == PID_NOBODY && current_item->allocatable) {
+        if(current_item->has_owner(PID_NOBODY) && current_item->allocatable) {
             last_free = current_item;
         }
         ++current_item;
@@ -530,6 +643,9 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
         current_item->next_buddy = free_mapitems;
         free_mapitems = free_mapitems_backup;
     }
+    
+    //Allocate some PIDs storage space, for the same reason
+    alloc_pids();
 }
 
 PhyMemMap* PhyMemManager::alloc_page(const PID initial_owner) {
@@ -540,6 +656,7 @@ PhyMemMap* PhyMemManager::alloc_page(const PID initial_owner) {
         result = chunk_allocator(initial_owner, PG_SIZE, phy_highmmap);
 
     mmap_mutex.release();
+    
     return result;
 }
 
@@ -554,6 +671,7 @@ PhyMemMap* PhyMemManager::alloc_chunk(const PID initial_owner, const size_t size
                                  contiguous);
 
     mmap_mutex.release();
+    
     return result;
 }
 
@@ -565,6 +683,7 @@ PhyMemMap* PhyMemManager::alloc_resvchunk(const size_t location, const PID initi
         result = resvchunk_allocator(initial_owner, location);
 
     mmap_mutex.release();
+    
     return result;
 }
 
@@ -602,9 +721,9 @@ bool PhyMemManager::owneradd(PhyMemMap* chunk, const PID new_owner) {
     bool result;
 
     mmap_mutex.grab_spin();
-
+        
         result = chunk_owneradd(chunk, new_owner);
-
+        
     mmap_mutex.release();
 
     return result;
@@ -690,9 +809,9 @@ PhyMemMap* PhyMemManager::alloc_lowchunk(const PID initial_owner,
 
 void PhyMemManager::print_highmmap() {
     mmap_mutex.grab_spin();
-
+        
         dbgout << *phy_highmmap;
-
+        
     mmap_mutex.release();
 }
 
@@ -700,24 +819,24 @@ void PhyMemManager::print_lowmmap() {
     PhyMemMap *lowmem_end = phy_mmap;
 
     mmap_mutex.grab_spin();
-
+        
         //Find the end of low memory
         while(lowmem_end->next_mapitem!=phy_highmmap) lowmem_end = lowmem_end->next_mapitem;
         //Temporarily make high memory disappear
         lowmem_end->next_mapitem = NULL;
-
+        
         dbgout << *phy_mmap;
-
+        
         //Make high memory come back
         lowmem_end->next_mapitem = phy_highmmap;
-
+        
     mmap_mutex.release();
 }
 
 void PhyMemManager::print_mmap() {
     mmap_mutex.grab_spin();
-
+        
         dbgout << *phy_mmap;
-
+        
     mmap_mutex.release();
 }

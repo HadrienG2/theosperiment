@@ -309,7 +309,7 @@ void DebugOutput::cursor_movabs(const unsigned int acol, const unsigned int arow
 
 void DebugOutput::fill_border(const DebugWindow window) {
   DebugRect border_line;
-  const char* border_characters = border_array(window.border);
+  const unsigned char* border_characters = border_array(window.border);
   int offset;
 
   if(window.border) {

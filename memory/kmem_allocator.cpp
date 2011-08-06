@@ -528,7 +528,7 @@ size_t MemAllocator::knl_allocator(const size_t size, const bool force) {
     //This works a lot like allocator(), except that it uses knl_free_map and knl_busy_map and that
     //since paging is disabled for the kernel, the chunk is allocated through
     //PhyMemManager::alloc_chunk with contiguous flag on, and not mapped through virmem.
-
+    
     PhyMemMap* phy_chunk = NULL;
 
     //Step 1 : Look for a suitable hole in knl_free_map
@@ -830,7 +830,7 @@ size_t MemAllocator::share_from_knl(const size_t location,
                                     const VirMemFlags flags,
                                     const bool force) {
     //Like sharer(), but the original chunk belongs to the kernel
-
+    
     //Allocate management structures (we need at most two MallocMaps)
     if(!free_mapitems || !(free_mapitems->next_item)) {
         alloc_mapitems();
@@ -840,7 +840,7 @@ size_t MemAllocator::share_from_knl(const size_t location,
             return share_from_knl(location, target, flags, force);
         }
     }
-
+    
     //Setup chunk sharing
     if(!knl_busy_map) {
         if(force) panic(PANIC_IMPOSSIBLE_SHARING);
@@ -1262,32 +1262,32 @@ size_t MemAllocator::owneradd(const size_t location,
     if(source == PID_KERNEL) {
         //Kernel shares something with PID target
         maplist_mutex.grab_spin();
-
+            
             target_item = find_or_create_pid(target, force);
             if(!target_item) {
                 maplist_mutex.release();
                 return NULL;
             }
-
+            
             target_item->mutex.grab_spin(); //To prevent deadlocks, we must always grab mutexes in
             knl_mutex.grab_spin();          //the same order. As knl_mutex has higher chances of
                                             //being sollicitated, grab it for the shortest time
-
+                
                 result = share_from_knl(location, target_item, flags, force);
-
+                
                 if(!result) {
                     //If mapping has failed, we might have created a PID without an address space,
                     //which is a waste of precious memory space. Liberate it.
                     if(!(target_item->free_map) && !(target_item->busy_map)) remove_pid(target);
                 }
-
+            
             knl_mutex.release();
             target_item->mutex.release();
-
+        
         maplist_mutex.release();
     } if(target == PID_KERNEL) {
         //PID source shares something with kernel
-
+        
         //Kernel does not support paging, so only default flags are supported
         if((flags != VMEM_FLAGS_RW) && (flags != VMEM_FLAGS_SAME)) {
             if(force) panic(PANIC_IMPOSSIBLE_KERNEL_FLAGS); //Stub !
