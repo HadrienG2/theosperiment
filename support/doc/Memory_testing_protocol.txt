@@ -21,6 +21,8 @@
 
     These tests are supposed to be run before memory management has been initialized. Otherwise,
     they might smash its internal data, which would result in them malfunctioning
+    
+    This protocol tests PhyMemManager version 2, VirMemManager version 1, and MemAllocator version 1
 
 I/  Initialization
     1. Meta (testing the test itself)
@@ -177,6 +179,7 @@ II/ PhyMemManager
           one and only one page of memory is allocated to the kernel in the process.
         * Allocate two pages, free them, and allocate a 2 pages chunk. Use it to check that map
           items are cleaned up before being put in free_mapitems
+        * Start over with PIDs, making use of sharing functions to spend them.
     a. x86_64-specific
         * Repeat all allocation/liberation tests with the low memory allocators
 

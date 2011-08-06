@@ -19,6 +19,62 @@
 #include <address.h>
 #include <memory_support.h>
 
+
+bool PIDs::has_pid(const PID& the_pid) const {
+    PIDs* parser = (PIDs*) this;
+    
+    while(parser) {
+        if(parser->current_pid == the_pid) return true;
+        parser = parser->next_item;
+    }
+    return false;
+}
+
+unsigned int PIDs::length() const {
+    PIDs* parser = (PIDs*) this;
+    unsigned int result;
+    
+    for(result = 0; parser; ++result, parser = parser->next_item);
+    return result;
+}
+
+PIDs& PIDs::operator=(const PID& param) {
+    current_pid = param;
+    
+    return *this;
+}
+
+
+bool PIDs::operator==(const PIDs& param) const {
+    PIDs *source, *dest;
+    //This function compares two lists of PIDs, checking if each element of one is in the other.
+    //(The algorithm is O(N^2), but sharing should not often occur between more than ~10 processes)
+    
+    source = (PIDs*) this;
+    while(source) {
+        dest = (PIDs*) &param;
+        while(dest) {
+            if(dest->current_pid == source->current_pid) break;
+            dest = dest->next_item;
+        }
+        if(!dest) return false;
+        source = source->next_item;
+    }
+    
+    source = (PIDs*) &param;
+    while(source) {
+        dest = (PIDs*) this;
+        while(dest) {
+            if(dest->current_pid == source->current_pid) break;
+            dest = dest->next_item;
+        }
+        if(!dest) return false;
+        source = source->next_item;
+    }
+    
+    return true;
+}
+
 PhyMemMap* PhyMemMap::find_contigchunk(const size_t requested_size) const {
     PhyMemMap* current_item = (PhyMemMap*) this;
     PhyMemMap* result = NULL;
@@ -27,7 +83,7 @@ PhyMemMap* PhyMemMap::find_contigchunk(const size_t requested_size) const {
     //Explore the map, looking for contiguous chunks of free memory
     while(current_item) {
         if(current_size) {
-            if((current_item->location == next_location) && (current_item->owners[0]==PID_NOBODY)) {
+            if((current_item->location == next_location) && (current_item->has_owner(PID_NOBODY))) {
                 //We're in the middle of a contiguous chunk of free memory.
                 current_size+= current_item->size;
                 next_location = current_item->location+current_item->size;
@@ -39,7 +95,7 @@ PhyMemMap* PhyMemMap::find_contigchunk(const size_t requested_size) const {
                 next_location = 0;
             }
         }
-        if((!current_size) && (current_item->owners[0]==PID_NOBODY)) {
+        if((!current_size) && (current_item->has_owner(PID_NOBODY))) {
             //We've found something which might be the beginning of a contiguous chunk
             result = current_item;
             current_size = current_item->size;
@@ -48,7 +104,8 @@ PhyMemMap* PhyMemMap::find_contigchunk(const size_t requested_size) const {
         if(current_size >= requested_size) break; //We found a large enough chunk of memory
         current_item = current_item->next_mapitem;
     }
-
+    if(current_size < requested_size) result = NULL;
+    
     return result;
 }
 
@@ -60,6 +117,7 @@ PhyMemMap* PhyMemMap::find_thischunk(const size_t location) const {
         if(current_item->location == location) break;
         current_item = current_item->next_mapitem;
     }
+    
     return current_item;
 }
 
@@ -71,6 +129,7 @@ unsigned int PhyMemMap::buddy_length() const {
         ++result;
         current_item = current_item->next_buddy;
     }
+    
     return result;
 }
 
@@ -82,6 +141,7 @@ unsigned int PhyMemMap::length() const {
         ++result;
         current_item = current_item->next_mapitem;
     }
+    
     return result;
 }
 
@@ -92,6 +152,7 @@ bool PhyMemMap::operator==(const PhyMemMap& param) const {
     if(allocatable != param.allocatable) return false;
     if(next_buddy != param.next_buddy) return false;
     if(next_mapitem != param.next_mapitem) return false;
+    
     return true;
 }
 
@@ -103,6 +164,7 @@ VirMemMap* VirMemMap::find_thischunk(const size_t location) const {
         if(current_item->location == location) break;
         current_item = current_item->next_mapitem;
     }
+    
     return current_item;
 }
 
@@ -114,6 +176,7 @@ unsigned int VirMemMap::length() const {
         ++result;
         current_item = current_item->next_mapitem;
     }
+    
     return result;
 }
 
@@ -125,6 +188,7 @@ bool VirMemMap::operator==(const VirMemMap& param) const {
     if(points_to != param.points_to) return false;
     if(next_buddy != param.next_buddy) return false;
     if(next_mapitem != param.next_mapitem) return false;
+    
     return true;
 }
 
@@ -134,6 +198,7 @@ bool VirMapList::operator==(const VirMapList& param) const {
     if(pml4t_location != param.pml4t_location) return false;
     if(next_item != param.next_item) return false;
     if(mutex != param.mutex) return false;
+    
     return true;
 }
 
@@ -144,6 +209,7 @@ MallocMap* MallocMap::find_contigchunk(const size_t requested_size) const {
         if(current_item->size >= requested_size) break;
         current_item = current_item->next_item;
     }
+    
     return current_item;
 }
 
@@ -156,6 +222,7 @@ MallocMap* MallocMap::find_contigchunk(const size_t requested_size, const VirMem
         }
         current_item = current_item->next_item;
     }
+    
     return current_item;
 }
 
@@ -166,6 +233,7 @@ MallocMap* MallocMap::find_thischunk(const size_t location) const {
         if(current_item->location == location) break;
         current_item = current_item->next_item;
     }
+    
     return current_item;
 }
 
@@ -176,6 +244,7 @@ bool MallocMap::operator==(const MallocMap& param) const {
     if(next_item != param.next_item) return false;
     if(shareable != param.shareable) return false;
     if(share_count != param.share_count) return false;
+    
     return true;
 }
 
@@ -186,6 +255,7 @@ KnlMallocMap* KnlMallocMap::find_contigchunk(const size_t requested_size) const 
         if(current_item->size >= requested_size) break;
         current_item = current_item->next_item;
     }
+    
     return current_item;
 }
 
@@ -196,6 +266,7 @@ KnlMallocMap* KnlMallocMap::find_thischunk(const size_t location) const {
         if(current_item->location == location) break;
         current_item = current_item->next_item;
     }
+    
     return current_item;
 }
 
@@ -206,6 +277,7 @@ bool KnlMallocMap::operator==(const KnlMallocMap& param) const {
     if(next_item != param.next_item) return false;
     if(shareable != param.shareable) return false;
     if(share_count != param.share_count) return false;
+    
     return true;
 }
 
@@ -215,5 +287,6 @@ bool MallocPIDList::operator==(const MallocPIDList& param) const {
     if(busy_map != param.busy_map) return false;
     if(next_item != param.next_item) return false;
     if(mutex != param.mutex) return false;
+    
     return true;
 }

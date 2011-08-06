@@ -22,7 +22,6 @@
 #include <virtmem.h>
 
 #include <dbgstream.h>
-//#include <memory_test.h>
 #include <rpc_benchmark.h>
 
 extern "C" int kmain(const KernelInformation& kinfo) {
@@ -40,7 +39,7 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << "* Setting up memory allocator..." << endl;
     MemAllocator mallocator(phymem, virmem);
     setup_kalloc(mallocator);
-    dbgout << "All done !" << endl << sizeof(Tests::ServerCallDescriptor);
+    dbgout << "All done !" << endl;
     
     Tests::benchmark_rpc();
 

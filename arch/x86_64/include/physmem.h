@@ -25,7 +25,7 @@
 #include <pid.h>
 #include <synchronization.h>
 
-const int PHYMEMMANAGER_VERSION = 1; //Increase this when changes require a modification of
+const int PHYMEMMANAGER_VERSION = 2; //Increase this when changes require a modification of
                                      //the testing protocol
 
 //This class takes care of
@@ -44,15 +44,20 @@ class PhyMemManager {
         PhyMemMap* free_highmem; //A contiguous chunk representing free high memory
         PhyMemMap* free_mapitems; //A collection of spare PhyMemMap objects forming a dummy chunk,
                                   //ready for use in a memory map
-        OwnerlessMutex mmap_mutex;
+        PIDs* free_pids; //A collection of spare PIDs objects forming a dummy PIDs, ready for use
+                         //in a memory map
+        OwnerlessMutex mmap_mutex; //Hold when concurrent actions must be avoided
+        
         //Support methods used by public methods
         bool alloc_mapitems(); //Get some memory map storage space
+        bool alloc_pids(); //Get some PIDs storage space
         PhyMemMap* chunk_allocator(const PID initial_owner,
                                    const size_t size,
                                    PhyMemMap* map_used,
                                    bool contiguous = false);
         PhyMemMap* resvchunk_allocator(const PID initial_owner, const size_t location);
         bool chunk_liberator(PhyMemMap* chunk);
+        void pids_liberator(PIDs& target);
         bool chunk_owneradd(PhyMemMap* chunk, const PID new_owner);
         bool chunk_ownerdel(PhyMemMap* chunk, const PID former_owner);
         void merge_with_next(PhyMemMap* first_item); //Merge two consecutive elements of

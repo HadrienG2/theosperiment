@@ -100,6 +100,6 @@ namespace Tests {
     void bench_stop() {
         dbgout << txtcolor(TXT_LIGHTBLUE);
         dbgout << "  End of benchmark reached, stop your chronometer !";
-        dbgout << txtcolor(TXT_LIGHTGRAY) << bp() << endl;
+        dbgout << txtcolor(TXT_LIGHTGRAY) << endl;
     }
 }

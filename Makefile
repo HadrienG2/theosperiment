@@ -48,7 +48,7 @@ AS32=$(BS_ARCH)-elf-as
 CC32=$(BS_ARCH)-elf-gcc
 LD32=$(BS_ARCH)-elf-ld
 C_WARNINGS=-Wall -Wextra -Werror
-C_LIBS=-nostdlib -nostartfiles -nodefaultlibs -fno-builtin -ffreestanding
+C_LIBS=-nostdlib -ffreestanding
 C_STD=-std=c99
 CFLAGS=$(C_WARNINGS) $(C_LIBS) $(C_STD)
 ifeq ($(Fdebug),1)
@@ -62,9 +62,9 @@ AS=$(ARCH)-elf-as
 CXX=$(ARCH)-elf-g++
 LD=$(ARCH)-elf-ld
 CXX_WARNINGS=-Wall -Wextra
-CXX_LIBS=-nostdlib -nostartfiles -nodefaultlibs -fno-builtin
+CXX_LIBS=-nostdlib -ffreestanding
 CXX_FEATURES=-fno-exceptions -fno-rtti -fno-stack-protector -fno-threadsafe-statics
-CXX_STD=-std=c++98
+CXX_STD=-std=c++0x
 CXXFLAGS=$(CXX_WARNINGS) $(CXX_LIBS) $(CXX_FEATURES) $(CXX_ARCH) $(CXX_STD)
 ifeq ($(Fdebug),1)
     CXXFLAGS += -O0 -DDEBUG
@@ -85,6 +85,7 @@ BS_C_OBJ = $(BS_C_SRC:.c=.bsc.o)
 KNL_ASM_OBJ = $(KNL_ASM_SRC:.s=.knlasm.o)
 KNL_CPP_OBJ = $(KNL_CPP_SRC:.cpp=.knlcpp.o)
 TMP_FILES = $(BS_ASM_SRC:.s=.s~) $(BS_C_SRC:.c=.c~) $(KNL_ASM_SRC:.s=.s~) $(KNL_CPP_SRC:.cpp=.cpp~)
+TMP_FILES += Makefile~
 
 #Make rules
 all: cdimage
@@ -135,7 +136,7 @@ $(KNL_BIN): $(KNL_ASM_OBJ) $(KNL_CPP_OBJ) $(HEADERS)
 
 clean:
 	@rm -f $(BS_GZ) $(BS_BIN) $(BS_ASM_OBJ) $(BS_C_OBJ) $(KNL_BIN) $(KNL_ASM_OBJ) $(KNL_CPP_OBJ)
-	@rm -rf cdimage/* $(TMP_FILES) Makefile~
+	@rm -rf cdimage/* $(TMP_FILES)
 
 mrproper: clean
 	@rm -f $(CDIMAGE)
