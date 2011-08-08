@@ -1,6 +1,6 @@
 /*A dirty workaround for G++ 4.5 missing stdint.h
   WARNING : THIS ONLY WORKS BECAUSE x86_64 G++ USES LP64, ANOTHER COMPILER MIGHT FAIL !
-  THIS SHOULD NOT, UNDER ANY CIRCUMSTANCES, BEING USED VOLUNTARILY AS
+  THIS SHOULD NOT, UNDER ANY CIRCUMSTANCES, BE USED VOLUNTARILY AS
   AN STDINT.H REPLACEMENT. INCOMPATILITIES *WILL* OCCUR. YOU ARE WARNED.
    
     Copyright (C) 2010   Hadrien Grasland
@@ -25,7 +25,7 @@
 #ifndef __cplusplus
   #include <stdint.h>
 #else
-  //#include <stdint.h>
+  //I wish I could just write #include <stdint.h> here...
   typedef signed char int8_t;
   typedef unsigned char uint8_t;
   typedef signed short int16_t;

@@ -75,7 +75,7 @@ endif
 #Linking flags
 LFLAGS = -s --warn-common --warn-once $(L_ARCH)
 
-#Definition of targets
+#Abstracting away filenames
 CDIMAGE = cdimage.iso
 BS_BIN = bin/bs_kernel.bin
 BS_GZ = $(BS_BIN).gz
@@ -88,17 +88,28 @@ TMP_FILES = $(BS_ASM_SRC:.s=.s~) $(BS_C_SRC:.c=.c~) $(KNL_ASM_SRC:.s=.s~) $(KNL_
 TMP_FILES += Makefile~
 
 #Make rules
-all: cdimage
+all: cdimage Makefile
 	@echo "Reminder : remember to run svn update, status, and commit frequently !"
 
-run: all
+run: all Makefile
 	@echo c > comm_test
 	@nice -n 7 bochsdbg -qf support/bochsrc.txt -rc comm_test
 	@rm -f comm_test
 
-cdimage: $(CDIMAGE)
+cdimage: $(CDIMAGE) Makefile
 
-$(CDIMAGE): $(BS_GZ) $(KNL_BIN)
+bootstrap: $(BS_GZ) Makefile
+
+kernel: $(KNL_BIN) Makefile
+
+clean: Makefile
+	@rm -f $(BS_GZ) $(BS_BIN) $(BS_ASM_OBJ) $(BS_C_OBJ) $(KNL_BIN) $(KNL_ASM_OBJ) $(KNL_CPP_OBJ)
+	@rm -rf cdimage/* $(TMP_FILES)
+
+mrproper: clean Makefile
+	@rm -f $(CDIMAGE)
+
+$(CDIMAGE): $(BS_GZ) $(KNL_BIN) Makefile
 	@rm -rf $(CDIMAGE)
 	@rm -rf bin/cdimage/*
 	@mkdir bin/cdimage/boot
@@ -109,35 +120,23 @@ $(CDIMAGE): $(BS_GZ) $(KNL_BIN)
 	@cp support/menu.lst bin/cdimage/boot/grub
 	@genisoimage $(GENISO_PARAMS) -o $(CDIMAGE) bin/cdimage
 
-bootstrap: $(BS_GZ)
-
-kernel: $(KNL_BIN)
-
-$(BS_BIN): $(BS_ASM_OBJ) $(BS_C_OBJ) $(BS_HEADERS)
+$(BS_BIN): $(BS_ASM_OBJ) $(BS_C_OBJ) $(BS_HEADERS) Makefile
 	@$(LD32) -T support/bs_linker.lds -o $@ $(BS_ASM_OBJ) $(BS_C_OBJ) $(LFLAGS)
 
-$(KNL_BIN): $(KNL_ASM_OBJ) $(KNL_CPP_OBJ) $(HEADERS)
+$(KNL_BIN): $(KNL_ASM_OBJ) $(KNL_CPP_OBJ) $(HEADERS) Makefile
 	@$(LD) -T support/kernel_linker.lds -o $@ $(KNL_ASM_OBJ) $(KNL_CPP_OBJ) $(LFLAGS)
 
-%.bsasm.o: %.s
+%.bsasm.o: %.s Makefile
 	@$(AS32) $< -o $@
 
-%.bsc.o: %.c $(BS_HEADERS)
+%.bsc.o: %.c $(BS_HEADERS) Makefile
 	@$(CC32) -o $@ -c $< $(CFLAGS) $(BS_INCLUDES)
 
-%.knlasm.o: %.s
+%.knlasm.o: %.s Makefile
 	@$(AS) $< -o $@
 
-%.knlcpp.o: %.cpp $(HEADERS)
+%.knlcpp.o: %.cpp $(HEADERS) Makefile
 	@$(CXX) -o $@ -c $< $(CXXFLAGS) $(INCLUDES)
 
-%.bin.gz: %.bin
+%.bin.gz: %.bin Makefile
 	@gzip -c $< > $@
-
-clean:
-	@rm -f $(BS_GZ) $(BS_BIN) $(BS_ASM_OBJ) $(BS_C_OBJ) $(KNL_BIN) $(KNL_ASM_OBJ) $(KNL_CPP_OBJ)
-	@rm -rf cdimage/* $(TMP_FILES)
-
-mrproper: clean
-	@rm -f $(CDIMAGE)
-
