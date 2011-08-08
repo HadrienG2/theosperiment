@@ -38,13 +38,13 @@ uint32_t strlen(const char* str) {
 
 KString::KString(const char* source) {
     len = strlen(source);
-    contents = new char[len+1];
+    contents = new(PID_KERNEL, VMEM_FLAGS_RW, true) char[len+1];
     memcpy((void*) contents, (const void*) source, len+1);
 }
 
 KString::KString(const KString& source) {
     len = source.len;
-    contents = new char[len+1];
+    contents = new(PID_KERNEL, VMEM_FLAGS_RW, true) char[len+1];
     memcpy((void*) contents, (const void*) source.contents, len);
 }
 
@@ -57,7 +57,7 @@ KString& KString::operator=(const char* source) {
     if(source_len != len) {
         len = source_len;
         if(contents) delete[] contents;
-        contents = new char[len+1];
+        contents = new(PID_KERNEL, VMEM_FLAGS_RW, true) char[len+1];
     }
     memcpy((void*) contents, (const void*) source, len);
 
@@ -70,7 +70,7 @@ KString& KString::operator=(const KString& source) {
     if(source.len != len) {
         len = source.len;
         if(contents) delete[] contents;
-        contents = new char[len+1];
+        contents = new(PID_KERNEL, VMEM_FLAGS_RW, true) char[len+1];
     }
     memcpy((void*) contents, (const void*) source.contents, len+1);
 
@@ -86,7 +86,7 @@ KString& KString::operator+=(const char* source) {
     if(!source_len) return *this;
     
     //Creation of the concatenated string
-    char* buffer = new char[len+source_len+1];
+    char* buffer = new(PID_KERNEL, VMEM_FLAGS_RW, true) char[len+source_len+1];
     memcpy((void*) buffer, (const void*) contents, len);
     buffer+= len;
     memcpy((void*) buffer, (const void*) source, source_len+1);
@@ -106,7 +106,7 @@ KString& KString::operator+=(const KString& source) {
     if(!source.len) return *this;
     
     //Creation of the concatenated string
-    char* buffer = new char[len+source.len+1];
+    char* buffer = new(PID_KERNEL, VMEM_FLAGS_RW, true) char[len+source.len+1];
     memcpy((void*) buffer, (const void*) contents, len);
     buffer+= len;
     memcpy((void*) buffer, (const void*) source.contents, source.len+1);
@@ -138,7 +138,7 @@ bool KString::operator==(const KString& param) const {
 size_t KString::heap_size() {
     start_faking_allocation();
     
-        char* not_really_allocd = new char[len+1];
+        char* not_really_allocd = new(PID_KERNEL, VMEM_FLAGS_RW, true) char[len+1];
         size_t to_be_allocd = would_be_allocd;
         not_really_allocd = NULL;
     
