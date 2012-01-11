@@ -76,6 +76,9 @@ size_t MemAllocator::allocator(const size_t size,
                                MallocPIDList* target,
                                const VirMemFlags flags,
                                const bool force) {
+    //WARNING : Most of this code is duplicated in knl_allocator, so if you update one, consider
+    //updating the other. It's a known problem, and I have no solution.
+    //
     //How it works :
     //  1.Look for a suitable hole in the target's free_map linked list
     //  2.If there is none, allocate a chunk through phymem and map it through virmem, then put
@@ -202,6 +205,9 @@ size_t MemAllocator::allocator_shareable(size_t size,
                                          MallocPIDList* target,
                                          const VirMemFlags flags,
                                          const bool force) {
+    //WARNING : Most of this code is duplicated in knl_allocator_shareable, so if you update one,
+    //consider updating the other. It's a known problem, and I have no solution.
+    //
     //Same as above, but always allocates a new chunk and does not put extra memory in free_map
 
     //Allocating memory
@@ -256,6 +262,9 @@ size_t MemAllocator::allocator_shareable(size_t size,
 }
 
 bool MemAllocator::liberator(const size_t location, MallocPIDList* target) {
+    //WARNING : Most of this code is duplicated in knl_liberator, so if you update one, consider
+    //updating the other. It's a known problem, and I have no solution.
+    //
     //How it works :
     //  1.Find the relevant item in busy_map. If it fails, return false. Keep its predecessor around
     //    too : that will be useful in step 2. Check the item's share_count : if it is higher than
@@ -420,6 +429,11 @@ size_t MemAllocator::share(const size_t location,
                            MallocPIDList* target,
                            const VirMemFlags flags,
                            const bool force) {
+    //WARNING : Most of this code is duplicated in share_from_knl and share_to_knl, so if you update
+    //one, consider updating the other. It's a known problem, and I have no solution.
+    //
+    //This function shares a memory block of source with target, giving target "flags" access flags
+
     //Allocate management structures (we need at most two MallocMaps)
     if(!free_mapitems || !(free_mapitems->next_item)) {
         alloc_mapitems();
@@ -520,15 +534,18 @@ MallocMap* MemAllocator::shared_already(PhyMemMap* to_share, MallocPIDList* targ
         if(map_parser->belongs_to->points_to == to_share) break;
         map_parser = map_parser->next_item;
     }
-    
+
     return map_parser;
 }
 
 size_t MemAllocator::knl_allocator(const size_t size, const bool force) {
+    //WARNING : Most of this code is duplicated in allocator, so if you update one, consider
+    //updating the other. It's a known problem, and I have no solution.
+    //
     //This works a lot like allocator(), except that it uses knl_free_map and knl_busy_map and that
     //since paging is disabled for the kernel, the chunk is allocated through
     //PhyMemManager::alloc_chunk with contiguous flag on, and not mapped through virmem.
-    
+
     PhyMemMap* phy_chunk = NULL;
 
     //Step 1 : Look for a suitable hole in knl_free_map
@@ -545,7 +562,7 @@ size_t MemAllocator::knl_allocator(const size_t size, const bool force) {
             return knl_allocator(size, force);
         }
 
-        //Putting that memory in a MallocMap block
+        //Putting that memory in a KnlMallocMap block
         if(!free_mapitems) {
             alloc_mapitems();
             if(!free_mapitems) {
@@ -635,6 +652,9 @@ size_t MemAllocator::knl_allocator(const size_t size, const bool force) {
 }
 
 size_t MemAllocator::knl_allocator_shareable(size_t size, const bool force) {
+    //WARNING : Most of this code is duplicated in allocator_shareable, so if you update one,
+    //consider updating the other. It's a known problem, and I have no solution.
+    //
     //allocator_shareable(), but modified in the same way as above
 
     //Allocating memory
@@ -681,10 +701,13 @@ size_t MemAllocator::knl_allocator_shareable(size_t size, const bool force) {
 }
 
 bool MemAllocator::knl_liberator(const size_t location) {
+    //WARNING : Most of this code is duplicated in liberator, so if you update one, consider
+    //updating the other. It's a known problem, and I have no solution.
+    //
     //This works a lot like liberator(), except that it uses knl_free_map and knl_busy_map and that
     //   -Since paging is disabled for the kernel, the chunk is only liberated through phymem
     //   -The kernel's structures are part of MemAllocator, they are never removed.
-    
+
     KnlMallocMap *freed_item, *previous_item = NULL;
 
     //Step 1 : Find the item in knl_busy_map and take it out of said map.
@@ -829,8 +852,11 @@ size_t MemAllocator::share_from_knl(const size_t location,
                                     MallocPIDList* target,
                                     const VirMemFlags flags,
                                     const bool force) {
-    //Like sharer(), but the original chunk belongs to the kernel
-    
+    //WARNING : Most of this code is duplicated in share and share_to_knl, so if you update
+    //one, consider updating the other. It's a known problem, and I have no solution.
+    //
+    //Like share(), but the original chunk belongs to the kernel
+
     //Allocate management structures (we need at most two MallocMaps)
     if(!free_mapitems || !(free_mapitems->next_item)) {
         alloc_mapitems();
@@ -840,7 +866,7 @@ size_t MemAllocator::share_from_knl(const size_t location,
             return share_from_knl(location, target, flags, force);
         }
     }
-    
+
     //Setup chunk sharing
     if(!knl_busy_map) {
         if(force) panic(PANIC_IMPOSSIBLE_SHARING);
@@ -926,6 +952,9 @@ size_t MemAllocator::share_to_knl(const size_t location,
                                   MallocPIDList* source,
                                   const VirMemFlags flags,
                                   const bool force) {
+    //WARNING : Most of this code is duplicated in share_from_knl and share, so if you update
+    //one, consider updating the other. It's a known problem, and I have no solution.
+    //
     //Like sharer(), but the kernel is the recipient
 
     //Allocate management structures (we need at most two MallocMaps)
@@ -1017,7 +1046,7 @@ KnlMallocMap* MemAllocator::shared_to_knl_already(PhyMemMap* to_share) {
         if(map_parser->belongs_to == to_share) break;
         map_parser = map_parser->next_item;
     }
-    
+
     return map_parser;
 }
 
@@ -1123,7 +1152,7 @@ size_t MemAllocator::malloc(const size_t size, PID target, const VirMemFlags fla
     if(!size) return NULL;
     MallocPIDList* list_item;
     size_t result;
-    
+
     if(target == PID_KERNEL) {
         //Kernel does not support paging, so only default flags are supported
         if(flags != VMEM_FLAGS_RW) {
@@ -1131,37 +1160,37 @@ size_t MemAllocator::malloc(const size_t size, PID target, const VirMemFlags fla
             return NULL;
         }
         knl_mutex.grab_spin();
-            
+
             if(knl_pool) {
                 result = knl_pool;
                 knl_pool+= size;
             } else {
                 result = knl_allocator(size, force);
             }
-            
+
         knl_mutex.release();
     } else {
         maplist_mutex.grab_spin();
-            
+
             list_item = find_or_create_pid(target, force);
             if(!list_item) {
                 maplist_mutex.release();
                 return NULL;
             }
-            
+
         list_item->mutex.grab_spin();
         maplist_mutex.release();
-            
+
             if(list_item->pool) {
                 result = list_item->pool;
                 list_item->pool+= size;
             } else {
                 result = allocator(size, list_item, flags, force);
             }
-            
+
         list_item->mutex.release();
     }
-    
+
     return result;
 }
 
@@ -1179,26 +1208,26 @@ size_t MemAllocator::malloc_shareable(size_t size,
             return NULL;
         }
         knl_mutex.grab_spin();
-            
+
             if(knl_pool) {
                 result = knl_pool;
                 knl_pool+= size;
             } else {
                 result = knl_allocator_shareable(size, force);
             }
-            
+
         knl_mutex.release();
     } else {
         maplist_mutex.grab_spin();
-            
+
             list_item = find_or_create_pid(target, force);
             if(!list_item) {
                 maplist_mutex.release();
                 return NULL;
             }
-            
+
             list_item->mutex.grab_spin();
-                
+
                 if(list_item->pool) {
                     result = list_item->pool;
                     list_item->pool+= size;
@@ -1210,12 +1239,12 @@ size_t MemAllocator::malloc_shareable(size_t size,
                         if(!(list_item->free_map) && !(list_item->busy_map)) remove_pid(target);
                     }
                 }
-                
+
             list_item->mutex.release();
-            
+
         maplist_mutex.release();
     }
-    
+
     return result;
 }
 
@@ -1262,32 +1291,32 @@ size_t MemAllocator::owneradd(const size_t location,
     if(source == PID_KERNEL) {
         //Kernel shares something with PID target
         maplist_mutex.grab_spin();
-            
+
             target_item = find_or_create_pid(target, force);
             if(!target_item) {
                 maplist_mutex.release();
                 return NULL;
             }
-            
+
             target_item->mutex.grab_spin(); //To prevent deadlocks, we must always grab mutexes in
             knl_mutex.grab_spin();          //the same order. As knl_mutex has higher chances of
                                             //being sollicitated, grab it for the shortest time
-                
+
                 result = share_from_knl(location, target_item, flags, force);
-                
+
                 if(!result) {
                     //If mapping has failed, we might have created a PID without an address space,
                     //which is a waste of precious memory space. Liberate it.
                     if(!(target_item->free_map) && !(target_item->busy_map)) remove_pid(target);
                 }
-            
+
             knl_mutex.release();
             target_item->mutex.release();
-        
+
         maplist_mutex.release();
     } if(target == PID_KERNEL) {
         //PID source shares something with kernel
-        
+
         //Kernel does not support paging, so only default flags are supported
         if((flags != VMEM_FLAGS_RW) && (flags != VMEM_FLAGS_SAME)) {
             if(force) panic(PANIC_IMPOSSIBLE_KERNEL_FLAGS); //Stub !
@@ -1378,61 +1407,61 @@ size_t MemAllocator::init_pool_shareable(const size_t size,
 size_t MemAllocator::leave_pool(PID target) {
     MallocPIDList* list_item;
     size_t pool_state;
-    
+
     if(target == PID_KERNEL) {
         knl_mutex.grab_spin();
-            
+
             pool_state = knl_pool;
             knl_pool = NULL;
-            
+
         knl_mutex.release();
     } else {
         maplist_mutex.grab_spin();
-            
+
             list_item = find_pid(target);
             if(!list_item) {
                 maplist_mutex.release();
                 return NULL;
             }
-            
+
         list_item->mutex.grab_spin();
         maplist_mutex.release();
-            
+
             pool_state = list_item->pool;
             list_item->pool = NULL;
-            
+
         list_item->mutex.release();
     }
-    
+
     return pool_state;
 }
 
 bool MemAllocator::set_pool(size_t pool, PID target, const bool force) {
     MallocPIDList* list_item;
-    
+
     if(target == PID_KERNEL) {
         knl_mutex.grab_spin();
-            
+
             knl_pool = pool;
-            
+
         knl_mutex.release();
     } else {
         maplist_mutex.grab_spin();
-            
+
             list_item = find_or_create_pid(target, force);
             if(!list_item) {
                 maplist_mutex.release();
                 return false;
             }
-            
+
         list_item->mutex.grab_spin();
         maplist_mutex.release();
-            
+
             list_item->pool = pool;
-            
+
         list_item->mutex.release();
     }
-    
+
     return true;
 }
 

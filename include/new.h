@@ -23,11 +23,10 @@
 #include <kmem_allocator.h>
 
 //State of the new allocator, and functions which alter it
-extern bool fake_allocation; //Allocation is not actually performed, instead the number of bytes
-                             //that would have been allocated is written in the following integer.
-extern size_t would_be_allocd;
-inline void start_faking_allocation() {fake_allocation = true;}
-inline void stop_faking_allocation() {fake_allocation = false;}
+extern unsigned int fake_allocation; //Allocation is not actually performed, instead the number of
+                                    //bytes that would have been allocated is returned as the result
+inline void start_faking_allocation() {fake_allocation+=1;}
+inline void stop_faking_allocation() {if(fake_allocation) fake_allocation-=1;}
 
 //new operator
 inline void* operator new(const size_t size,
@@ -37,8 +36,7 @@ inline void* operator new(const size_t size,
     if(!fake_allocation) {
         return kalloc(size, target, flags, force);
     } else {
-        would_be_allocd = size;
-        return NULL;
+        return (void*) size;
     }
 }
 inline void* operator new(const size_t size) throw() {return operator new(size, PID_KERNEL);}

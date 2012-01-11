@@ -138,9 +138,7 @@ bool KString::operator==(const KString& param) const {
 size_t KString::heap_size() {
     start_faking_allocation();
     
-        char* not_really_allocd = new(PID_KERNEL, VMEM_FLAGS_RW, true) char[len+1];
-        size_t to_be_allocd = would_be_allocd;
-        not_really_allocd = NULL;
+        size_t to_be_allocd = (size_t) new(PID_KERNEL, VMEM_FLAGS_RW, true) char[len+1];
     
     stop_faking_allocation();
     

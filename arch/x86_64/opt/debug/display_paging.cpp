@@ -106,7 +106,7 @@ namespace x86paging {
 
     void dbg_print_pml4t(const uint64_t cr3_value) {
         const uint64_t mask = (1<<12)-1+PBIT_NOEXECUTE; //Mask used to eliminate the control bits of CR3
-        uint32_t pml4t_location = cr3_value - (cr3_value & mask);
+        uint64_t pml4t_location = cr3_value - (cr3_value & mask);
         pml4e* pml4t = (pml4e*) pml4t_location;  
         pml4e current_el;
         uint64_t address;

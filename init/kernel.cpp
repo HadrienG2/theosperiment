@@ -25,12 +25,9 @@
 #include <rpc_benchmark.h>
 
 extern "C" int kmain(const KernelInformation& kinfo) {
-    dbgout << txtcolor(TXT_LIGHTGREEN) << "Kernel loaded: " << kinfo.cpu_info.core_amount;
-    dbgout << " CPU core(s) around."  << txtcolor(TXT_LIGHTGRAY) << endl;
+    dbgout << "* Kernel loaded, " << kinfo.cpu_info.core_amount << " CPU core(s) detected" << endl;
 
-    //Put test suites here, as otherwise they might smash the work of already initialized components
-    //Tests::test_memory(kinfo);
-    //dbgout << bp();
+    //Some test suites should be run here, before kernel startup.
 
     dbgout << "* Setting up physical memory management..." << endl;
     PhyMemManager phymem(kinfo);
@@ -39,9 +36,12 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << "* Setting up memory allocator..." << endl;
     MemAllocator mallocator(phymem, virmem);
     setup_kalloc(mallocator);
-    dbgout << "All done !" << endl;
-    
-    Tests::benchmark_rpc();
+    dbgout << "* Setting up process management..." << endl;
+    //TODO : Process management structures, RPC
+
+    dbgout << "* Kernel initialized, ready to proceed !";
+
+    //Tests::benchmark_rpc();
 
     return 0;
 }
