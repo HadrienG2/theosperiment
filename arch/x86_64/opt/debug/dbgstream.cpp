@@ -487,7 +487,7 @@ DebugOutput& DebugOutput::operator<<(const KString& input) {
     for(uint32_t index = 0; index < input.length(); ++index) {
         *this << input[index];
     }
-    
+
     return *this;
 }
 
@@ -636,7 +636,7 @@ DebugOutput& DebugOutput::operator<<(const PhyMemMap& input) {
         if(map->has_owner(PID_KERNEL)) {
             *this << " | KERN | ";
         } else {
-            if(map->has_owner(PID_NOBODY)) {
+            if(map->has_owner(PID_INVALID)) {
                 *this << " | none | ";
             } else {
                 *this << " | OTH. | ";

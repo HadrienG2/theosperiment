@@ -18,5 +18,4 @@
  
 #include <new.h>
 
-bool fake_allocation = false;
-size_t would_be_allocd;
+unsigned int fake_allocation;

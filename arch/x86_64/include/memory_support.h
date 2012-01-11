@@ -34,9 +34,9 @@ struct PIDs {
     PID current_pid;
     PIDs* next_item;
     uint32_t padding;
-    
+
     //Constructors and destructors
-    PIDs() : current_pid(PID_NOBODY),
+    PIDs() : current_pid(PID_INVALID),
                          next_item(NULL) {}
     PIDs(const PID& first) : current_pid(first),
                              next_item(NULL) {}
@@ -45,7 +45,7 @@ struct PIDs {
     bool has_pid(const PID& the_pid) const;
     unsigned int length() const;
     PIDs& operator=(const PID& param); //Set the contents of a blank PIDs to a single PID
-    
+
     //Comparison of PIDs
     bool operator==(const PIDs& param) const;
     bool operator!=(const PIDs& param) const {return !(*this==param);}
@@ -66,7 +66,7 @@ struct PhyMemMap {
     uint64_t padding2;
     PhyMemMap() : location(0),
                   size(0),
-                  owners(PID_NOBODY),
+                  owners(PID_INVALID),
                   allocatable(true),
                   next_buddy(NULL),
                   next_mapitem(NULL) {};
@@ -115,7 +115,7 @@ struct VirMemMap {
     PhyMemMap* points_to; //Physical memory chunk this virtual memory chunk points to
     VirMemMap* next_buddy;
     VirMemMap* next_mapitem;
-    uint32_t padding; 
+    uint32_t padding;
     uint64_t padding2;
     VirMemMap() : location(0),
                   size(0),
@@ -144,7 +144,7 @@ struct VirMapList {
     VirMapList* next_item;
     OwnerlessMutex mutex;
     uint16_t padding2;
-    VirMapList() : map_owner(PID_NOBODY),
+    VirMapList() : map_owner(PID_INVALID),
                    map_pointer(NULL),
                    pml4t_location(NULL),
                    next_item(NULL) {};
@@ -235,7 +235,7 @@ struct MallocPIDList {
     uint64_t padding2;
     uint64_t padding3;
     uint64_t padding4;
-    MallocPIDList() : map_owner(PID_NOBODY),
+    MallocPIDList() : map_owner(PID_INVALID),
                       free_map(NULL),
                       busy_map(NULL),
                       next_item(NULL),

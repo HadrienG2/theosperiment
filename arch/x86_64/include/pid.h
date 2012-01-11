@@ -22,7 +22,7 @@
 #include <hack_stdint.h>
 
 typedef uint32_t PID;
-const PID PID_NOBODY = 0;
+const PID PID_INVALID = 0;
 const PID PID_KERNEL = 1;
 
 #endif

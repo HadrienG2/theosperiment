@@ -28,12 +28,18 @@
 
 //Possible mmap elements nature
 typedef uint8_t KItemNature;
-#define NATURE_FRE 0 //Free memory
-#define NATURE_RES 1 //Reserved address range
-#define NATURE_BSK 2 //Bootstrap kernel component
-#define NATURE_KNL 3 //Kernel and modules
+const KItemNature NATURE_FRE = 0; //Free memory
+const KItemNature NATURE_RES = 1; //Reserved address range
+const KItemNature NATURE_BSK = 2; //Bootstrap kernel component
+const KItemNature NATURE_KNL = 3; //Kernel, vital resources, modules
+
+//Supported CPU architectures
+typedef uint8_t CpuArch;
+const CpuArch ARCH_INVALID = 0;
+const CpuArch ARCH_X86_64 = 1;
 
 struct KernelCPUInfo {
+  CpuArch arch;
   uint32_t core_amount; //Indicates how many CPU cores there are on this system
   uint32_t cache_line_size; //Size of a cache line in bytes. 0 means that caching is not supported
   ArchSpecificCPUInfo arch_info; //Other arch-specific info
