@@ -10,7 +10,7 @@ BUILDING PROCEDURE
 We now use makefiles. Available make commands are :
 -make (= make all) : Build everything
 -make cdimage : Build a CD-rom image
--make run : Build everything and run
+-make run : Build everything and run in bochs
 -make clean : Clean temporary files
 -make kernel : Build a kernel binary
 -make bootstrap : Build a bootstrap binary and archive
