@@ -24,7 +24,7 @@
 #include <paging.h>
 
 //Path to the kernel
-const char* KERNEL_NAME="/boot/kernel.bin";
+const char* KERNEL_NAME="/System/boot/kernel.bin";
 
 void load_kernel(KernelInformation* kinfo,
                                  const KernelMemoryMap* kernel,

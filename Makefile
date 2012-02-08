@@ -7,8 +7,9 @@ ARCH = x86_64
 BS_ARCH = i686
 CXX_ARCH = -mcmodel=small -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow
 L_ARCH = -zmax-page-size=0x1000
-GENISO_PARAMS = -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table
-GENISO_PARAMS += -quiet -A "The OS-periment"
+GENISO_PARAMS = -R -b System/boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4
+GENISO_PARAMS += -boot-info-table -quiet -A "The OS-periment"
+GENISO_PARAMS += -graft-points boot/grub/menu.lst=bin/cdimage/System/boot/grub/menu.lst
 
 #Source files go here
 BS_ASM_SRC = $(wildcard arch/$(ARCH)/bootstrap/*.s arch/$(ARCH)/bootstrap/lib/*.s)
@@ -54,7 +55,7 @@ CFLAGS=$(C_WARNINGS) $(C_LIBS) $(C_STD)
 ifeq ($(Fdebug),1)
     CFLAGS += -O0 -DDEBUG
 else
-    CFLAGS += -O2
+    CFLAGS += -O3
 endif
 
 #Compilation parameters for the kernel
@@ -112,13 +113,14 @@ mrproper: clean Makefile
 $(CDIMAGE): $(BS_GZ) $(KNL_BIN) Makefile
 	@rm -rf $(CDIMAGE)
 	@rm -rf bin/cdimage/*
-	@mkdir bin/cdimage/boot
-	@mkdir bin/cdimage/boot/grub
-	@cp support/stage2_eltorito bin/cdimage/boot/grub
-	@cp $(BS_GZ) bin/cdimage/boot
-	@cp $(KNL_BIN) bin/cdimage/boot
-	@cp support/menu.lst bin/cdimage/boot/grub
-	@genisoimage $(GENISO_PARAMS) -o $(CDIMAGE) bin/cdimage
+	@mkdir bin/cdimage/System
+	@mkdir bin/cdimage/System/boot
+	@mkdir bin/cdimage/System/boot/grub
+	@cp support/stage2_eltorito bin/cdimage/System/boot/grub
+	@cp $(BS_GZ) bin/cdimage/System/boot
+	@cp $(KNL_BIN) bin/cdimage/System/boot
+	@cp support/menu.lst bin/cdimage/System/boot/grub
+	@genisoimage -o $(CDIMAGE) $(GENISO_PARAMS) bin/cdimage
 
 $(BS_BIN): $(BS_ASM_OBJ) $(BS_C_OBJ) $(BS_HEADERS) Makefile
 	@$(LD32) -T support/bs_linker.lds -o $@ $(BS_ASM_OBJ) $(BS_C_OBJ) $(LFLAGS)
