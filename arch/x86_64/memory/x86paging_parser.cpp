@@ -177,7 +177,7 @@ namespace x86paging {
         if(!next_table) {
             //If not, allocate paging structures
             PhyMemManager* phymem = (PhyMemManager*) additional_params[0];
-            PhyMemMap* allocd_page = phymem->alloc_page(PID_KERNEL);
+            PhyMemMap* allocd_page = phymem->alloc_chunk(PID_KERNEL);
             if(!allocd_page) return 0;
             next_table = (uint64_t*) allocd_page->location;
 

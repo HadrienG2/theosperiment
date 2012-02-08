@@ -14,5 +14,5 @@ WHEN : If Bochs becomes faster when mapping 4GB of memory.
 WHERE : include/hack_stdint.h
 WHY : To ensure integer size consistency between 32-bit C code and
       64-bit C++ code
-WHEN : Can be disabled if ISO C++ gets the stdint.h header. 
+WHEN : If G++ gets a built-in stdint.h header. 
 ***********************************************************************

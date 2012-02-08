@@ -26,15 +26,15 @@
 
 bool MemAllocator::alloc_mapitems() {
     size_t used_space;
-    PhyMemMap* allocated_chunk;
+    PhyMemMap* allocated_page;
     MallocMap* current_item;
 
     //Allocate a page of memory
-    allocated_chunk = phymem->alloc_page(PID_KERNEL);
-    if(!allocated_chunk) return false;
+    allocated_page = phymem->alloc_chunk(PID_KERNEL);
+    if(!allocated_page) return false;
 
     //Fill it with initialized map items
-    free_mapitems = (MallocMap*) (allocated_chunk->location);
+    free_mapitems = (MallocMap*) (allocated_page->location);
     current_item = free_mapitems;
     for(used_space = sizeof(MallocMap); used_space < PG_SIZE; used_space+=sizeof(MallocMap)) {
         current_item = new(current_item) MallocMap();
@@ -50,15 +50,15 @@ bool MemAllocator::alloc_mapitems() {
 
 bool MemAllocator::alloc_listitems() {
     size_t used_space;
-    PhyMemMap* allocated_chunk;
+    PhyMemMap* allocated_page;
     MallocPIDList* current_item;
 
     //Allocate a page of memory
-    allocated_chunk = phymem->alloc_page(PID_KERNEL);
-    if(!allocated_chunk) return false;
+    allocated_page = phymem->alloc_chunk(PID_KERNEL);
+    if(!allocated_page) return false;
 
     //Fill it with initialized list items
-    free_listitems = (MallocPIDList*) (allocated_chunk->location);
+    free_listitems = (MallocPIDList*) (allocated_page->location);
     current_item = free_listitems;
     for(used_space = sizeof(MallocPIDList); used_space < PG_SIZE; used_space+=sizeof(MallocPIDList)) {
         current_item = new(current_item) MallocPIDList();
