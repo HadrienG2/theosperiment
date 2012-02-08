@@ -2,5 +2,5 @@ default 0
 timeout 0
 
 title The OS-periment
-kernel /boot/bs_kernel.bin.gz
-module /boot/kernel.bin
+kernel /System/boot/bs_kernel.bin.gz
+module /System/boot/kernel.bin

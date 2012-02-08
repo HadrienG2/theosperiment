@@ -19,8 +19,8 @@
 #include "die.h"
 #include "txt_videomem.h"
 
-const char* INVALID_KERNEL="Sorry, vital file /system/kernel.bin is corrupt and can't be safely used.";
-const char* KERNEL_NOT_FOUND="Sorry, vital file /system/kernel.bin could not be found.";
+const char* INVALID_KERNEL="Sorry, kernel is corrupt and cannot be safely used.";
+const char* KERNEL_NOT_FOUND="Sorry, kernel could not be found.";
 const char* MMAP_TOO_SMALL = "A core element of the system (memory map) is too small.\n\
 This is a design mistake from our part.\nPlease tell us about this problem, so that we may fix it.";
 const char* MULTIBOOT_MISSING = "The operating system was apparently not loaded by GRUB.\n\
