@@ -20,7 +20,7 @@
 #include <address.h>
 #include <fake_syscall.h>
 #include <kmaths.h>
-#include <kmem_allocator.h>
+#include <mem_allocator.h>
 #include <kstring.h>
 #include <new.h>
 #include <rpc_benchmark.h>

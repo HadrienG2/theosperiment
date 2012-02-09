@@ -17,7 +17,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include <kmem_allocator.h>
+#include <mem_allocator.h>
 #include <kstring.h>
 #include <new.h>
 
@@ -84,13 +84,13 @@ KString& KString::operator+=(const char* source) {
 
     uint32_t source_len = strlen(source);
     if(!source_len) return *this;
-    
+
     //Creation of the concatenated string
     char* buffer = new(PID_KERNEL, VMEM_FLAGS_RW, true) char[len+source_len+1];
     memcpy((void*) buffer, (const void*) contents, len);
     buffer+= len;
     memcpy((void*) buffer, (const void*) source, source_len+1);
-    
+
     //Replacement of the contents of the string
     delete[] contents;
     contents = buffer;
@@ -104,13 +104,13 @@ KString& KString::operator+=(const KString& source) {
     }
 
     if(!source.len) return *this;
-    
+
     //Creation of the concatenated string
     char* buffer = new(PID_KERNEL, VMEM_FLAGS_RW, true) char[len+source.len+1];
     memcpy((void*) buffer, (const void*) contents, len);
     buffer+= len;
     memcpy((void*) buffer, (const void*) source.contents, source.len+1);
-    
+
     //Replacement of the contents of the string
     delete[] contents;
     contents = buffer;
@@ -137,10 +137,10 @@ bool KString::operator==(const KString& param) const {
 
 size_t KString::heap_size() {
     start_faking_allocation();
-    
+
         size_t to_be_allocd = (size_t) new(PID_KERNEL, VMEM_FLAGS_RW, true) char[len+1];
-    
+
     stop_faking_allocation();
-    
+
     return to_be_allocd;
 }

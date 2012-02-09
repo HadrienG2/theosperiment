@@ -18,7 +18,7 @@
 
 #include <align.h>
 #include <kmaths.h>
-#include <physmem.h>
+#include <phymem_manager.h>
 #include <x86paging.h>
 #include <x86paging_parser.h>
 
@@ -176,8 +176,8 @@ namespace x86paging {
         uint64_t* next_table = (uint64_t*) (table_item & 0x000ffffffffff000);
         if(!next_table) {
             //If not, allocate paging structures
-            PhyMemManager* phymem = (PhyMemManager*) additional_params[0];
-            PhyMemMap* allocd_page = phymem->alloc_chunk(PID_KERNEL);
+            PhyMemManager* phymem_manager = (PhyMemManager*) additional_params[0];
+            PhyMemChunk* allocd_page = phymem_manager->alloc_chunk(PID_KERNEL);
             if(!allocd_page) return 0;
             next_table = (uint64_t*) allocd_page->location;
 
@@ -236,9 +236,9 @@ namespace x86paging {
             }
         }
         if(is_empty) {
-            PhyMemManager* phymem = (PhyMemManager*) additional_params[0];
+            PhyMemManager* phymem_manager = (PhyMemManager*) additional_params[0];
             table_item = 0;
-            phymem->free((uint64_t) next_table);
+            phymem_manager->free_chunk(PID_KERNEL, (uint64_t) next_table);
         }
 
         return result;

@@ -75,9 +75,9 @@ bool PIDs::operator==(const PIDs& param) const {
     return true;
 }
 
-PhyMemMap* PhyMemMap::find_contigchunk(const size_t requested_size) const {
-    PhyMemMap* current_item = (PhyMemMap*) this;
-    PhyMemMap* result = NULL;
+PhyMemChunk* PhyMemChunk::find_contigchunk(const size_t requested_size) const {
+    PhyMemChunk* current_item = (PhyMemChunk*) this;
+    PhyMemChunk* result = NULL;
     size_t current_size = 0, next_location = 0;
 
     //Explore the map, looking for contiguous chunks of free memory
@@ -109,8 +109,8 @@ PhyMemMap* PhyMemMap::find_contigchunk(const size_t requested_size) const {
     return result;
 }
 
-PhyMemMap* PhyMemMap::find_thischunk(const size_t location) const {
-    PhyMemMap* current_item = (PhyMemMap*) this;
+PhyMemChunk* PhyMemChunk::find_thischunk(const size_t location) const {
+    PhyMemChunk* current_item = (PhyMemChunk*) this;
     if(current_item->location > location) return NULL;
 
     while(current_item) {
@@ -121,9 +121,9 @@ PhyMemMap* PhyMemMap::find_thischunk(const size_t location) const {
     return current_item;
 }
 
-unsigned int PhyMemMap::buddy_length() const {
+unsigned int PhyMemChunk::buddy_length() const {
     unsigned int result = 0;
-    PhyMemMap* current_item = (PhyMemMap*) this;
+    PhyMemChunk* current_item = (PhyMemChunk*) this;
 
     while(current_item) {
         ++result;
@@ -133,9 +133,9 @@ unsigned int PhyMemMap::buddy_length() const {
     return result;
 }
 
-unsigned int PhyMemMap::length() const {
+unsigned int PhyMemChunk::length() const {
     unsigned int result = 0;
-    PhyMemMap* current_item = (PhyMemMap*) this;
+    PhyMemChunk* current_item = (PhyMemChunk*) this;
 
     while(current_item) {
         ++result;
@@ -145,7 +145,7 @@ unsigned int PhyMemMap::length() const {
     return result;
 }
 
-bool PhyMemMap::operator==(const PhyMemMap& param) const {
+bool PhyMemChunk::operator==(const PhyMemChunk& param) const {
     if(location != param.location) return false;
     if(size != param.size) return false;
     if(owners != param.owners) return false;
@@ -156,8 +156,8 @@ bool PhyMemMap::operator==(const PhyMemMap& param) const {
     return true;
 }
 
-VirMemMap* VirMemMap::find_thischunk(const size_t location) const {
-    VirMemMap* current_item = (VirMemMap*) this;
+VirMemChunk* VirMemChunk::find_thischunk(const size_t location) const {
+    VirMemChunk* current_item = (VirMemChunk*) this;
     if(current_item->location > location) return NULL;
 
     while(current_item) {
@@ -168,9 +168,9 @@ VirMemMap* VirMemMap::find_thischunk(const size_t location) const {
     return current_item;
 }
 
-unsigned int VirMemMap::length() const {
+unsigned int VirMemChunk::length() const {
     unsigned int result;
-    VirMemMap* current_item = (VirMemMap*) this;
+    VirMemChunk* current_item = (VirMemChunk*) this;
 
     while(current_item) {
         ++result;
@@ -180,7 +180,7 @@ unsigned int VirMemMap::length() const {
     return result;
 }
 
-bool VirMemMap::operator==(const VirMemMap& param) const {
+bool VirMemChunk::operator==(const VirMemChunk& param) const {
     if(location != param.location) return false;
     if(size != param.size) return false;
     if(flags != param.flags) return false;
@@ -202,8 +202,8 @@ bool VirMapList::operator==(const VirMapList& param) const {
     return true;
 }
 
-MallocMap* MallocMap::find_contigchunk(const size_t requested_size) const {
-    MallocMap* current_item = (MallocMap*) this;
+MemoryChunk* MemoryChunk::find_contigchunk(const size_t requested_size) const {
+    MemoryChunk* current_item = (MemoryChunk*) this;
 
     while(current_item) {
         if(current_item->size >= requested_size) break;
@@ -213,8 +213,8 @@ MallocMap* MallocMap::find_contigchunk(const size_t requested_size) const {
     return current_item;
 }
 
-MallocMap* MallocMap::find_contigchunk(const size_t requested_size, const VirMemFlags flags) const {
-    MallocMap* current_item = (MallocMap*) this;
+MemoryChunk* MemoryChunk::find_contigchunk(const size_t requested_size, const VirMemFlags flags) const {
+    MemoryChunk* current_item = (MemoryChunk*) this;
 
     while(current_item) {
         if((current_item->size >= requested_size) && (current_item->belongs_to->flags == flags)) {
@@ -226,8 +226,8 @@ MallocMap* MallocMap::find_contigchunk(const size_t requested_size, const VirMem
     return current_item;
 }
 
-MallocMap* MallocMap::find_thischunk(const size_t location) const {
-    MallocMap* current_item = (MallocMap*) this;
+MemoryChunk* MemoryChunk::find_thischunk(const size_t location) const {
+    MemoryChunk* current_item = (MemoryChunk*) this;
 
     while(current_item) {
         if(current_item->location == location) break;
@@ -237,7 +237,7 @@ MallocMap* MallocMap::find_thischunk(const size_t location) const {
     return current_item;
 }
 
-bool MallocMap::operator==(const MallocMap& param) const {
+bool MemoryChunk::operator==(const MemoryChunk& param) const {
     if(location != param.location) return false;
     if(size != param.size) return false;
     if(belongs_to != param.belongs_to) return false;
@@ -248,8 +248,8 @@ bool MallocMap::operator==(const MallocMap& param) const {
     return true;
 }
 
-KnlMallocMap* KnlMallocMap::find_contigchunk(const size_t requested_size) const {
-    KnlMallocMap* current_item = (KnlMallocMap*) this;
+KnlMemoryChunk* KnlMemoryChunk::find_contigchunk(const size_t requested_size) const {
+    KnlMemoryChunk* current_item = (KnlMemoryChunk*) this;
 
     while(current_item) {
         if(current_item->size >= requested_size) break;
@@ -259,8 +259,8 @@ KnlMallocMap* KnlMallocMap::find_contigchunk(const size_t requested_size) const 
     return current_item;
 }
 
-KnlMallocMap* KnlMallocMap::find_thischunk(const size_t location) const {
-    KnlMallocMap* current_item = (KnlMallocMap*) this;
+KnlMemoryChunk* KnlMemoryChunk::find_thischunk(const size_t location) const {
+    KnlMemoryChunk* current_item = (KnlMemoryChunk*) this;
 
     while(current_item) {
         if(current_item->location == location) break;
@@ -270,7 +270,7 @@ KnlMallocMap* KnlMallocMap::find_thischunk(const size_t location) const {
     return current_item;
 }
 
-bool KnlMallocMap::operator==(const KnlMallocMap& param) const {
+bool KnlMemoryChunk::operator==(const KnlMemoryChunk& param) const {
     if(location != param.location) return false;
     if(size != param.size) return false;
     if(belongs_to != param.belongs_to) return false;

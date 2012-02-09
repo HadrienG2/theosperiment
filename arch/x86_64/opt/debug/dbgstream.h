@@ -24,7 +24,6 @@
 #include <kernel_information.h>
 #include <kstring.h>
 #include <memory_support.h>
-#include <physmem.h>
 #include <x86paging.h>
 
 
@@ -204,11 +203,11 @@ class DebugOutput {
     //Functions displaying memory management's custom types
     DebugOutput& operator<<(const KernelInformation& input); //Displays only the memory map atm
     DebugOutput& operator<<(const KernelMemoryMap& input);
-    DebugOutput& operator<<(const PhyMemMap& input);
-    DebugOutput& operator<<(const VirMemMap& input);
+    DebugOutput& operator<<(const PhyMemChunk& input);
+    DebugOutput& operator<<(const VirMemChunk& input);
     DebugOutput& operator<<(const VirMapList& input);
-    DebugOutput& operator<<(const MallocMap& input);
-    DebugOutput& operator<<(const KnlMallocMap& input);
+    DebugOutput& operator<<(const MemoryChunk& input);
+    DebugOutput& operator<<(const KnlMemoryChunk& input);
     DebugOutput& operator<<(const MallocPIDList& input);
     //Manipulator functions
     DebugOutput& operator<<(const DebugAttributeChanger& manipulator);
