@@ -619,10 +619,10 @@ DebugOutput& DebugOutput::operator<<(const KernelMemoryMap& input) {
     return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(const PhyMemMap& input) {
+DebugOutput& DebugOutput::operator<<(const PhyMemChunk& input) {
     bool tmp_padding = padding_on;
     unsigned int tmp_padsize = padsize;
-    PhyMemMap* map = (PhyMemMap*) &input;
+    PhyMemChunk* map = (PhyMemChunk*) &input;
     DebugNumberBase tmp = number_base;
 
     *this << pad_status(true);
@@ -656,10 +656,10 @@ DebugOutput& DebugOutput::operator<<(const PhyMemMap& input) {
     return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(const VirMemMap& input) {
+DebugOutput& DebugOutput::operator<<(const VirMemChunk& input) {
     bool tmp_padding = padding_on;
     unsigned int tmp_padsize = padsize;
-    VirMemMap* map = (VirMemMap*) &input;
+    VirMemChunk* map = (VirMemChunk*) &input;
     DebugNumberBase tmp = number_base;
 
     *this << pad_status(true);
@@ -747,10 +747,10 @@ DebugOutput& DebugOutput::operator<<(const VirMapList& input) {
     return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(const MallocMap& input) {
+DebugOutput& DebugOutput::operator<<(const MemoryChunk& input) {
     bool tmp_padding = padding_on;
     unsigned int tmp_padsize = padsize;
-    MallocMap* map = (MallocMap*) &input;
+    MemoryChunk* map = (MemoryChunk*) &input;
     DebugNumberBase tmp = number_base;
 
     *this << pad_status(true);
@@ -773,10 +773,10 @@ DebugOutput& DebugOutput::operator<<(const MallocMap& input) {
     return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(const KnlMallocMap& input) {
+DebugOutput& DebugOutput::operator<<(const KnlMemoryChunk& input) {
     bool tmp_padding = padding_on;
     unsigned int tmp_padsize = padsize;
-    KnlMallocMap* map = (KnlMallocMap*) &input;
+    KnlMemoryChunk* map = (KnlMemoryChunk*) &input;
     DebugNumberBase tmp = number_base;
 
     *this << pad_status(true);

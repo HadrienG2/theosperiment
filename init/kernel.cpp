@@ -17,9 +17,9 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include <kernel_information.h>
-#include <kmem_allocator.h>
-#include <physmem.h>
-#include <virtmem.h>
+#include <mem_allocator.h>
+#include <phymem_manager.h>
+#include <virmem_manager.h>
 
 #include <dbgstream.h>
 #include <rpc_benchmark.h>
@@ -30,12 +30,12 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     //Some test suites should be run here, before kernel startup.
 
     dbgout << "* Setting up physical memory management..." << endl;
-    PhyMemManager phymem(kinfo);
+    PhyMemManager phymem_manager(kinfo);
     dbgout << "* Setting up virtual memory management..." << endl;
-    VirMemManager virmem(phymem);
+    VirMemManager virmem_manager(phymem_manager);
     dbgout << "* Setting up memory allocator..." << endl;
-    MemAllocator mallocator(phymem, virmem);
-    setup_kalloc(mallocator);
+    MemAllocator mem_allocator(phymem_manager, virmem_manager);
+    setup_kalloc(mem_allocator);
     dbgout << "* Setting up process management..." << endl;
     //TODO : Process management structures, RPC
 

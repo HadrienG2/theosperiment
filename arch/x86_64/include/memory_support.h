@@ -53,18 +53,18 @@ struct PIDs {
 
 //Represents an item in a map of the physical memory, managed as a chained list at the moment.
 //Size should be a divisor of 0x1000 (current size : 0x40) to ease the early allocation process.
-struct PhyMemMap {
+struct PhyMemChunk {
     size_t location;
     size_t size;
     PIDs owners;
     uint32_t allocatable; //Boolean. Indicates that this memory chunk can be reserved by memory
                           //allocation algorithms.
                           //It should NOT be the case with memory-mapped I/O, as an example.
-    PhyMemMap* next_buddy;
-    PhyMemMap* next_mapitem;
+    PhyMemChunk* next_buddy;
+    PhyMemChunk* next_mapitem;
     uint32_t padding;
     uint64_t padding2;
-    PhyMemMap() : location(0),
+    PhyMemChunk() : location(0),
                   size(0),
                   owners(PID_INVALID),
                   allocatable(true),
@@ -73,16 +73,16 @@ struct PhyMemMap {
     //This mirrors the member functions of "owners"
     bool has_owner(const PID the_owner) const {return owners.has_pid(the_owner);}
     //Algorithms finding things in or about the map
-    PhyMemMap* find_contigchunk(const size_t size) const; //The returned chunk, along with its next
+    PhyMemChunk* find_contigchunk(const size_t size) const; //The returned chunk, along with its next
                                                           //neighbours, forms a contiguous chunk
                                                           //of free memory at least "size" large.
-    PhyMemMap* find_thischunk(const size_t location) const;
+    PhyMemChunk* find_thischunk(const size_t location) const;
     unsigned int buddy_length() const;
     unsigned int length() const;
     //Comparing map items is fairly straightforward and should be done by default
     //by the C++ compiler, but well...
-    bool operator==(const PhyMemMap& param) const;
-    bool operator!=(const PhyMemMap& param) const {return !(*this==param);}
+    bool operator==(const PhyMemChunk& param) const;
+    bool operator!=(const PhyMemChunk& param) const {return !(*this==param);}
 } __attribute__((packed));
 
 //**************************************************
@@ -107,17 +107,17 @@ const VirMemFlags VMEM_FLAGS_RW = VMEM_FLAG_R + VMEM_FLAG_W;
 
 //Represents an item in a map of the virtual memory, managed as a chained list at the moment.
 //Size should be a divisor of 0x1000 (current size : 0x40) to ease the early allocation process.
-struct VirMemMap {
+struct VirMemChunk {
     size_t location;
     size_t size;
     VirMemFlags flags;
     VirMapList* owner;
-    PhyMemMap* points_to; //Physical memory chunk this virtual memory chunk points to
-    VirMemMap* next_buddy;
-    VirMemMap* next_mapitem;
+    PhyMemChunk* points_to; //Physical memory chunk this virtual memory chunk points to
+    VirMemChunk* next_buddy;
+    VirMemChunk* next_mapitem;
     uint32_t padding;
     uint64_t padding2;
-    VirMemMap() : location(0),
+    VirMemChunk() : location(0),
                   size(0),
                   flags(VMEM_FLAGS_RW),
                   owner(NULL),
@@ -125,12 +125,12 @@ struct VirMemMap {
                   next_buddy(NULL),
                   next_mapitem(NULL) {};
     //Algorithms finding things in or about the map
-    VirMemMap* find_thischunk(const size_t location) const;
+    VirMemChunk* find_thischunk(const size_t location) const;
     unsigned int length() const;
     //Comparing map items is fairly straightforward and should be done by default
     //by the C++ compiler, but well...
-    bool operator==(const VirMemMap& param) const;
-    bool operator!=(const VirMemMap& param) const {return !(*this==param);}
+    bool operator==(const VirMemChunk& param) const;
+    bool operator!=(const VirMemChunk& param) const {return !(*this==param);}
 } __attribute__((packed));
 
 //There is one map of virtual memory per process. Since there probably won't ever be more than
@@ -139,7 +139,7 @@ struct VirMemMap {
 //As usual, size should be a divisor of 0x1000 (current size : 0x20)
 struct VirMapList {
     PID map_owner;
-    VirMemMap* map_pointer;
+    VirMemChunk* map_pointer;
     size_t pml4t_location;
     VirMapList* next_item;
     OwnerlessMutex mutex;
@@ -164,11 +164,11 @@ struct VirMapList {
 //lists per process : a list of allocated, but not used yet, "parts of page", and a list of
 //allocated and used parts of pages. Each list uses the following structure.
 //Its size should again be a divisor of 0x1000 (currently : 0x20)
-struct MallocMap {
+struct MemoryChunk {
     size_t location;
     size_t size;
-    VirMemMap* belongs_to; //The chunk of virtual memory it belongs to.
-    MallocMap* next_item;
+    VirMemChunk* belongs_to; //The chunk of virtual memory it belongs to.
+    MemoryChunk* next_item;
     uint32_t shareable; //Boolean. Indicates that the content of the page has been allocated in a
                         //specific way which makes it suitable for sharing between processes.
     uint32_t share_count; //For the shared copy of a shared chunk, indicates how many times the
@@ -177,28 +177,28 @@ struct MallocMap {
     uint64_t padding;
     uint64_t padding_2;
     uint64_t padding_3;
-    MallocMap() : location(NULL),
+    MemoryChunk() : location(NULL),
                   size(NULL),
                   belongs_to(NULL),
                   next_item(NULL),
                   shareable(0),
                   share_count(0) {};
-    MallocMap* find_contigchunk(const size_t size) const; //Try to find at least "size" contiguous
+    MemoryChunk* find_contigchunk(const size_t size) const; //Try to find at least "size" contiguous
                                                           //bytes in this map
-    MallocMap* find_contigchunk(const size_t size, const VirMemFlags flags) const;
-    MallocMap* find_thischunk(const size_t location) const;
+    MemoryChunk* find_contigchunk(const size_t size, const VirMemFlags flags) const;
+    MemoryChunk* find_thischunk(const size_t location) const;
     //Comparing C-style structs is fairly straightforward and should be done by default
     //by the C++ compiler, but well...
-    bool operator==(const MallocMap& param) const;
-    bool operator!=(const MallocMap& param) const {return !(*this==param);}
+    bool operator==(const MemoryChunk& param) const;
+    bool operator!=(const MemoryChunk& param) const {return !(*this==param);}
 } __attribute__((packed));
 
 //There is a derivative of the previous structure for the kernel, as it has virtual memory disabled.
-struct KnlMallocMap {
+struct KnlMemoryChunk {
     size_t location;
     size_t size;
-    PhyMemMap* belongs_to; //The chunk of *physical* memory it belongs to.
-    KnlMallocMap* next_item;
+    PhyMemChunk* belongs_to; //The chunk of *physical* memory it belongs to.
+    KnlMemoryChunk* next_item;
     uint32_t shareable; //Boolean. Indicates that the content of the page has been allocated in a
                         //specific way which makes it suitable for sharing between processes.
     uint32_t share_count; //For the shared copy of a shared chunk, indicates how many times the
@@ -207,27 +207,27 @@ struct KnlMallocMap {
     uint64_t padding;
     uint64_t padding_2;
     uint64_t padding_3;
-    KnlMallocMap() : location(NULL),
+    KnlMemoryChunk() : location(NULL),
                      size(NULL),
                      belongs_to(NULL),
                      next_item(NULL),
                      shareable(0),
                      share_count(0) {};
-    KnlMallocMap* find_contigchunk(const size_t size) const; //Try to find at least "size"
+    KnlMemoryChunk* find_contigchunk(const size_t size) const; //Try to find at least "size"
                                                              //contiguous bytes in this map
-    KnlMallocMap* find_thischunk(const size_t location) const;
+    KnlMemoryChunk* find_thischunk(const size_t location) const;
     //Comparing C-style structs is fairly straightforward and should be done by default
     //by the C++ compiler, but well...
-    bool operator==(const KnlMallocMap& param) const;
-    bool operator!=(const KnlMallocMap& param) const {return !(*this==param);}
+    bool operator==(const KnlMemoryChunk& param) const;
+    bool operator!=(const KnlMemoryChunk& param) const {return !(*this==param);}
 } __attribute__((packed));
 
 //There are two maps per process, and we must keep track of each process. The same assumptions as
 //before apply. The size of this should also be a divisor of 0x1000 (currently : 0x20);
 struct MallocPIDList {
     PID map_owner;
-    MallocMap* free_map; //A sorted map of ready-to-use chunks of memory
-    MallocMap* busy_map; //A sorted map of used chunks of memory
+    MemoryChunk* free_map; //A sorted map of ready-to-use chunks of memory
+    MemoryChunk* busy_map; //A sorted map of used chunks of memory
     MallocPIDList* next_item;
     OwnerlessMutex mutex;
     uint16_t padding;
