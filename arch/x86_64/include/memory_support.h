@@ -51,19 +51,23 @@ struct PIDs {
     bool operator!=(const PIDs& param) const {return !(*this==param);}
 } __attribute__((packed));
 
+
 //Represents an item in a map of the physical memory, managed as a chained list at the moment.
 //Size should be a divisor of 0x1000 (current size : 0x40) to ease the early allocation process.
 struct PhyMemChunk {
     size_t location;
     size_t size;
     PIDs owners;
-    uint32_t allocatable; //Boolean. Indicates that this memory chunk can be reserved by memory
-                          //allocation algorithms.
+    uint32_t allocatable; //Boolean. Whether this chunk can be reserved by memory allocation.
                           //It should NOT be the case with memory-mapped I/O, as an example.
     PhyMemChunk* next_buddy;
+
+    //WARNING : PhyMemChunk properties after this point are nonstandard, subject to change without
+    //warnings, and should not be accessed by external software.
     PhyMemChunk* next_mapitem;
     uint32_t padding;
     uint64_t padding2;
+
     PhyMemChunk() : location(0),
                   size(0),
                   owners(PID_INVALID),
@@ -85,6 +89,7 @@ struct PhyMemChunk {
     bool operator!=(const PhyMemChunk& param) const {return !(*this==param);}
 } __attribute__((packed));
 
+
 //**************************************************
 //*********** Virtual memory management ************
 //**************************************************
@@ -104,6 +109,7 @@ const VirMemFlags VMEM_FLAGS_SAME = (1<<31); //This special virtual memory flag 
                                              //"mother" region.
 const VirMemFlags VMEM_FLAGS_RX = VMEM_FLAG_R + VMEM_FLAG_X;
 const VirMemFlags VMEM_FLAGS_RW = VMEM_FLAG_R + VMEM_FLAG_W;
+
 
 //Represents an item in a map of the virtual memory, managed as a chained list at the moment.
 //Size should be a divisor of 0x1000 (current size : 0x40) to ease the early allocation process.
@@ -133,6 +139,7 @@ struct VirMemChunk {
     bool operator!=(const VirMemChunk& param) const {return !(*this==param);}
 } __attribute__((packed));
 
+
 //There is one map of virtual memory per process. Since there probably won't ever be more than
 //1000 processes running and virtual memory-related requests don't occur that often, a linked
 //list sounds like the most sensible option because of its flexibility. We can still change it later.
@@ -153,6 +160,7 @@ struct VirMapList {
     bool operator==(const VirMapList& param) const;
     bool operator!=(const VirMapList& param) const {return !(*this==param);}
 } __attribute__((packed));
+
 
 //**************************************************
 //*************** Memory allocation ****************
@@ -193,6 +201,7 @@ struct MemoryChunk {
     bool operator!=(const MemoryChunk& param) const {return !(*this==param);}
 } __attribute__((packed));
 
+
 //There is a derivative of the previous structure for the kernel, as it has virtual memory disabled.
 struct KnlMemoryChunk {
     size_t location;
@@ -221,6 +230,7 @@ struct KnlMemoryChunk {
     bool operator==(const KnlMemoryChunk& param) const;
     bool operator!=(const KnlMemoryChunk& param) const {return !(*this==param);}
 } __attribute__((packed));
+
 
 //There are two maps per process, and we must keep track of each process. The same assumptions as
 //before apply. The size of this should also be a divisor of 0x1000 (currently : 0x20);
