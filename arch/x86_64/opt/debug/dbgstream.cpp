@@ -671,27 +671,27 @@ DebugOutput& DebugOutput::operator<<(const VirMemChunk& input) {
     do {
         *this << endl << map->location << " | " << map->size << " | ";
 
-        if(map->flags & VMEM_FLAG_R) {
+        if(map->flags & VIRMEM_FLAG_R) {
             *this << 'R';
         } else {
             *this << '-';
         }
-        if(map->flags & VMEM_FLAG_W) {
+        if(map->flags & VIRMEM_FLAG_W) {
             *this << 'W';
         } else {
             *this << '-';
         }
-        if(map->flags & VMEM_FLAG_X) {
+        if(map->flags & VIRMEM_FLAG_X) {
             *this << 'X';
         } else {
             *this << '-';
         }
-        if(map->flags & VMEM_FLAG_A) {
+        if(map->flags & VIRMEM_FLAG_A) {
             *this << 'A';
         } else {
             *this << '-';
         }
-        if(map->flags & VMEM_FLAG_K) {
+        if(map->flags & VIRMEM_FLAG_K) {
             *this << "K | ";
         } else {
             *this << "- | ";
@@ -716,8 +716,8 @@ DebugOutput& DebugOutput::operator<<(const VirMemChunk& input) {
     return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(const VirMapList& input) {
-    VirMapList* list = (VirMapList*) &input;
+DebugOutput& DebugOutput::operator<<(const VirMemProcess& input) {
+    VirMemProcess* list = (VirMemProcess*) &input;
     bool tmp_padding = padding_on;
     unsigned int tmp_padsize = padsize;
     DebugNumberBase tmp = number_base;
@@ -729,7 +729,7 @@ DebugOutput& DebugOutput::operator<<(const VirMapList& input) {
     *this << "-----------+--------------------+--------------------+-------------------------";
 
     do {
-        *this << endl << pad_size(10) << list->map_owner;
+        *this << endl << pad_size(10) << list->owner;
         *this << pad_size(18) << " | " << (uint64_t) list->map_pointer << " | ";
         *this << list->pml4t_location << " | ";
         if(list->mutex.state()) {
@@ -812,7 +812,7 @@ DebugOutput& DebugOutput::operator<<(const MallocPIDList& input) {
     *this << "-----------+--------------------+--------------------+-------------------------";
 
     do {
-        *this << endl << pad_size(10) << list->map_owner;
+        *this << endl << pad_size(10) << list->owner;
         *this << pad_size(18) << " | " << (uint64_t) list->busy_map << " | ";
         *this << (uint64_t) list->free_map << " | ";
         if(list->mutex.state()) {

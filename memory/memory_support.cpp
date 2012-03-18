@@ -184,7 +184,6 @@ bool VirMemChunk::operator==(const VirMemChunk& param) const {
     if(location != param.location) return false;
     if(size != param.size) return false;
     if(flags != param.flags) return false;
-    if(owner != param.owner) return false;
     if(points_to != param.points_to) return false;
     if(next_buddy != param.next_buddy) return false;
     if(next_mapitem != param.next_mapitem) return false;
@@ -192,8 +191,8 @@ bool VirMemChunk::operator==(const VirMemChunk& param) const {
     return true;
 }
 
-bool VirMapList::operator==(const VirMapList& param) const {
-    if(map_owner != param.map_owner) return false;
+bool VirMemProcess::operator==(const VirMemProcess& param) const {
+    if(owner != param.owner) return false;
     if(map_pointer != param.map_pointer) return false;
     if(pml4t_location != param.pml4t_location) return false;
     if(next_item != param.next_item) return false;
@@ -282,7 +281,7 @@ bool KnlMemoryChunk::operator==(const KnlMemoryChunk& param) const {
 }
 
 bool MallocPIDList::operator==(const MallocPIDList& param) const {
-    if(map_owner != param.map_owner) return false;
+    if(owner != param.owner) return false;
     if(free_map != param.free_map) return false;
     if(busy_map != param.busy_map) return false;
     if(next_item != param.next_item) return false;

@@ -31,7 +31,7 @@ inline void stop_faking_allocation() {if(fake_allocation) fake_allocation-=1;}
 //new operator
 inline void* operator new(const size_t size,
                           PID target,
-                          const VirMemFlags flags = VMEM_FLAGS_RW,
+                          const VirMemFlags flags = VIRMEM_FLAGS_RW,
                           const bool force = false) throw() {
     if(!fake_allocation) {
         return kalloc(size, target, flags, force);
@@ -44,7 +44,7 @@ inline void* operator new(const size_t size) throw() {return operator new(size, 
 //Array versions of new
 inline void* operator new[](const size_t size,
                             PID target,
-                            const VirMemFlags flags = VMEM_FLAGS_RW,
+                            const VirMemFlags flags = VIRMEM_FLAGS_RW,
                             const bool force = false) throw() {
     return operator new(size, target, flags, force);
 }
