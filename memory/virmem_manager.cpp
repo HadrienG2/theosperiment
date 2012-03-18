@@ -177,7 +177,7 @@ VirMemChunk* VirMemManager::alloc_virtual_address_space(VirMemProcess* target,
 VirMemProcess* VirMemManager::find_or_create_pid(PID target) {
     VirMemProcess* list_item;
 
-    list_item = map_list;
+    list_item = process_list;
     while(list_item->next_item) {
         if(list_item->owner == target) break;
         list_item = list_item->next_item;
@@ -193,13 +193,32 @@ VirMemProcess* VirMemManager::find_or_create_pid(PID target) {
 VirMemProcess* VirMemManager::find_pid(const PID target) {
     VirMemProcess* list_item;
 
-    list_item = map_list;
+    list_item = process_list;
     do {
         if(list_item->owner == target) break;
         list_item = list_item->next_item;
     } while(list_item);
 
     return list_item;
+}
+
+bool VirMemManager::map_k_chunks(VirMemProcess* target) {
+    VirMemProcess* kernel = process_list; //Kernel is the first item of the process list.
+    VirMemChunk *kernel_map_parser = kernel->map_pointer, *result;
+
+    while(kernel_map_parser) {
+        if(kernel_map_parser->flags & VIRMEM_FLAG_K) {
+            result = chunk_mapper(target,
+                                  kernel_map_parser->points_to,
+                                  kernel_map_parser->flags,
+                                  kernel_map_parser->location);
+            if(!result) return false;
+        }
+
+        kernel_map_parser = kernel_map_parser->next_mapitem;
+    }
+
+    return true;
 }
 
 VirMemChunk* VirMemManager::map_chunk(const PID target,
@@ -282,6 +301,8 @@ VirMemChunk* VirMemManager::adjust_chunk_flags(const PID target,
 }
 
 void VirMemManager::remove_process(PID target) {
+    if(target == PID_KERNEL) return; //Find a more constructive way to commit suicide.
+
     maplist_mutex.grab_spin();
 
         remove_pid(target);
@@ -292,7 +313,7 @@ void VirMemManager::remove_process(PID target) {
 void VirMemManager::print_maplist() {
     maplist_mutex.grab_spin();
 
-        dbgout << *map_list;
+        dbgout << *process_list;
 
     maplist_mutex.release();
 }

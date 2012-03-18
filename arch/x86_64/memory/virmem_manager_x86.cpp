@@ -92,10 +92,20 @@ bool VirMemManager::chunk_liberator(VirMemProcess* target,
                                     VirMemChunk* chunk) {
     VirMemChunk *current_mapitem, *current_item = chunk, *next_item;
 
+    //First, manage K pages : non-kernel processes cannot get rid of them, and if they
+    //are ditched by the kernel they are ditched by all other processes too.
+    if(chunk->flags & VIRMEM_FLAG_K) {
+        if(target->owner != PID_KERNEL) {
+            if(target->may_free_kpages==0) return false;
+        } else {
+            unmap_k_chunk(chunk);
+        }
+    }
+
+    //Remove item from the map
     while(current_item) {
         next_item = current_item->next_buddy;
 
-        //Remove item from the map
         if(target->map_pointer == current_item) {
             target->map_pointer = current_item->next_mapitem;
         } else {
@@ -135,6 +145,13 @@ VirMemChunk* VirMemManager::flag_adjust(VirMemProcess* target,
                                 const VirMemFlags mask) {
     VirMemChunk* current_item;
 
+    //Only the kernel may alter the status of K pages, and the only use case which is taken into
+    //account for now is the loss of the K flag.
+    if(mask & VIRMEM_FLAG_K) {
+        if(target->owner != PID_KERNEL) return NULL;
+        if((flags & VIRMEM_FLAG_K) == 0) unmap_k_chunk(chunk);
+    }
+
     //Adjust flags of the chunk itself
     chunk->flags = (flags & mask)+((chunk->flags) & (~mask));
 
@@ -166,40 +183,24 @@ bool VirMemManager::map_kernel() {
     phy_knl_r_loc = x86paging::get_target(vir_knl_r_loc, kernel_pml4t);
     phy_knl_rw_loc = x86paging::get_target(vir_knl_rw_loc, kernel_pml4t);
 
-    //Parse and map the kernel's virtual address space properly.
+    //Parse and map the kernel's virtual address space properly (save for the address associated
+    //to the NULL pointer, which must remain invalid.
     phy_mmap = phymem_manager->dump_mmap();
     while(phy_mmap) {
         if(phy_mmap->has_owner(PID_KERNEL)) {
             if(phy_mmap->location == phy_knl_rx_loc) {
-                chunk_mapper(map_list, phy_mmap, VIRMEM_FLAGS_RX + VIRMEM_FLAG_K, vir_knl_rx_loc);
+                chunk_mapper(process_list, phy_mmap, VIRMEM_FLAGS_RX + VIRMEM_FLAG_K, vir_knl_rx_loc);
             } else if(phy_mmap->location == phy_knl_r_loc) {
-                chunk_mapper(map_list, phy_mmap, VIRMEM_FLAG_R + VIRMEM_FLAG_K, vir_knl_r_loc);
+                chunk_mapper(process_list, phy_mmap, VIRMEM_FLAG_R + VIRMEM_FLAG_K, vir_knl_r_loc);
             } else if(phy_mmap->location == phy_knl_rw_loc) {
-                chunk_mapper(map_list, phy_mmap, VIRMEM_FLAGS_RW + VIRMEM_FLAG_K, vir_knl_rw_loc);
-            } else {
-                chunk_mapper(map_list, phy_mmap, VIRMEM_FLAGS_RW + VIRMEM_FLAG_K, phy_mmap->location);
+                chunk_mapper(process_list, phy_mmap, VIRMEM_FLAGS_RW + VIRMEM_FLAG_K, vir_knl_rw_loc);
+            } else if(phy_mmap->location) {
+                chunk_mapper(process_list, phy_mmap, VIRMEM_FLAGS_RW + VIRMEM_FLAG_K, phy_mmap->location);
             }
         }
 
         phy_mmap = phy_mmap->next_mapitem;
     }
-
-    //TODO : Now, before the old way of doing virtual memory management can be dropped, the
-    //following must happen :
-    //   -A K page may only be created, freed or see its flags altered by the kernel.
-    //   -When a K page is freed or loses its K status, it is freed for all processes.
-    //   -When a process is created, kernel address space is parsed and all K pages are immediately
-    //    added to the newcomer's address space
-    //As a whole, identity-mapping kernel addresses should not be mandatory, but should happen
-    //smoothly when it happens.
-
-    //TODO : Remove this (and the associated variables) once a worthwhile replacement is ready
-    knl_rx_loc = vir_knl_rx_loc;
-    knl_r_loc = vir_knl_r_loc;
-    knl_rw_loc = vir_knl_rw_loc;
-    phy_knl_rx = phymem_manager->find_thischunk(phy_knl_rx_loc);
-    phy_knl_r = phymem_manager->find_thischunk(phy_knl_r_loc);
-    phy_knl_rw = phymem_manager->find_thischunk(phy_knl_rw_loc);
 
     return true;
 }
@@ -217,9 +218,8 @@ bool VirMemManager::remove_all_paging(VirMemProcess* target) {
 bool VirMemManager::remove_pid(PID target) {
     VirMemProcess *deleted_item, *previous_item;
 
-    //target can't be the first item of the map list, as this item is the kernel.
-    //Paging is disabled for the kernel
-    previous_item = map_list;
+    //target can't be the first item of the map list, as this item is the kernel. One can't kill the kernel.
+    previous_item = process_list;
     while(previous_item->next_item) {
         if(previous_item->next_item->owner == target) break;
         previous_item = previous_item->next_item;
@@ -227,6 +227,9 @@ bool VirMemManager::remove_pid(PID target) {
     deleted_item = previous_item->next_item;
     if(!deleted_item) return false;
     previous_item->next_item = deleted_item->next_item;
+
+    //Since the target is currently being freed, allow the liberation of K pages
+    deleted_item->may_free_kpages = 1;
 
     //Free all its paging structures and its entry
     while(deleted_item->map_pointer) chunk_liberator(deleted_item, deleted_item->map_pointer);
@@ -259,28 +262,34 @@ VirMemProcess* VirMemManager::setup_pid(PID target) {
     result->pml4t_location = pml4t_page->location;
     x86paging::create_pml4t(result->pml4t_location);
 
-    //Map the kernel in the process' user space
-    VirMemChunk* tmp;
-    tmp = chunk_mapper(result,
-                       phy_knl_rx,
-                       VIRMEM_FLAGS_RX + VIRMEM_FLAG_K,
-                       knl_rx_loc);
-    if(tmp) tmp = chunk_mapper(result,
-                               phy_knl_r,
-                               VIRMEM_FLAG_R + VIRMEM_FLAG_K,
-                               knl_r_loc);
-    if(tmp) tmp = chunk_mapper(result,
-                               phy_knl_rw,
-                               VIRMEM_FLAGS_RW + VIRMEM_FLAG_K,
-                               knl_rw_loc);
+    //Map K pages in the process' user space
+    bool tmp = map_k_chunks(result);
     if(!tmp) {
-        result->next_item = map_list->next_item;
-        map_list->next_item = result;
+        result->next_item = process_list->next_item;
+        process_list->next_item = result;
         remove_pid(result->owner);
         return NULL;
     }
 
     return result;
+}
+
+void VirMemManager::unmap_k_chunk(VirMemChunk *chunk) {
+    VirMemChunk* k_chunk;
+    VirMemProcess* process_parser = process_list;
+
+    while(process_parser->next_item) {
+        //Find non-kernel processes which have the K chunk mapped in their address space.
+        process_parser = process_parser->next_item;
+        k_chunk = process_parser->map_pointer->find_thischunk(chunk->location);
+        if(!k_chunk) continue;
+
+        //Remove it from there.
+        uint16_t old_free_kpages = process_parser->may_free_kpages;
+        process_parser->may_free_kpages = 1;
+        chunk_liberator(process_parser, k_chunk);
+        process_parser->may_free_kpages = old_free_kpages;
+    }
 }
 
 uint64_t VirMemManager::x86flags(VirMemFlags flags) {
@@ -307,11 +316,11 @@ VirMemManager::VirMemManager(PhyMemManager& physmem) : phymem_manager(&physmem),
     alloc_mapitems();
 
     //Create management structures for the kernel.
-    map_list = free_process_descs;
+    process_list = free_process_descs;
     free_process_descs = free_process_descs->next_item;
-    map_list->next_item = NULL;
-    map_list->owner = PID_KERNEL;
-    map_list->pml4t_location = x86paging::get_pml4t();
+    process_list->next_item = NULL;
+    process_list->owner = PID_KERNEL;
+    process_list->pml4t_location = x86paging::get_pml4t();
 
     //Map the kernel's virtual address space
     map_kernel();

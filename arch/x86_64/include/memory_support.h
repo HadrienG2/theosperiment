@@ -100,14 +100,14 @@ const VirMemFlags VIRMEM_FLAG_R = 1; //Region of virtual memory is readable
 const VirMemFlags VIRMEM_FLAG_W = (1<<1); //...writable
 const VirMemFlags VIRMEM_FLAG_X = (1<<2); //...executable
 const VirMemFlags VIRMEM_FLAG_A = (1<<3); //...absent (accessing it will result in a page fault)
-const VirMemFlags VIRMEM_FLAG_K = (1<<4); //...Kernel (present in all address spaces and not
-                                        //accessible by user programs directly, used on kernel pages
-                                        //which are common to all processes. This flag should not be
-                                        //set on any page after the first non-kernel process is created)
+const VirMemFlags VIRMEM_FLAG_K = (1<<4); //...Global kernel memory (present in all address spaces and not
+                        //accessible by user programs directly, used on kernel pages which are common
+                        //to all processes. K pages should not be created after the first non-kernel
+                        //process has been created and run, for their presence in that process' address
+                        //space cannot be guaranteed)
 const VirMemFlags VIRMEM_FLAGS_SAME = (1<<31); //This special virtual memory flag overrides all others,
-                                             //and is used for sharing. It means that the shared
-                                             //memory region is set up using the same flags than its
-                                             //"mother" region.
+                        //and is used for sharing. It means that the shared memory region is set up
+                        //using the same flags than its "mother" region.
 const VirMemFlags VIRMEM_FLAGS_RX = VIRMEM_FLAG_R + VIRMEM_FLAG_X;
 const VirMemFlags VIRMEM_FLAGS_RW = VIRMEM_FLAG_R + VIRMEM_FLAG_W;
 
@@ -156,11 +156,12 @@ struct VirMemProcess {
     PID owner;
     VirMemProcess* next_item;
     OwnerlessMutex mutex;
-    uint16_t padding2;
+    uint16_t may_free_kpages; //Boolean, specifies if the process descriptor can free pages with the K flag
     VirMemProcess() : map_pointer(NULL),
                       pml4t_location(NULL),
                       owner(PID_INVALID),
-                      next_item(NULL) {};
+                      next_item(NULL),
+                      may_free_kpages(0) {};
     //Comparing list items is fairly straightforward and should be done by default
     //by the C++ compiler, but well...
     bool operator==(const VirMemProcess& param) const;
