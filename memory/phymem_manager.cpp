@@ -592,17 +592,6 @@ bool PhyMemManager::free_chunk(const PID former_owner,
 }
 
 
-PhyMemChunk* PhyMemManager::find_thischunk(size_t location) {
-    mmap_mutex.grab_spin();
-
-        PhyMemChunk* result = phy_mmap->find_thischunk(location);
-
-    mmap_mutex.release();
-
-    return result;
-}
-
-
 void PhyMemManager::print_mmap() {
     mmap_mutex.grab_spin();
 

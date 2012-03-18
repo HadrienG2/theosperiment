@@ -42,17 +42,11 @@ class VirMemManager {
         PhyMemManager* phymem_manager;
         OwnerlessMutex maplist_mutex; //Hold that mutex when parsing the map list
                                    //or adding/removing maps from it.
-        VirMemProcess* map_list;
+        VirMemProcess* process_list;
         VirMemChunk* free_mapitems; //A collection of ready to use virtual memory map items
                                   //(chained using next_buddy)
         VirMemProcess* free_process_descs; //A collection of ready to use process descriptors
-        //Location of the kernel in the physical memory map and virtual address space
-        PhyMemChunk* phy_knl_rx;
-        PhyMemChunk* phy_knl_r;
-        PhyMemChunk* phy_knl_rw;
-        size_t knl_rx_loc;
-        size_t knl_r_loc;
-        size_t knl_rw_loc;
+
         //Support methods
         bool alloc_mapitems(); //Get some memory map storage space
         bool alloc_process_descs(); //Get some map list storage space
@@ -73,10 +67,12 @@ class VirMemManager {
                                  VirMemChunk* chunk,
                                  const VirMemFlags flags,
                                  const VirMemFlags mask);
+        bool map_k_chunks(VirMemProcess* target); //Maps K chunks in a newly created address space
         bool map_kernel(); //Maps the kernel's initial address space during initialization
         bool remove_all_paging(VirMemProcess* target);
         bool remove_pid(PID target); //Discards management structures for this PID
         VirMemProcess* setup_pid(PID target); //Create management structures for a new PID
+        void unmap_k_chunk(VirMemChunk* chunk); //Removes K pages from the address space of non-kernel processes.
         uint64_t x86flags(VirMemFlags flags); //Converts VirMemFlags to x86 paging flags
     public:
         //Constructor gets the current layout of paged memory, setup management structures

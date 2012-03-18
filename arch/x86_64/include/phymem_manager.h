@@ -84,9 +84,6 @@ class PhyMemManager {
         bool free_chunk(const PID former_owner,  //Free a chunk from a PID's grasp
                         size_t chunk_beginning); //(liberate it if it no longer has any owner)
 
-        //Finding a chunk in the map (TO BE REMOVED AFTER VIRMEM CLEANUP)
-        PhyMemChunk* find_thischunk(size_t chunk_beginning);
-
         //x86_64-specific methods
         PhyMemChunk* alloc_lowchunk(const PID initial_owner, //Allocate a chunk of low memory
                                     const size_t size = PG_SIZE,
