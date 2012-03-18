@@ -23,7 +23,7 @@
 #include <pid.h>
 #include <synchronization.h>
 
-typedef struct VirMapList VirMapList;
+typedef struct VirMemProcess VirMemProcess;
 
 //**************************************************
 //*********** Physical memory management ***********
@@ -63,17 +63,17 @@ struct PhyMemChunk {
     PhyMemChunk* next_buddy;
 
     //WARNING : PhyMemChunk properties after this point are nonstandard, subject to change without
-    //warnings, and should not be accessed by external software.
+    //warnings, and should not be read or manipulated by external software.
     PhyMemChunk* next_mapitem;
     uint32_t padding;
     uint64_t padding2;
 
     PhyMemChunk() : location(0),
-                  size(0),
-                  owners(PID_INVALID),
-                  allocatable(true),
-                  next_buddy(NULL),
-                  next_mapitem(NULL) {};
+                    size(0),
+                    owners(PID_INVALID),
+                    allocatable(true),
+                    next_buddy(NULL),
+                    next_mapitem(NULL) {};
     //This mirrors the member functions of "owners"
     bool has_owner(const PID the_owner) const {return owners.has_pid(the_owner);}
     //Algorithms finding things in or about the map
@@ -96,19 +96,20 @@ struct PhyMemChunk {
 
 //The following flags are available when handling virtual memory access permission
 typedef uint32_t VirMemFlags;
-const VirMemFlags VMEM_FLAG_R = 1; //Region of virtual memory is readable
-const VirMemFlags VMEM_FLAG_W = (1<<1); //...writable
-const VirMemFlags VMEM_FLAG_X = (1<<2); //...executable
-const VirMemFlags VMEM_FLAG_A = (1<<3); //...absent (accessing it will result in a page fault)
-const VirMemFlags VMEM_FLAG_K = (1<<4); //...Kernel (not invalidated during a context switch and not
+const VirMemFlags VIRMEM_FLAG_R = 1; //Region of virtual memory is readable
+const VirMemFlags VIRMEM_FLAG_W = (1<<1); //...writable
+const VirMemFlags VIRMEM_FLAG_X = (1<<2); //...executable
+const VirMemFlags VIRMEM_FLAG_A = (1<<3); //...absent (accessing it will result in a page fault)
+const VirMemFlags VIRMEM_FLAG_K = (1<<4); //...Kernel (present in all address spaces and not
                                         //accessible by user programs directly, used on kernel pages
-                                        //which are common to all processes)
-const VirMemFlags VMEM_FLAGS_SAME = (1<<31); //This special virtual memory flag overrides all others,
+                                        //which are common to all processes. This flag should not be
+                                        //set on any page after the first non-kernel process is created)
+const VirMemFlags VIRMEM_FLAGS_SAME = (1<<31); //This special virtual memory flag overrides all others,
                                              //and is used for sharing. It means that the shared
                                              //memory region is set up using the same flags than its
                                              //"mother" region.
-const VirMemFlags VMEM_FLAGS_RX = VMEM_FLAG_R + VMEM_FLAG_X;
-const VirMemFlags VMEM_FLAGS_RW = VMEM_FLAG_R + VMEM_FLAG_W;
+const VirMemFlags VIRMEM_FLAGS_RX = VIRMEM_FLAG_R + VIRMEM_FLAG_X;
+const VirMemFlags VIRMEM_FLAGS_RW = VIRMEM_FLAG_R + VIRMEM_FLAG_W;
 
 
 //Represents an item in a map of the virtual memory, managed as a chained list at the moment.
@@ -117,16 +118,18 @@ struct VirMemChunk {
     size_t location;
     size_t size;
     VirMemFlags flags;
-    VirMapList* owner;
     PhyMemChunk* points_to; //Physical memory chunk this virtual memory chunk points to
     VirMemChunk* next_buddy;
+
+    //WARNING : VirMemChunk properties after this point are nonstandard, subject to change without
+    //warnings, and should not be read or manipulated by external software.
     VirMemChunk* next_mapitem;
     uint32_t padding;
     uint64_t padding2;
+    uint64_t padding3;
     VirMemChunk() : location(0),
                   size(0),
-                  flags(VMEM_FLAGS_RW),
-                  owner(NULL),
+                  flags(VIRMEM_FLAGS_RW),
                   points_to(NULL),
                   next_buddy(NULL),
                   next_mapitem(NULL) {};
@@ -144,21 +147,24 @@ struct VirMemChunk {
 //1000 processes running and virtual memory-related requests don't occur that often, a linked
 //list sounds like the most sensible option because of its flexibility. We can still change it later.
 //As usual, size should be a divisor of 0x1000 (current size : 0x20)
-struct VirMapList {
-    PID map_owner;
+struct VirMemProcess {
     VirMemChunk* map_pointer;
     size_t pml4t_location;
-    VirMapList* next_item;
+
+    //WARNING : VirMemProcess properties after this point are nonstandard, subject to change without
+    //warnings, and should not be read or manipulated by external software.
+    PID owner;
+    VirMemProcess* next_item;
     OwnerlessMutex mutex;
     uint16_t padding2;
-    VirMapList() : map_owner(PID_INVALID),
-                   map_pointer(NULL),
-                   pml4t_location(NULL),
-                   next_item(NULL) {};
+    VirMemProcess() : map_pointer(NULL),
+                      pml4t_location(NULL),
+                      owner(PID_INVALID),
+                      next_item(NULL) {};
     //Comparing list items is fairly straightforward and should be done by default
     //by the C++ compiler, but well...
-    bool operator==(const VirMapList& param) const;
-    bool operator!=(const VirMapList& param) const {return !(*this==param);}
+    bool operator==(const VirMemProcess& param) const;
+    bool operator!=(const VirMemProcess& param) const {return !(*this==param);}
 } __attribute__((packed));
 
 
@@ -235,7 +241,7 @@ struct KnlMemoryChunk {
 //There are two maps per process, and we must keep track of each process. The same assumptions as
 //before apply. The size of this should also be a divisor of 0x1000 (currently : 0x20);
 struct MallocPIDList {
-    PID map_owner;
+    PID owner;
     MemoryChunk* free_map; //A sorted map of ready-to-use chunks of memory
     MemoryChunk* busy_map; //A sorted map of used chunks of memory
     MallocPIDList* next_item;
@@ -245,7 +251,7 @@ struct MallocPIDList {
     uint64_t padding2;
     uint64_t padding3;
     uint64_t padding4;
-    MallocPIDList() : map_owner(PID_INVALID),
+    MallocPIDList() : owner(PID_INVALID),
                       free_map(NULL),
                       busy_map(NULL),
                       next_item(NULL),

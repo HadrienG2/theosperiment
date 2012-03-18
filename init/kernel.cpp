@@ -29,13 +29,12 @@ extern "C" int kmain(const KernelInformation& kinfo) {
 
     //Some test suites should be run here, before kernel startup.
 
-    dbgout << "* Setting up physical memory management..." << endl;
+    dbgout << "* Setting up memory management..." << endl;
     PhyMemManager phymem_manager(kinfo);
-    dbgout << "* Setting up virtual memory management..." << endl;
     VirMemManager virmem_manager(phymem_manager);
-    dbgout << "* Setting up memory allocator..." << endl;
     MemAllocator mem_allocator(phymem_manager, virmem_manager);
     setup_kalloc(mem_allocator);
+
     dbgout << "* Setting up process management..." << endl;
     //TODO : Process management structures, RPC
 

@@ -205,7 +205,7 @@ class DebugOutput {
     DebugOutput& operator<<(const KernelMemoryMap& input);
     DebugOutput& operator<<(const PhyMemChunk& input);
     DebugOutput& operator<<(const VirMemChunk& input);
-    DebugOutput& operator<<(const VirMapList& input);
+    DebugOutput& operator<<(const VirMemProcess& input);
     DebugOutput& operator<<(const MemoryChunk& input);
     DebugOutput& operator<<(const KnlMemoryChunk& input);
     DebugOutput& operator<<(const MallocPIDList& input);
