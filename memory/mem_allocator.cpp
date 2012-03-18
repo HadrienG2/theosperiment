@@ -17,7 +17,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include <align.h>
-#include <kmem_allocator.h>
+#include <mem_allocator.h>
 #include <kstring.h>
 #include <new.h>
 
@@ -26,22 +26,22 @@
 
 bool MemAllocator::alloc_mapitems() {
     size_t used_space;
-    PhyMemMap* allocated_page;
-    MallocMap* current_item;
+    PhyMemChunk* allocated_page;
+    MemoryChunk* current_item;
 
     //Allocate a page of memory
     allocated_page = phymem->alloc_chunk(PID_KERNEL);
     if(!allocated_page) return false;
 
     //Fill it with initialized map items
-    free_mapitems = (MallocMap*) (allocated_page->location);
+    free_mapitems = (MemoryChunk*) (allocated_page->location);
     current_item = free_mapitems;
-    for(used_space = sizeof(MallocMap); used_space < PG_SIZE; used_space+=sizeof(MallocMap)) {
-        current_item = new(current_item) MallocMap();
+    for(used_space = sizeof(MemoryChunk); used_space < PG_SIZE; used_space+=sizeof(MemoryChunk)) {
+        current_item = new(current_item) MemoryChunk();
         current_item->next_item = current_item+1;
         ++current_item;
     }
-    current_item = new(current_item) MallocMap();
+    current_item = new(current_item) MemoryChunk();
     current_item->next_item = NULL;
 
     //All good !
@@ -50,7 +50,7 @@ bool MemAllocator::alloc_mapitems() {
 
 bool MemAllocator::alloc_listitems() {
     size_t used_space;
-    PhyMemMap* allocated_page;
+    PhyMemChunk* allocated_page;
     MallocPIDList* current_item;
 
     //Allocate a page of memory
@@ -86,36 +86,36 @@ size_t MemAllocator::allocator(const size_t size,
     //  3.Take the requested space from the chunk found/created in free_map, update free_map and
     //    busy_map
 
-    PhyMemMap* phy_chunk = NULL;
-    VirMemMap* vir_chunk = NULL;
+    PhyMemChunk* phy_chunk = NULL;
+    VirMemChunk* vir_chunk = NULL;
 
     //Steps 1 : Look for a suitable hole in target->free_map
-    MallocMap* hole = NULL;
+    MemoryChunk* hole = NULL;
     if(target->free_map) hole = target->free_map->find_contigchunk(size, flags);
 
     //Step 2 : If there's none, create it
     if(!hole) {
         //Allocating enough memory
-        phy_chunk = phymem->alloc_chunk(target->map_owner, align_pgup(size));
+        phy_chunk = phymem->alloc_chunk(target->owner, align_pgup(size));
         if(!phy_chunk) {
             if(!force) return NULL;
             liberate_memory();
             return allocator(size, target, flags, force);
         }
-        vir_chunk = virmem->map(phy_chunk, target->map_owner, flags);
+        vir_chunk = virmem->map_chunk(target->owner, phy_chunk, flags);
         if(!vir_chunk) {
-            phymem->free(phy_chunk);
+            phymem->free_chunk(target->owner, phy_chunk->location);
             if(!force) return NULL;
             liberate_memory();
             return allocator(size, target, flags, force);
         }
 
-        //Putting that memory in a MallocMap block
+        //Putting that memory in a MemoryChunk block
         if(!free_mapitems) {
             alloc_mapitems();
             if(!free_mapitems) {
-                virmem->free(vir_chunk);
-                phymem->free(phy_chunk);
+                virmem->free_chunk(target->owner, vir_chunk->location);
+                phymem->free_chunk(target->owner, phy_chunk->location);
                 if(!force) return NULL;
                 liberate_memory();
                 return allocator(size, target, flags, force);
@@ -133,7 +133,7 @@ size_t MemAllocator::allocator(const size_t size,
             hole->next_item = target->free_map;
             target->free_map = hole;
         } else {
-            MallocMap* map_parser = target->free_map;
+            MemoryChunk* map_parser = target->free_map;
             while(map_parser->next_item) {
                 if(map_parser->next_item->location > hole->location) break;
                 map_parser = map_parser->next_item;
@@ -147,14 +147,14 @@ size_t MemAllocator::allocator(const size_t size,
     if(!free_mapitems) {
         alloc_mapitems();
         if(!free_mapitems) {
-            if(vir_chunk) virmem->free(vir_chunk);
-            if(phy_chunk) phymem->free(phy_chunk);
+            if(vir_chunk) virmem->free_chunk(target->owner, vir_chunk->location);
+            if(phy_chunk) phymem->free_chunk(target->owner, phy_chunk->location);
             if(!force) return NULL;
             liberate_memory();
             return allocator(size, target, flags, force);
         }
     }
-    MallocMap* allocated = free_mapitems;
+    MemoryChunk* allocated = free_mapitems;
     free_mapitems = free_mapitems->next_item;
     allocated->next_item = NULL;
     allocated->location = hole->location;
@@ -168,7 +168,7 @@ size_t MemAllocator::allocator(const size_t size,
         allocated->next_item = target->busy_map;
         target->busy_map = allocated;
     } else {
-        MallocMap* map_parser = target->busy_map;
+        MemoryChunk* map_parser = target->busy_map;
         while(map_parser->next_item) {
             if(map_parser->next_item->location > allocated->location) break;
             map_parser = map_parser->next_item;
@@ -183,7 +183,7 @@ size_t MemAllocator::allocator(const size_t size,
         if(hole == target->free_map) {
             target->free_map = hole->next_item;
         } else {
-            MallocMap* map_parser = target->free_map;
+            MemoryChunk* map_parser = target->free_map;
             while(map_parser->next_item) {
                 if(map_parser->next_item == hole) break;
                 map_parser = map_parser->next_item;
@@ -193,7 +193,7 @@ size_t MemAllocator::allocator(const size_t size,
         }
 
         //Free it
-        hole = new(hole) MallocMap();
+        hole = new(hole) MemoryChunk();
         hole->next_item = free_mapitems;
         free_mapitems = hole;
     }
@@ -211,32 +211,32 @@ size_t MemAllocator::allocator_shareable(size_t size,
     //Same as above, but always allocates a new chunk and does not put extra memory in free_map
 
     //Allocating memory
-    PhyMemMap* phy_chunk = phymem->alloc_chunk(target->map_owner, align_pgup(size));
+    PhyMemChunk* phy_chunk = phymem->alloc_chunk(target->owner, align_pgup(size));
     if(!phy_chunk) {
         if(!force) return NULL;
         liberate_memory();
         return allocator_shareable(size, target, flags, force);
     }
-    VirMemMap* vir_chunk = virmem->map(phy_chunk, target->map_owner, flags);
+    VirMemChunk* vir_chunk = virmem->map_chunk(target->owner, phy_chunk, flags);
     if(!vir_chunk) {
-        phymem->free(phy_chunk);
+        phymem->free_chunk(target->owner, phy_chunk->location);
         if(!force) return NULL;
         liberate_memory();
         return allocator_shareable(size, target, flags, force);
     }
 
-    //Putting that memory in a MallocMap block
+    //Putting that memory in a MemoryChunk block
     if(!free_mapitems) {
         alloc_mapitems();
         if(!free_mapitems) {
-            virmem->free(vir_chunk);
-            phymem->free(phy_chunk);
+            virmem->free_chunk(target->owner, vir_chunk->location);
+            phymem->free_chunk(target->owner, phy_chunk->location);
             if(!force) return NULL;
             liberate_memory();
             return allocator_shareable(size, target, flags, force);
         }
     }
-    MallocMap* allocated = free_mapitems;
+    MemoryChunk* allocated = free_mapitems;
     free_mapitems = free_mapitems->next_item;
     allocated->next_item = NULL;
     allocated->location = vir_chunk->location;
@@ -249,7 +249,7 @@ size_t MemAllocator::allocator_shareable(size_t size,
         allocated->next_item = target->busy_map;
         target->busy_map = allocated;
     } else {
-        MallocMap* map_parser = target->busy_map;
+        MemoryChunk* map_parser = target->busy_map;
         while(map_parser->next_item) {
             if(map_parser->next_item->location > allocated->location) break;
             map_parser = map_parser->next_item;
@@ -275,7 +275,7 @@ bool MemAllocator::liberator(const size_t location, MallocPIDList* target) {
     //    in busy_map being empty, free_map is necessarily empty too : remove that PID.
     // 3b.If not, move the busy_map item in free_map, merging it with neighbors if possible.
 
-    MallocMap *freed_item, *previous_item = NULL;
+    MemoryChunk *freed_item, *previous_item = NULL;
 
     //Step 1 : Finding the item in busy_map and taking it out of said map.
     if(target->busy_map == NULL) return false;
@@ -314,10 +314,10 @@ bool MemAllocator::liberator(const size_t location, MallocPIDList* target) {
         //Liberate the physical/virtual chunks associated with our item if possible.
         //We use phymem->ownerdel instead of phymem->free here, since the process might have shared
         //this data with other processes, in which case freeing it would be a bit brutal for those.
-        VirMemMap* belonged_to = freed_item->belongs_to;
-        phymem->ownerdel(belonged_to->points_to, target->map_owner);
-        virmem->free(belonged_to);
-        freed_item = new(freed_item) MallocMap();
+        VirMemChunk* belonged_to = freed_item->belongs_to;
+        phymem->free_chunk(target->owner, belonged_to->points_to->location);
+        virmem->free_chunk(target->owner, belonged_to->location);
+        freed_item = new(freed_item) MemoryChunk();
         freed_item->next_item = free_mapitems;
         free_mapitems = freed_item;
 
@@ -326,14 +326,14 @@ bool MemAllocator::liberator(const size_t location, MallocPIDList* target) {
         while((target->free_map) && (target->free_map->belongs_to == belonged_to)) {
             freed_item = target->free_map;
             target->free_map = freed_item->next_item;
-            freed_item = new(freed_item) MallocMap();
+            freed_item = new(freed_item) MemoryChunk();
             freed_item->next_item = free_mapitems;
             free_mapitems = freed_item;
         }
         if(target->free_map == NULL) {
             //Nothing left in the target's free map, so our job is done.
             //If this PID's busy_map is now empty, its free_map is empty too : remove it
-            if(target->busy_map == NULL) remove_pid(target->map_owner);
+            if(target->busy_map == NULL) remove_pid(target->owner);
             return true;
         }
         previous_item = target->free_map;
@@ -341,7 +341,7 @@ bool MemAllocator::liberator(const size_t location, MallocPIDList* target) {
             if(previous_item->next_item->belongs_to == belonged_to) {
                 freed_item = previous_item->next_item;
                 previous_item->next_item = freed_item->next_item;
-                freed_item = new(freed_item) MallocMap();
+                freed_item = new(freed_item) MemoryChunk();
                 freed_item->next_item = free_mapitems;
                 free_mapitems = freed_item;
             }
@@ -349,7 +349,7 @@ bool MemAllocator::liberator(const size_t location, MallocPIDList* target) {
         }
 
         //If this PID's busy_map is now empty, its free_map is empty too : remove it
-        if(target->busy_map == NULL) remove_pid(target->map_owner);
+        if(target->busy_map == NULL) remove_pid(target->owner);
         return true;
     }
 
@@ -367,7 +367,7 @@ bool MemAllocator::liberator(const size_t location, MallocPIDList* target) {
             target->free_map->size+= freed_item->size;
 
             //Clean things up
-            freed_item = new(freed_item) MallocMap();
+            freed_item = new(freed_item) MemoryChunk();
             freed_item->next_item = free_mapitems;
             free_mapitems = freed_item;
         } else {
@@ -376,7 +376,7 @@ bool MemAllocator::liberator(const size_t location, MallocPIDList* target) {
             target->free_map = freed_item;
         }
     } else {
-        MallocMap* map_parser = target->free_map;
+        MemoryChunk* map_parser = target->free_map;
         while(map_parser->next_item) {
             if(map_parser->next_item->location > freed_item->location) break;
             map_parser = map_parser->next_item;
@@ -387,7 +387,7 @@ bool MemAllocator::liberator(const size_t location, MallocPIDList* target) {
           (freed_item->belongs_to == map_parser->belongs_to)) {
             //Merge map_parser with freed_item and clean freed_item up
             map_parser->size+= freed_item->size;
-            freed_item = new(freed_item) MallocMap();
+            freed_item = new(freed_item) MemoryChunk();
             freed_item->next_item = free_mapitems;
             free_mapitems = freed_item;
 
@@ -396,7 +396,7 @@ bool MemAllocator::liberator(const size_t location, MallocPIDList* target) {
               (map_parser->belongs_to == map_parser->next_item->belongs_to)) {
                 freed_item = map_parser->next_item;
                 map_parser->size+= freed_item->size;
-                freed_item = new(freed_item) MallocMap();
+                freed_item = new(freed_item) MemoryChunk();
                 freed_item->next_item = free_mapitems;
                 free_mapitems = freed_item;
             }
@@ -409,7 +409,7 @@ bool MemAllocator::liberator(const size_t location, MallocPIDList* target) {
                 map_parser->next_item->size+= freed_item->size;
 
                 //Clean things up
-                freed_item = new(freed_item) MallocMap();
+                freed_item = new(freed_item) MemoryChunk();
                 freed_item->next_item = free_mapitems;
                 free_mapitems = freed_item;
             } else {
@@ -434,7 +434,7 @@ size_t MemAllocator::share(const size_t location,
     //
     //This function shares a memory block of source with target, giving target "flags" access flags
 
-    //Allocate management structures (we need at most two MallocMaps)
+    //Allocate management structures (we need at most two MemoryChunks)
     if(!free_mapitems || !(free_mapitems->next_item)) {
         alloc_mapitems();
         if(!free_mapitems || !(free_mapitems->next_item)) {
@@ -449,7 +449,7 @@ size_t MemAllocator::share(const size_t location,
         if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
     }
-    MallocMap* shared_item = source->busy_map->find_thischunk(location);
+    MemoryChunk* shared_item = source->busy_map->find_thischunk(location);
     if(!shared_item) {
         if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
@@ -458,11 +458,11 @@ size_t MemAllocator::share(const size_t location,
         if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
     }
-    PID target_pid = target->map_owner;
-    PhyMemMap* phy_item = shared_item->belongs_to->points_to;
+    PID target_pid = target->owner;
+    PhyMemChunk* phy_item = shared_item->belongs_to->points_to;
     //Check that the chunk is not shared with target already, if so simply increment the share_count
     //of the shared object in target's address space and quit. If not, pursue sharing operation
-    MallocMap* already_shared = shared_already(phy_item, target);
+    MemoryChunk* already_shared = shared_already(phy_item, target);
     if(already_shared) {
         //Manage share_count overflows
         if(already_shared->share_count == 0xffffffff) {
@@ -472,7 +472,7 @@ size_t MemAllocator::share(const size_t location,
         already_shared->share_count+= 1;
         return already_shared->location;
     }
-    if(phymem->owneradd(phy_item, target_pid) == false) {
+    if(phymem->share_chunk(target_pid, phy_item->location) == false) {
         //If a new item has been allocated for sharing, delete it
         if(shared_item != source->busy_map->find_thischunk(location)) {
             liberator(shared_item->location, source);
@@ -481,14 +481,14 @@ size_t MemAllocator::share(const size_t location,
         liberate_memory();
         return share(location, source, target, flags, force);
     }
-    VirMemMap* shared_chunk;
-    if(flags | VMEM_FLAGS_SAME) {
-        shared_chunk = virmem->map(phy_item, target_pid, shared_item->belongs_to->flags);
+    VirMemChunk* shared_chunk;
+    if(flags | VIRMEM_FLAGS_SAME) {
+        shared_chunk = virmem->map_chunk(target_pid, phy_item, shared_item->belongs_to->flags);
     } else {
-        shared_chunk = virmem->map(phy_item, target_pid, flags);
+        shared_chunk = virmem->map_chunk(target_pid, phy_item, flags);
     }
     if(!shared_chunk) {
-        phymem->ownerdel(phy_item, target_pid);
+        phymem->free_chunk(target_pid, phy_item->location);
         //If a new item has been allocated for sharing, delete it
         if(shared_item != source->busy_map->find_thischunk(location)) {
             liberator(shared_item->location, source);
@@ -501,7 +501,7 @@ size_t MemAllocator::share(const size_t location,
 
     //Make the chunks to be inserted in target->busy_map. Do not store the remaining memory
     //in shared_chunk as free memory, as it would lead to unwanted data sharing
-    MallocMap* busy_item = free_mapitems;
+    MemoryChunk* busy_item = free_mapitems;
     free_mapitems = free_mapitems->next_item;
     busy_item->location = shared_chunk->location;
     busy_item->size = shared_chunk->size;
@@ -514,7 +514,7 @@ size_t MemAllocator::share(const size_t location,
         busy_item->next_item = target->busy_map;
         target->busy_map = busy_item;
     } else {
-        MallocMap* map_parser = target->busy_map;
+        MemoryChunk* map_parser = target->busy_map;
         while(map_parser->next_item) {
             if(map_parser->next_item->location > busy_item->location) break;
             map_parser = map_parser->next_item;
@@ -526,10 +526,10 @@ size_t MemAllocator::share(const size_t location,
     return busy_item->location;
 }
 
-MallocMap* MemAllocator::shared_already(PhyMemMap* to_share, MallocPIDList* target_owner) {
+MemoryChunk* MemAllocator::shared_already(PhyMemChunk* to_share, MallocPIDList* target_owner) {
     //This function checks if a physical page "to_share" is already shared with "target_owner", and
-    //if so returns a pointer to the MallocMap object associated with the shared object.
-    MallocMap* map_parser = target_owner->busy_map;
+    //if so returns a pointer to the MemoryChunk object associated with the shared object.
+    MemoryChunk* map_parser = target_owner->busy_map;
     while(map_parser) {
         if(map_parser->belongs_to->points_to == to_share) break;
         map_parser = map_parser->next_item;
@@ -546,10 +546,10 @@ size_t MemAllocator::knl_allocator(const size_t size, const bool force) {
     //since paging is disabled for the kernel, the chunk is allocated through
     //PhyMemManager::alloc_chunk with contiguous flag on, and not mapped through virmem.
 
-    PhyMemMap* phy_chunk = NULL;
+    PhyMemChunk* phy_chunk = NULL;
 
     //Step 1 : Look for a suitable hole in knl_free_map
-    KnlMallocMap* hole = NULL;
+    KnlMemoryChunk* hole = NULL;
     if(knl_free_map) hole = knl_free_map->find_contigchunk(size);
 
     //Step 2 : If there's none, create it
@@ -562,17 +562,17 @@ size_t MemAllocator::knl_allocator(const size_t size, const bool force) {
             return knl_allocator(size, force);
         }
 
-        //Putting that memory in a KnlMallocMap block
+        //Putting that memory in a KnlMemoryChunk block
         if(!free_mapitems) {
             alloc_mapitems();
             if(!free_mapitems) {
-                phymem->free(phy_chunk);
+                phymem->free_chunk(PID_KERNEL, phy_chunk->location);
                 if(!force) return NULL;
                 liberate_memory();
                 return knl_allocator(size, force);
             }
         }
-        hole = (KnlMallocMap*) free_mapitems;
+        hole = (KnlMemoryChunk*) free_mapitems;
         free_mapitems = free_mapitems->next_item;
         hole->next_item = NULL;
         hole->location = phy_chunk->location;
@@ -584,7 +584,7 @@ size_t MemAllocator::knl_allocator(const size_t size, const bool force) {
             hole->next_item = knl_free_map;
             knl_free_map = hole;
         } else {
-            KnlMallocMap* map_parser = knl_free_map;
+            KnlMemoryChunk* map_parser = knl_free_map;
             while(map_parser->next_item) {
                 if(map_parser->next_item->location > hole->location) break;
                 map_parser = map_parser->next_item;
@@ -598,13 +598,13 @@ size_t MemAllocator::knl_allocator(const size_t size, const bool force) {
     if(!free_mapitems) {
         alloc_mapitems();
         if(!free_mapitems) {
-            if(phy_chunk) phymem->free(phy_chunk);
+            if(phy_chunk) phymem->free_chunk(PID_KERNEL, phy_chunk->location);
             if(!force) return NULL;
             liberate_memory();
             return knl_allocator(size, force);
         }
     }
-    KnlMallocMap* allocated = (KnlMallocMap*) free_mapitems;
+    KnlMemoryChunk* allocated = (KnlMemoryChunk*) free_mapitems;
     free_mapitems = free_mapitems->next_item;
     allocated->next_item = NULL;
     allocated->location = hole->location;
@@ -618,7 +618,7 @@ size_t MemAllocator::knl_allocator(const size_t size, const bool force) {
         allocated->next_item = knl_busy_map;
         knl_busy_map = allocated;
     } else {
-        KnlMallocMap* map_parser = knl_busy_map;
+        KnlMemoryChunk* map_parser = knl_busy_map;
         while(map_parser->next_item) {
             if(map_parser->next_item->location > allocated->location) break;
             map_parser = map_parser->next_item;
@@ -633,7 +633,7 @@ size_t MemAllocator::knl_allocator(const size_t size, const bool force) {
         if(hole == knl_free_map) {
             knl_free_map = hole->next_item;
         } else {
-            KnlMallocMap* map_parser = knl_free_map;
+            KnlMemoryChunk* map_parser = knl_free_map;
             while(map_parser->next_item) {
                 if(map_parser->next_item == hole) break;
                 map_parser = map_parser->next_item;
@@ -643,9 +643,9 @@ size_t MemAllocator::knl_allocator(const size_t size, const bool force) {
         }
 
         //Free it
-        hole = new(hole) KnlMallocMap();
-        hole->next_item = (KnlMallocMap*) free_mapitems;
-        free_mapitems = (MallocMap*) hole;
+        hole = new(hole) KnlMemoryChunk();
+        hole->next_item = (KnlMemoryChunk*) free_mapitems;
+        free_mapitems = (MemoryChunk*) hole;
     }
 
     return allocated->location;
@@ -658,24 +658,24 @@ size_t MemAllocator::knl_allocator_shareable(size_t size, const bool force) {
     //allocator_shareable(), but modified in the same way as above
 
     //Allocating memory
-    PhyMemMap* phy_chunk = phymem->alloc_chunk(PID_KERNEL, align_pgup(size), true);
+    PhyMemChunk* phy_chunk = phymem->alloc_chunk(PID_KERNEL, align_pgup(size), true);
     if(!phy_chunk) {
         if(!force) return NULL;
         liberate_memory();
         return knl_allocator_shareable(size, force);
     }
 
-    //Putting that memory in a MallocMap block
+    //Putting that memory in a MemoryChunk block
     if(!free_mapitems) {
         alloc_mapitems();
         if(!free_mapitems) {
-            phymem->free(phy_chunk);
+            phymem->free_chunk(PID_KERNEL, phy_chunk->location);
             if(!force) return NULL;
             liberate_memory();
             return knl_allocator_shareable(size, force);
         }
     }
-    KnlMallocMap* allocated = (KnlMallocMap*) free_mapitems;
+    KnlMemoryChunk* allocated = (KnlMemoryChunk*) free_mapitems;
     free_mapitems = free_mapitems->next_item;
     allocated->next_item = NULL;
     allocated->location = phy_chunk->location;
@@ -688,7 +688,7 @@ size_t MemAllocator::knl_allocator_shareable(size_t size, const bool force) {
         allocated->next_item = knl_busy_map;
         knl_busy_map = allocated;
     } else {
-        KnlMallocMap* map_parser = knl_busy_map;
+        KnlMemoryChunk* map_parser = knl_busy_map;
         while(map_parser->next_item) {
             if(map_parser->next_item->location > allocated->location) break;
             map_parser = map_parser->next_item;
@@ -708,7 +708,7 @@ bool MemAllocator::knl_liberator(const size_t location) {
     //   -Since paging is disabled for the kernel, the chunk is only liberated through phymem
     //   -The kernel's structures are part of MemAllocator, they are never removed.
 
-    KnlMallocMap *freed_item, *previous_item = NULL;
+    KnlMemoryChunk *freed_item, *previous_item = NULL;
 
     //Step 1 : Find the item in knl_busy_map and take it out of said map.
     if(!knl_busy_map) return false;
@@ -743,23 +743,20 @@ bool MemAllocator::knl_liberator(const size_t location) {
 
     if(item_is_alone) {
         //Step 3a : Liberate the chunk and any item of free_map belonging to them.
-
-        //We use phymem->ownerdel instead of phymem->free here, since the process might have shared
-        //this data with other processes, in which case freeing it would be a bit brutal for those.
-        PhyMemMap* belonged_to = freed_item->belongs_to;
-        phymem->ownerdel(belonged_to, PID_KERNEL);
-        freed_item = new(freed_item) KnlMallocMap();
-        freed_item->next_item = (KnlMallocMap*) free_mapitems;
-        free_mapitems = (MallocMap*) freed_item;
+        PhyMemChunk* belonged_to = freed_item->belongs_to;
+        phymem->free_chunk(PID_KERNEL, belonged_to->location);
+        freed_item = new(freed_item) KnlMemoryChunk();
+        freed_item->next_item = (KnlMemoryChunk*) free_mapitems;
+        free_mapitems = (MemoryChunk*) freed_item;
 
         //Then parse knl_free_map, looking for free items which belong to this chunk, if any.
         //Remove them from knl_free_map and free them too.
         while(knl_free_map && (knl_free_map->belongs_to == belonged_to)) {
             freed_item = knl_free_map;
             knl_free_map = knl_free_map->next_item;
-            freed_item = new(freed_item) KnlMallocMap();
-            freed_item->next_item = (KnlMallocMap*) free_mapitems;
-            free_mapitems = (MallocMap*) freed_item;
+            freed_item = new(freed_item) KnlMemoryChunk();
+            freed_item->next_item = (KnlMemoryChunk*) free_mapitems;
+            free_mapitems = (MemoryChunk*) freed_item;
         }
         if(!knl_free_map) return true; //knl_free_map is empty so the job is done
         previous_item = knl_free_map;
@@ -767,9 +764,9 @@ bool MemAllocator::knl_liberator(const size_t location) {
             if(previous_item->next_item->belongs_to == belonged_to) {
                 freed_item = previous_item->next_item;
                 previous_item->next_item = freed_item->next_item;
-                freed_item = new(freed_item) KnlMallocMap();
-                freed_item->next_item = (KnlMallocMap*) free_mapitems;
-                free_mapitems = (MallocMap*) freed_item;
+                freed_item = new(freed_item) KnlMemoryChunk();
+                freed_item->next_item = (KnlMemoryChunk*) free_mapitems;
+                free_mapitems = (MemoryChunk*) freed_item;
             }
             if(previous_item->next_item) previous_item = previous_item->next_item;
         }
@@ -791,16 +788,16 @@ bool MemAllocator::knl_liberator(const size_t location) {
             knl_free_map->size+= freed_item->size;
 
             //Clean things up
-            freed_item = new(freed_item) KnlMallocMap();
-            freed_item->next_item = (KnlMallocMap*) free_mapitems;
-            free_mapitems = (MallocMap*) freed_item;
+            freed_item = new(freed_item) KnlMemoryChunk();
+            freed_item->next_item = (KnlMemoryChunk*) free_mapitems;
+            free_mapitems = (MemoryChunk*) freed_item;
         } else {
             //Just put the freed item in knl_free_map
             freed_item->next_item = knl_free_map;
             knl_free_map = freed_item;
         }
     } else {
-        KnlMallocMap* map_parser = knl_free_map;
+        KnlMemoryChunk* map_parser = knl_free_map;
         while(map_parser->next_item) {
             if(map_parser->next_item->location > freed_item->location) break;
             map_parser = map_parser->next_item;
@@ -811,18 +808,18 @@ bool MemAllocator::knl_liberator(const size_t location) {
           (freed_item->belongs_to == map_parser->belongs_to)) {
             //Merge map_parser with freed_item and clean freed_item up
             map_parser->size+= freed_item->size;
-            freed_item = new(freed_item) KnlMallocMap();
-            freed_item->next_item = (KnlMallocMap*) free_mapitems;
-            free_mapitems = (MallocMap*) freed_item;
+            freed_item = new(freed_item) KnlMemoryChunk();
+            freed_item->next_item = (KnlMemoryChunk*) free_mapitems;
+            free_mapitems = (MemoryChunk*) freed_item;
 
             //Try to merge map_parser with map_parser->next_item
             if((map_parser->location+map_parser->size == map_parser->next_item->location) &&
               (map_parser->belongs_to == map_parser->next_item->belongs_to)) {
                 freed_item = map_parser->next_item;
                 map_parser->size+= freed_item->size;
-                freed_item = new(freed_item) KnlMallocMap();
-                freed_item->next_item = (KnlMallocMap*) free_mapitems;
-                free_mapitems = (MallocMap*) freed_item;
+                freed_item = new(freed_item) KnlMemoryChunk();
+                freed_item->next_item = (KnlMemoryChunk*) free_mapitems;
+                free_mapitems = (MemoryChunk*) freed_item;
             }
         } else {
             //Try merging with the item after.
@@ -833,9 +830,9 @@ bool MemAllocator::knl_liberator(const size_t location) {
                 map_parser->next_item->size+= freed_item->size;
 
                 //Clean things up
-                freed_item = new(freed_item) KnlMallocMap();
-                freed_item->next_item = (KnlMallocMap*) free_mapitems;
-                free_mapitems = (MallocMap*) freed_item;
+                freed_item = new(freed_item) KnlMemoryChunk();
+                freed_item->next_item = (KnlMemoryChunk*) free_mapitems;
+                free_mapitems = (MemoryChunk*) freed_item;
             } else {
                 //No merge possible, just put the freed item at its place
                 freed_item->next_item = map_parser->next_item;
@@ -857,7 +854,7 @@ size_t MemAllocator::share_from_knl(const size_t location,
     //
     //Like share(), but the original chunk belongs to the kernel
 
-    //Allocate management structures (we need at most two MallocMaps)
+    //Allocate management structures (we need at most two MemoryChunks)
     if(!free_mapitems || !(free_mapitems->next_item)) {
         alloc_mapitems();
         if(!free_mapitems || !(free_mapitems->next_item)) {
@@ -872,7 +869,7 @@ size_t MemAllocator::share_from_knl(const size_t location,
         if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
     }
-    KnlMallocMap* shared_item = knl_busy_map->find_thischunk(location);
+    KnlMemoryChunk* shared_item = knl_busy_map->find_thischunk(location);
     if(!shared_item) {
         if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
@@ -881,10 +878,10 @@ size_t MemAllocator::share_from_knl(const size_t location,
         if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
     }
-    PhyMemMap* phy_item = shared_item->belongs_to;
+    PhyMemChunk* phy_item = shared_item->belongs_to;
     //Check that the chunk is not shared with target already, if so simply increment the share_count
     //of the shared object in target's address space and quit. If not, pursue sharing operation
-    MallocMap* already_shared = shared_already(phy_item, target);
+    MemoryChunk* already_shared = shared_already(phy_item, target);
     if(already_shared) {
         //Manage share_count overflows
         if(already_shared->share_count == 0xffffffff) {
@@ -894,8 +891,8 @@ size_t MemAllocator::share_from_knl(const size_t location,
         already_shared->share_count+= 1;
         return already_shared->location;
     }
-    PID target_pid = target->map_owner;
-    if(phymem->owneradd(phy_item, target_pid) == false) {
+    PID target_pid = target->owner;
+    if(phymem->share_chunk(target_pid, phy_item->location) == false) {
         //If a new item has been allocated for sharing, delete it
         if(shared_item != knl_busy_map->find_thischunk(location)) {
             knl_liberator(shared_item->location);
@@ -904,14 +901,14 @@ size_t MemAllocator::share_from_knl(const size_t location,
         liberate_memory();
         return share_from_knl(location, target, flags, force);
     }
-    VirMemMap* shared_chunk;
-    if(flags | VMEM_FLAGS_SAME) {
-        shared_chunk = virmem->map(phy_item, target_pid, VMEM_FLAGS_RW);
+    VirMemChunk* shared_chunk;
+    if(flags | VIRMEM_FLAGS_SAME) {
+        shared_chunk = virmem->map_chunk(target_pid, phy_item, VIRMEM_FLAGS_RW);
     } else {
-        shared_chunk = virmem->map(phy_item, target_pid, flags);
+        shared_chunk = virmem->map_chunk(target_pid, phy_item, flags);
     }
     if(!shared_chunk) {
-        phymem->ownerdel(phy_item, target_pid);
+        phymem->free_chunk(target_pid, phy_item->location);
         //If a new item has been allocated for sharing, delete it
         if(shared_item != knl_busy_map->find_thischunk(location)) {
             knl_liberator(shared_item->location);
@@ -923,7 +920,7 @@ size_t MemAllocator::share_from_knl(const size_t location,
 
     //Make the chunks to be inserted in target->busy_map. Do not store the remaining memory
     //in shared_chunk as free memory, as it would lead to unwanted data sharing
-    MallocMap* busy_item = free_mapitems;
+    MemoryChunk* busy_item = free_mapitems;
     free_mapitems = free_mapitems->next_item;
     busy_item->location = shared_chunk->location;
     busy_item->size = shared_chunk->size;
@@ -936,7 +933,7 @@ size_t MemAllocator::share_from_knl(const size_t location,
         busy_item->next_item = target->busy_map;
         target->busy_map = busy_item;
     } else {
-        MallocMap* map_parser = target->busy_map;
+        MemoryChunk* map_parser = target->busy_map;
         while(map_parser->next_item) {
             if(map_parser->next_item->location > busy_item->location) break;
             map_parser = map_parser->next_item;
@@ -957,7 +954,7 @@ size_t MemAllocator::share_to_knl(const size_t location,
     //
     //Like sharer(), but the kernel is the recipient
 
-    //Allocate management structures (we need at most two MallocMaps)
+    //Allocate management structures (we need at most two MemoryChunks)
     if(!free_mapitems || !(free_mapitems->next_item)) {
         alloc_mapitems();
         if(!free_mapitems || !(free_mapitems->next_item)) {
@@ -972,7 +969,7 @@ size_t MemAllocator::share_to_knl(const size_t location,
         if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
     }
-    MallocMap* shared_item = source->busy_map->find_thischunk(location);
+    MemoryChunk* shared_item = source->busy_map->find_thischunk(location);
     if(!shared_item) {
         if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
@@ -983,14 +980,14 @@ size_t MemAllocator::share_to_knl(const size_t location,
     }
     //If "same" virtual memory flags are used, check that the original memory chunk has RW memory
     //flags, as paging is disabled for the kernel
-    if((flags | VMEM_FLAGS_SAME) && (shared_item->belongs_to->flags != VMEM_FLAGS_RW)) {
+    if((flags | VIRMEM_FLAGS_SAME) && (shared_item->belongs_to->flags != VIRMEM_FLAGS_RW)) {
         if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
     }
-    PhyMemMap* shared_chunk = shared_item->belongs_to->points_to;
+    PhyMemChunk* shared_chunk = shared_item->belongs_to->points_to;
     //Check that the chunk is not shared with target already, if so simply increment the share_count
     //of the shared object in target's address space and quit. If not, pursue sharing operation
-    KnlMallocMap* already_shared = shared_to_knl_already(shared_chunk);
+    KnlMemoryChunk* already_shared = shared_to_knl_already(shared_chunk);
     if(already_shared) {
         //Manage share_count overflows
         if(already_shared->share_count == 0xffffffff) {
@@ -1000,7 +997,7 @@ size_t MemAllocator::share_to_knl(const size_t location,
         already_shared->share_count+= 1;
         return already_shared->location;
     }
-    if(phymem->owneradd(shared_chunk, PID_KERNEL) == false) {
+    if(phymem->share_chunk(PID_KERNEL, shared_chunk->location) == false) {
         //If a new item has been allocated for sharing, delete it
         if(shared_item != source->busy_map->find_thischunk(location)) {
             liberator(shared_item->location, source);
@@ -1013,7 +1010,7 @@ size_t MemAllocator::share_to_knl(const size_t location,
 
     //Make the chunks to be inserted in knl_busy_map. Do not store the remaining memory
     //in shared_chunk as free memory, as it would lead to unwanted data sharing
-    KnlMallocMap* busy_item = (KnlMallocMap*) free_mapitems;
+    KnlMemoryChunk* busy_item = (KnlMemoryChunk*) free_mapitems;
     free_mapitems = free_mapitems->next_item;
     busy_item->location = shared_chunk->location;
     busy_item->size = shared_chunk->size;
@@ -1026,7 +1023,7 @@ size_t MemAllocator::share_to_knl(const size_t location,
         busy_item->next_item = knl_busy_map;
         knl_busy_map = busy_item;
     } else {
-        KnlMallocMap* map_parser = knl_busy_map;
+        KnlMemoryChunk* map_parser = knl_busy_map;
         while(map_parser->next_item) {
             if(map_parser->next_item->location > busy_item->location) break;
             map_parser = map_parser->next_item;
@@ -1038,10 +1035,10 @@ size_t MemAllocator::share_to_knl(const size_t location,
     return busy_item->location;
 }
 
-KnlMallocMap* MemAllocator::shared_to_knl_already(PhyMemMap* to_share) {
+KnlMemoryChunk* MemAllocator::shared_to_knl_already(PhyMemChunk* to_share) {
     //This function checks if a physical page "to_share" is already shared with the kernel, and
-    //if so returns a pointer to the MallocMap object associated with the shared object.
-    KnlMallocMap* map_parser = knl_busy_map;
+    //if so returns a pointer to the MemoryChunk object associated with the shared object.
+    KnlMemoryChunk* map_parser = knl_busy_map;
     while(map_parser) {
         if(map_parser->belongs_to == to_share) break;
         map_parser = map_parser->next_item;
@@ -1055,7 +1052,7 @@ MallocPIDList* MemAllocator::find_pid(const PID target) {
 
     list_item = map_list;
     while(list_item) {
-        if(list_item->map_owner == target) break;
+        if(list_item->owner == target) break;
         list_item = list_item->next_item;
     }
 
@@ -1071,10 +1068,10 @@ MallocPIDList* MemAllocator::find_or_create_pid(PID target, const bool force) {
     }
     list_item = map_list;
     while(list_item->next_item) {
-        if(list_item->map_owner == target) break;
+        if(list_item->owner == target) break;
         list_item = list_item->next_item;
     }
-    if(list_item->map_owner != target) {
+    if(list_item->owner != target) {
         list_item->next_item = setup_pid(target);
         list_item = list_item->next_item;
     }
@@ -1098,7 +1095,7 @@ MallocPIDList* MemAllocator::setup_pid(PID target) {
     //Fill them
     result = free_listitems;
     free_listitems = free_listitems->next_item;
-    result->map_owner = target;
+    result->owner = target;
     result->next_item = NULL;
 
     return result;
@@ -1108,13 +1105,13 @@ bool MemAllocator::remove_pid(PID target) {
     MallocPIDList *deleted_item, *previous_item;
 
     //Remove the PID from the map list
-    if(map_list->map_owner == target) {
+    if(map_list->owner == target) {
         deleted_item = map_list;
         map_list = map_list->next_item;
     } else {
         previous_item = map_list;
         while(previous_item->next_item) {
-            if(previous_item->next_item->map_owner == target) break;
+            if(previous_item->next_item->owner == target) break;
             previous_item = previous_item->next_item;
         }
         deleted_item = previous_item->next_item;
@@ -1155,7 +1152,7 @@ size_t MemAllocator::malloc(const size_t size, PID target, const VirMemFlags fla
 
     if(target == PID_KERNEL) {
         //Kernel does not support paging, so only default flags are supported
-        if(flags != VMEM_FLAGS_RW) {
+        if(flags != VIRMEM_FLAGS_RW) {
             if(force) panic(PANIC_IMPOSSIBLE_KERNEL_FLAGS);
             return NULL;
         }
@@ -1203,7 +1200,7 @@ size_t MemAllocator::malloc_shareable(size_t size,
 
     if(target == PID_KERNEL) {
         //Kernel does not support paging, so only default flags are supported
-        if(flags != VMEM_FLAGS_RW) {
+        if(flags != VIRMEM_FLAGS_RW) {
             if(force) panic(PANIC_IMPOSSIBLE_KERNEL_FLAGS);
             return NULL;
         }
@@ -1318,7 +1315,7 @@ size_t MemAllocator::owneradd(const size_t location,
         //PID source shares something with kernel
 
         //Kernel does not support paging, so only default flags are supported
-        if((flags != VMEM_FLAGS_RW) && (flags != VMEM_FLAGS_SAME)) {
+        if((flags != VIRMEM_FLAGS_RW) && (flags != VIRMEM_FLAGS_SAME)) {
             if(force) panic(PANIC_IMPOSSIBLE_KERNEL_FLAGS); //Stub !
             return NULL;
         }
@@ -1552,33 +1549,33 @@ void MemAllocator::print_freemap(const PID owner) {
     }
 }
 
-MemAllocator* kernel_allocator = NULL;
+MemAllocator* mem_allocator = NULL;
 
 void setup_kalloc(MemAllocator& allocator) {
-    kernel_allocator = &allocator;
+    mem_allocator = &allocator;
 }
 
 void* kalloc(const size_t size, PID target, const VirMemFlags flags, const bool force) {
-    if(!kernel_allocator) {
+    if(!mem_allocator) {
         if(!force) return NULL;
-        //Stub !
+        //TODO : Something cleaner
         panic(PANIC_MM_UNINITIALIZED);
     }
-    return (void*) kernel_allocator->malloc(size, target, flags, force);
+    return (void*) mem_allocator->malloc(size, target, flags, force);
 }
 
 void* kalloc_shareable(size_t size, PID target, const VirMemFlags flags, const bool force) {
-    if(!kernel_allocator) {
+    if(!mem_allocator) {
         if(!force) return NULL;
-        //Stub !
+        //TODO : Something cleaner
         panic(PANIC_MM_UNINITIALIZED);
     }
-    return (void*) kernel_allocator->malloc_shareable(size, target, flags, force);
+    return (void*) mem_allocator->malloc_shareable(size, target, flags, force);
 }
 
 bool kfree(void* location, PID target) {
-    if(!kernel_allocator) return false;
-    return (void*) kernel_allocator->free((size_t) location, target);
+    if(!mem_allocator) return false;
+    return (void*) mem_allocator->free((size_t) location, target);
 }
 
 void* kowneradd(const void* location,
@@ -1586,48 +1583,48 @@ void* kowneradd(const void* location,
                 PID target,
                 const VirMemFlags flags,
                 const bool force) {
-    if(!kernel_allocator) {
+    if(!mem_allocator) {
         if(!force) return NULL;
-        //Stub !
+        //TODO : Clean this up
         panic(PANIC_MM_UNINITIALIZED);
     }
-    return (void*) kernel_allocator->owneradd((size_t) location, source, target, flags, force);
+    return (void*) mem_allocator->owneradd((size_t) location, source, target, flags, force);
 }
 
 void* kinit_pool(const size_t size,
                  PID target,
                  const VirMemFlags flags,
                  const bool force) {
-    if(!kernel_allocator) {
+    if(!mem_allocator) {
         if(!force) return NULL;
-        //Stub !
+        //TODO : Clean up
         panic(PANIC_MM_UNINITIALIZED);
     }
-    return (void*) kernel_allocator->init_pool(size, target, flags, force);
+    return (void*) mem_allocator->init_pool(size, target, flags, force);
 }
 
 void* kinit_pool_shareable(const size_t size,
                            PID target,
                            const VirMemFlags flags,
                            const bool force) {
-    if(!kernel_allocator) {
+    if(!mem_allocator) {
         if(!force) return NULL;
-        //Stub !
+        //TODO : Clean up
         panic(PANIC_MM_UNINITIALIZED);
     }
-    return (void*) kernel_allocator->init_pool_shareable(size, target, flags, force);
+    return (void*) mem_allocator->init_pool_shareable(size, target, flags, force);
 }
 
 void* kleave_pool(PID target) {
-    if(!kernel_allocator) return NULL;
-    return (void*) kernel_allocator->leave_pool(target);
+    if(!mem_allocator) return NULL;
+    return (void*) mem_allocator->leave_pool(target);
 }
 
 bool kset_pool(void* pool, PID target, const bool force) {
-    if(!kernel_allocator) {
+    if(!mem_allocator) {
         if(!force) return NULL;
-        //Stub !
+        //TODO : Clean up
         panic(PANIC_MM_UNINITIALIZED);
     }
-    return kernel_allocator->set_pool((size_t) pool, target, force);
+    return mem_allocator->set_pool((size_t) pool, target, force);
 }
