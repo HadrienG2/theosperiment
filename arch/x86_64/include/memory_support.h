@@ -209,58 +209,30 @@ struct MemoryChunk {
 } __attribute__((packed));
 
 
-//There is a derivative of the previous structure for the kernel, as it has virtual memory disabled.
-struct KnlMemoryChunk {
-    size_t location;
-    size_t size;
-    PhyMemChunk* belongs_to; //The chunk of *physical* memory it belongs to.
-    KnlMemoryChunk* next_item;
-    uint32_t shareable; //Boolean. Indicates that the content of the page has been allocated in a
-                        //specific way which makes it suitable for sharing between processes.
-    uint32_t share_count; //For the shared copy of a shared chunk, indicates how many times the
-                          //chunk has been shared with this process. The process will have to free
-                          //its shared copy the same amount of time before it is actually freed.
-    uint64_t padding;
-    uint64_t padding_2;
-    uint64_t padding_3;
-    KnlMemoryChunk() : location(NULL),
-                     size(NULL),
-                     belongs_to(NULL),
-                     next_item(NULL),
-                     shareable(0),
-                     share_count(0) {};
-    KnlMemoryChunk* find_contigchunk(const size_t size) const; //Try to find at least "size"
-                                                             //contiguous bytes in this map
-    KnlMemoryChunk* find_thischunk(const size_t location) const;
-    //Comparing C-style structs is fairly straightforward and should be done by default
-    //by the C++ compiler, but well...
-    bool operator==(const KnlMemoryChunk& param) const;
-    bool operator!=(const KnlMemoryChunk& param) const {return !(*this==param);}
-} __attribute__((packed));
-
-
 //There are two maps per process, and we must keep track of each process. The same assumptions as
 //before apply. The size of this should also be a divisor of 0x1000 (currently : 0x20);
-struct MallocPIDList {
+struct MallocProcess {
     PID owner;
     MemoryChunk* free_map; //A sorted map of ready-to-use chunks of memory
     MemoryChunk* busy_map; //A sorted map of used chunks of memory
-    MallocPIDList* next_item;
+    MallocProcess* next_item;
     OwnerlessMutex mutex;
-    uint16_t padding;
-    size_t pool; //For pooled memory allocation purposes
-    uint64_t padding2;
+    uint16_t pool_stack; //Stores the amount of times enter_pool has been consecutively called
+    size_t pool_location;
+    size_t pool_size;
     uint64_t padding3;
     uint64_t padding4;
-    MallocPIDList() : owner(PID_INVALID),
+    MallocProcess() : owner(PID_INVALID),
                       free_map(NULL),
                       busy_map(NULL),
                       next_item(NULL),
-                      pool(NULL) {};
+                      pool_stack(0),
+                      pool_location(NULL),
+                      pool_size(NULL) {};
     //Comparing C-style structs is fairly straightforward and should be done by default
     //by the C++ compiler, but well...
-    bool operator==(const MallocPIDList& param) const;
-    bool operator!=(const MallocPIDList& param) const {return !(*this==param);}
+    bool operator==(const MallocProcess& param) const;
+    bool operator!=(const MallocProcess& param) const {return !(*this==param);}
 } __attribute__((packed));
 
 #endif

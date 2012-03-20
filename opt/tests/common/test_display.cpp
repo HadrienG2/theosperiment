@@ -23,7 +23,7 @@
 namespace Tests {
     static int title_count;
     static int sub_title_count;
-    
+
     void test_beginning(const char* component_name) {
         dbgout << set_window(screen_win);
         dbgout << "Beginning " << component_name << " testing..." << endl;
@@ -90,13 +90,13 @@ namespace Tests {
         dbgout << txtcolor(TXT_YELLOW) << "  This test is not implemented yet !";
         dbgout << txtcolor(TXT_LIGHTGRAY) << endl;
     }
-    
+
     void bench_start() {
         dbgout << txtcolor(TXT_LIGHTBLUE);
         dbgout << "  Beginning of a benchmark, get ready for measurements...";
         dbgout << txtcolor(TXT_LIGHTGRAY) << bp() << endl;
     }
-    
+
     void bench_stop() {
         dbgout << txtcolor(TXT_LIGHTBLUE);
         dbgout << "  End of benchmark reached, stop your chronometer !";

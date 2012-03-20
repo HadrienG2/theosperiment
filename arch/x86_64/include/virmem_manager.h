@@ -40,23 +40,30 @@ const int VIRMEMMANAGER_VERSION = 2; //Increase this when deep changes require a
 class VirMemManager {
     private:
         PhyMemManager* phymem_manager;
-        OwnerlessMutex maplist_mutex; //Hold that mutex when parsing the map list
-                                   //or adding/removing maps from it.
+        OwnerlessMutex proclist_mutex; //Hold that mutex when parsing the process list or altering it
         VirMemProcess* process_list;
         VirMemChunk* free_mapitems; //A collection of ready to use virtual memory map items
                                   //(chained using next_buddy)
         VirMemProcess* free_process_descs; //A collection of ready to use process descriptors
+        bool malloc_active; //Tells if kernel-wide allocation through kalloc is available
 
         //Support methods
         bool alloc_mapitems(); //Get some memory map storage space
         bool alloc_process_descs(); //Get some map list storage space
         VirMemChunk* alloc_virtual_address_space(VirMemProcess* target,
-                                                 size_t location, //NULL if no specific location is requested
-                                                 size_t size);
+                                                 size_t size,
+                                                 size_t location = NULL);
         VirMemChunk* chunk_mapper(VirMemProcess* target,
                                   const PhyMemChunk* phys_chunk,
                                   const VirMemFlags flags,
                                   size_t location = NULL);
+        VirMemChunk* chunk_mapper_contig(VirMemProcess* target,
+                                         const PhyMemChunk* phys_chunk,
+                                         const VirMemFlags flags);
+        VirMemChunk* chunk_mapper_identity(VirMemProcess* target,
+                                           const PhyMemChunk* phys_chunk,
+                                           const VirMemFlags flags,
+                                           size_t offset);
         bool chunk_liberator(VirMemProcess* target,
                              VirMemChunk* chunk);
         VirMemProcess* find_pid(const PID target); //Find the map list entry associated to this PID,
@@ -77,6 +84,9 @@ class VirMemManager {
     public:
         //Constructor gets the current layout of paged memory, setup management structures
         VirMemManager(PhyMemManager& physmem);
+
+        //Late feature initialization
+        void init_malloc(); //To be run once memory allocation is available
 
         //Process management functions
         void remove_process(PID target); //Removes all traces of a PID in VirMemManager

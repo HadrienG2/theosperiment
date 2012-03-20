@@ -48,6 +48,7 @@ class PhyMemManager {
         PIDs* free_pids; //A collection of spare PIDs objects forming a dummy PIDs, ready for use
                          //in a memory map
         OwnerlessMutex mmap_mutex; //Hold when concurrent actions must be avoided
+        bool malloc_active; //Tells if kernel-wide allocation through kalloc is available
 
         //Support methods used by public methods
         bool alloc_mapitems(PhyMemChunk* free_mem_override = NULL); //Get some memory map storage space
@@ -70,6 +71,9 @@ class PhyMemManager {
         bool split_chunk(PhyMemChunk* chunk, const size_t position);
     public:
         PhyMemManager(const KernelInformation& kinfo);
+
+        //Late feature initialization
+        void init_malloc(); //To be run once memory allocation is available
 
         //Process management functions
         void remove_process(PID target); //Removes all traces of a PID in PhyMemManager

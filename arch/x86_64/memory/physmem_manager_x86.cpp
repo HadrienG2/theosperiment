@@ -71,7 +71,8 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
                                                                phy_highmmap(NULL),
                                                                free_lowmem(NULL),
                                                                free_mem(NULL),
-                                                               free_mapitems(NULL) {
+                                                               free_mapitems(NULL),
+                                                               malloc_active(false) {
     //This function...
     //  1/Determines the amount of memory necessary to store the management structures
     //  2/Find this amount of free space in the memory map

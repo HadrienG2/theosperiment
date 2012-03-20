@@ -34,7 +34,7 @@ inline void* operator new(const size_t size,
                           const VirMemFlags flags = VIRMEM_FLAGS_RW,
                           const bool force = false) throw() {
     if(!fake_allocation) {
-        return kalloc(size, target, flags, force);
+        return kalloc(target, size, flags, force);
     } else {
         return (void*) size;
     }
@@ -54,8 +54,7 @@ inline void* operator new[](const size_t size) throw() {return operator new[](si
 inline void* operator new(const size_t, void* place) throw() {return place;}
 
 //Operator delete and, again, the special version
-inline void operator delete(void* ptr, PID target) throw() {kfree(ptr, target);}
-inline void operator delete(void* ptr) throw() {operator delete(ptr, PID_KERNEL);}
+inline void operator delete(void* ptr, PID target) throw() {kfree(target, ptr);}
 
 //Array versions of delete
 inline void operator delete[](void* ptr, PID target) throw() {operator delete(ptr, target);}

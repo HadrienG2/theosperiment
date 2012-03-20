@@ -46,7 +46,7 @@ namespace Tests {
         if(source.default_value == NULL) {
             default_value = NULL;
         } else {
-            default_value = kalloc(source.value_size, PID_KERNEL, VIRMEM_FLAGS_RW, true);
+            default_value = kalloc(PID_KERNEL, source.value_size, VIRMEM_FLAGS_RW, true);
             memcpy(default_value, source.default_value, source.value_size);
         }
 
@@ -170,7 +170,7 @@ namespace Tests {
             for(unsigned int i = cl_desc.params_amount; i < sv_desc.params_amount; ++i) {
                 compat_stack_size+= sv_desc.params[i].value_size;
             }
-            compat_stack = kalloc(compat_stack_size, PID_KERNEL, VIRMEM_FLAGS_RW, true);
+            compat_stack = kalloc(PID_KERNEL, compat_stack_size, VIRMEM_FLAGS_RW, true);
             void* moving_ptr = compat_stack;
             //WARNING : What follows is specific of an x86 cdecl calling convention (last parameter
             //pushed first, stack growing by reducing stack pointer), and is only correct for
@@ -192,13 +192,13 @@ namespace Tests {
 
     AsyncQueue::AsyncQueue(const size_t q_size) {
         queue_size = q_size;
-        queue_start = kalloc(queue_size, PID_KERNEL, VIRMEM_FLAGS_RW, true);
+        queue_start = kalloc(PID_KERNEL, queue_size, VIRMEM_FLAGS_RW, true);
         write_pos = queue_start;
         read_pos = NULL; //Indicates that there's no data to be read
     }
 
     AsyncQueue::~AsyncQueue() {
-        kfree(queue_start);
+        kfree(PID_KERNEL, queue_start);
     }
 
     bool AsyncQueue::find_space(const size_t amount) {
@@ -286,11 +286,12 @@ namespace Tests {
 
             //Then allocate all dynamic data at once. This memory will never be liberated, it is
             //not a bug, but rather an attempt to best emulate system startup.
-            void* allocd_buffer = kinit_pool(to_be_allocd);
+            void* allocd_buffer = kalloc(PID_KERNEL, to_be_allocd);
             if(!allocd_buffer) {
                 test_failure("Could not allocate server data");
                 return;
             }
+            kenter_pool(PID_KERNEL, allocd_buffer);
 
             //Allocate and fill server call descriptors
             ServerCallDescriptor* call_descs = new ServerCallDescriptor[NUMBER_OF_CALLS]();
@@ -298,7 +299,7 @@ namespace Tests {
                 call_descs[j] = dummy_desc;
             }
 
-            kleave_pool();
+            kleave_pool(PID_KERNEL);
             //kfree(allocd_buffer);
         }
 
@@ -354,7 +355,7 @@ namespace Tests {
 
     void rpc_threaded_bench() {
         //Define benchmark parameters here
-        const unsigned int NUMBER_OF_CALLS = 10000000;
+        const unsigned int NUMBER_OF_CALLS = 100;
         KString server_name("magic_processes_which_everyone_wants.bin");
 
         ServerCallDescriptor& server_desc = generate_dummy_server_desc();
@@ -362,7 +363,7 @@ namespace Tests {
         ClientCallDescriptor client_desc(server_name, server_desc);
         client_desc.params_amount = 10;
         const uint64_t int_param = 0xdeadbeefbadb002e;
-        void* ptr_param = kalloc_shareable(1024);
+        void* ptr_param = kalloc_shareable(PID_KERNEL, 1024);
         RemoteCallConnection connec(client_desc, server_desc);
 
         bench_start();
@@ -389,12 +390,12 @@ namespace Tests {
 
         bench_stop();
 
-        kfree(ptr_param);
+        kfree(PID_KERNEL, ptr_param);
     }
 
     void rpc_async_bench() {
         //Define benchmark parameters here
-        const unsigned int NUMBER_OF_CALLS = 10000000;
+        const unsigned int NUMBER_OF_CALLS = 100;
         const size_t ASYNC_QUEUE_SIZE = 1024*1024;
         KString server_name("magic_processes_which_everyone_wants.bin");
         ServerCallDescriptor& server_desc = generate_dummy_server_desc();
@@ -402,7 +403,7 @@ namespace Tests {
         ClientCallDescriptor client_desc(server_name, server_desc);
         client_desc.params_amount = 10;
         const uint64_t int_param = 0xdeadbeefbadb002e;
-        void* ptr_param = kalloc_shareable(1024);
+        void* ptr_param = kalloc_shareable(PID_KERNEL, 1024);
         if(!ptr_param) {
             test_failure("Storage space allocation failed !");
             return;
@@ -413,7 +414,7 @@ namespace Tests {
         AsyncQueue bench_queue(ASYNC_QUEUE_SIZE);
 
         //Stack used by the async handler
-        void* stack = kalloc(1024*1024);
+        void* stack = kalloc(PID_KERNEL, 1024*1024);
 
         bench_start();
 
@@ -444,8 +445,8 @@ namespace Tests {
 
         bench_stop();
 
-        kfree(stack);
-        kfree(ptr_param);
+        kfree(PID_KERNEL, stack);
+        kfree(PID_KERNEL, ptr_param);
     }
 
     ServerCallDescriptor& generate_dummy_server_desc() {
@@ -596,7 +597,7 @@ namespace Tests {
         fake_syscall();
 
         //Allocate a stack
-        void* stack = kalloc(1024*1024);
+        void* stack = kalloc(PID_KERNEL, 1024*1024);
 
         //Copy integer parameters on the stack
         uint64_t* buff = (uint64_t*) stack;
@@ -612,9 +613,9 @@ namespace Tests {
         //Share non-default pointer parameters + copy them on the stack
         void** buff2 = (void**) (((size_t) buff) + 8*sizeof(uint64_t));
         if(param9 != default_ptr_value) {
-            buff2[0] = kowneradd(param9, PID_KERNEL, 42);
+            buff2[0] = kshare(PID_KERNEL, param9, 42);
             if(buff2[0] == NULL) {
-                kfree(stack);
+                kfree(PID_KERNEL, stack);
                 return false;
             }
         } else {
@@ -629,8 +630,8 @@ namespace Tests {
         remote_call_server_stub(connec.server_desc->function_ptr, stack);
 
         //Clean things up
-        if(buff2[0] != (void*) 0x10000000) kfree(buff2[0], 42);
-        kfree(stack);
+        if(buff2[0] != (void*) 0x10000000) kfree(42, buff2[0]);
+        kfree(PID_KERNEL, stack);
 
         return true;
     }
@@ -670,7 +671,7 @@ namespace Tests {
         //Share non-default pointer parameters + copy them on the stack
         void** buff3 = (void**) (((size_t) buff2) + 8*sizeof(uint64_t));
         if(param9 != default_ptr_value) {
-            buff3[0] = kowneradd(param9, PID_KERNEL, 42);
+            buff3[0] = kshare(PID_KERNEL, param9, 42);
             if(buff3[0] == NULL) return false;
         } else {
             buff3[0] = (void*) 0x10000000;

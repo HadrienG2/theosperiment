@@ -197,6 +197,7 @@ bool VirMemProcess::operator==(const VirMemProcess& param) const {
     if(pml4t_location != param.pml4t_location) return false;
     if(next_item != param.next_item) return false;
     if(mutex != param.mutex) return false;
+    if(may_free_kpages != param.may_free_kpages) return false;
 
     return true;
 }
@@ -229,7 +230,7 @@ MemoryChunk* MemoryChunk::find_thischunk(const size_t location) const {
     MemoryChunk* current_item = (MemoryChunk*) this;
 
     while(current_item) {
-        if(current_item->location == location) break;
+        if((current_item->location + current_item->size > location) && (current_item->location <= location)) break;
         current_item = current_item->next_item;
     }
 
@@ -247,45 +248,15 @@ bool MemoryChunk::operator==(const MemoryChunk& param) const {
     return true;
 }
 
-KnlMemoryChunk* KnlMemoryChunk::find_contigchunk(const size_t requested_size) const {
-    KnlMemoryChunk* current_item = (KnlMemoryChunk*) this;
-
-    while(current_item) {
-        if(current_item->size >= requested_size) break;
-        current_item = current_item->next_item;
-    }
-
-    return current_item;
-}
-
-KnlMemoryChunk* KnlMemoryChunk::find_thischunk(const size_t location) const {
-    KnlMemoryChunk* current_item = (KnlMemoryChunk*) this;
-
-    while(current_item) {
-        if(current_item->location == location) break;
-        current_item = current_item->next_item;
-    }
-
-    return current_item;
-}
-
-bool KnlMemoryChunk::operator==(const KnlMemoryChunk& param) const {
-    if(location != param.location) return false;
-    if(size != param.size) return false;
-    if(belongs_to != param.belongs_to) return false;
-    if(next_item != param.next_item) return false;
-    if(shareable != param.shareable) return false;
-    if(share_count != param.share_count) return false;
-
-    return true;
-}
-
-bool MallocPIDList::operator==(const MallocPIDList& param) const {
+bool MallocProcess::operator==(const MallocProcess& param) const {
     if(owner != param.owner) return false;
     if(free_map != param.free_map) return false;
     if(busy_map != param.busy_map) return false;
     if(next_item != param.next_item) return false;
     if(mutex != param.mutex) return false;
+    if(pool_stack != param.pool_stack) return false;
+    if(pool_location != param.pool_location) return false;
+    if(pool_size != param.pool_size) return false;
 
     return true;
 }
