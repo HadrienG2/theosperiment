@@ -27,20 +27,17 @@
 extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << "* Kernel loaded, " << kinfo.cpu_info.core_amount << " CPU core(s) detected" << endl;
 
-    //Some test suites should be run here, before kernel startup.
+    //Some test suites should be run here, before kernel starts.
 
     dbgout << "* Setting up memory management..." << endl;
     PhyMemManager phymem_manager(kinfo);
     VirMemManager virmem_manager(phymem_manager);
     MemAllocator mem_allocator(phymem_manager, virmem_manager);
-    setup_kalloc(mem_allocator);
 
-    dbgout << "* Setting up process management..." << endl;
+    //TODO : dbgout << "* Setting up process management..." << endl;
     //TODO : Process management structures, RPC
 
     dbgout << "* Kernel initialized, ready to proceed !";
-
-    //Tests::benchmark_rpc();
 
     return 0;
 }

@@ -95,10 +95,10 @@ void load_kernel(KernelInformation* kinfo,
         //As the kernel is small, we can afford losing some memory by mapping the virtual memory region
         //where the kernel is located as reserved.
         kmmap_add(kinfo,
-                            phdr_table[i].p_vaddr,
-                            align_pgup(phdr_table[i].p_memsz),
-                            NATURE_RES,
-                            "Kernel mapping region");
+                  phdr_table[i].p_vaddr,
+                  align_pgup(phdr_table[i].p_memsz),
+                  NATURE_RES,
+                  "Kernel mapping region");
         kmmap_update(kinfo);
     }
 }

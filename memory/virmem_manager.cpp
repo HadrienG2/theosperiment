@@ -71,8 +71,8 @@ bool VirMemManager::alloc_process_descs() {
 }
 
 VirMemChunk* VirMemManager::alloc_virtual_address_space(VirMemProcess* target,
-                                                        size_t location,
-                                                        size_t size) {
+                                                        size_t size,
+                                                        size_t location) {
     VirMemChunk *result, *map_parser = NULL, *last_item;
 
     //Allocate the new memory map item
@@ -86,10 +86,11 @@ VirMemChunk* VirMemManager::alloc_virtual_address_space(VirMemProcess* target,
 
     //Fill part of its contents
     result->location = location;
+    result->size = size;
 
     //Put the chunk in the map
     if(!location) {
-        //Find a location where the chunk should be put
+        //Find the first location where the chunk could be put
         if(target->map_pointer == NULL) {
             result->location = PG_SIZE; //First page includes the NULL pointer. Not to be used.
             target->map_pointer = result;
@@ -153,7 +154,7 @@ VirMemChunk* VirMemManager::alloc_virtual_address_space(VirMemProcess* target,
                     free_mapitems = result;
                     return NULL;
                 }
-                //Check collisions with the item after it, if there's any
+                //Check collisions with the item after it, if any
                 if(map_parser) {
                     if(map_parser->location < location + size) {
                         //Required location is not available
@@ -179,7 +180,9 @@ VirMemProcess* VirMemManager::find_or_create_pid(PID target) {
 
     list_item = process_list;
     while(list_item->next_item) {
-        if(list_item->owner == target) break;
+        if(list_item->owner == target) {
+            break;
+        }
         list_item = list_item->next_item;
     }
     if(list_item->owner != target) {
@@ -221,18 +224,24 @@ bool VirMemManager::map_k_chunks(VirMemProcess* target) {
     return true;
 }
 
+void VirMemManager::init_malloc() {
+    //For now, there are no malloc-based features in VirMemManager, so we just set a flag on.
+    malloc_active = true;
+}
+
 VirMemChunk* VirMemManager::map_chunk(const PID target,
                                       const PhyMemChunk* phys_chunk,
                                       const VirMemFlags flags) {
     VirMemProcess* list_item;
     VirMemChunk* result;
     size_t location = NULL;
+    if(target == PID_KERNEL) location = phys_chunk->location; //Kernel chunks are identity-mapped
 
-    maplist_mutex.grab_spin();
+    proclist_mutex.grab_spin();
 
         list_item = find_or_create_pid(target);
         if(!list_item) {
-            maplist_mutex.release();
+            proclist_mutex.release();
             return NULL;
         }
 
@@ -245,14 +254,14 @@ VirMemChunk* VirMemManager::map_chunk(const PID target,
                 //If mapping has failed, we might have created a PID without an address space, which is
                 //a waste of precious memory space. Liberate it.
                 if(list_item->map_pointer == NULL) {
-                    maplist_mutex.grab_spin();
+                    proclist_mutex.grab_spin();
                     remove_pid(target);
                 }
             }
 
         list_item->mutex.release();
 
-    maplist_mutex.release();
+    proclist_mutex.release();
 
     return result;
 }
@@ -262,7 +271,7 @@ bool VirMemManager::free_chunk(const PID target, size_t chunk_beginning) {
     VirMemProcess* chunk_owner;
     VirMemChunk* chunk;
 
-    maplist_mutex.grab_spin();
+    proclist_mutex.grab_spin();
 
         chunk_owner = find_pid(target);
 
@@ -273,7 +282,7 @@ bool VirMemManager::free_chunk(const PID target, size_t chunk_beginning) {
 
         if(chunk_owner->pml4t_location) chunk_owner->mutex.release();
 
-    maplist_mutex.release();
+    proclist_mutex.release();
 
     return result;
 }
@@ -285,12 +294,12 @@ VirMemChunk* VirMemManager::adjust_chunk_flags(const PID target,
     VirMemProcess* chunk_owner;
     VirMemChunk *chunk, *result;
 
-    maplist_mutex.grab_spin();
+    proclist_mutex.grab_spin();
 
         chunk_owner = find_pid(target);
 
     chunk_owner->mutex.grab_spin();
-    maplist_mutex.release();
+    proclist_mutex.release();
 
         chunk = chunk_owner->map_pointer->find_thischunk(chunk_beginning);
         result = flag_adjust(chunk_owner, chunk, flags, mask); //Adjust these flags
@@ -303,25 +312,25 @@ VirMemChunk* VirMemManager::adjust_chunk_flags(const PID target,
 void VirMemManager::remove_process(PID target) {
     if(target == PID_KERNEL) return; //Find a more constructive way to commit suicide.
 
-    maplist_mutex.grab_spin();
+    proclist_mutex.grab_spin();
 
         remove_pid(target);
 
-    maplist_mutex.release();
+    proclist_mutex.release();
 }
 
 void VirMemManager::print_maplist() {
-    maplist_mutex.grab_spin();
+    proclist_mutex.grab_spin();
 
         dbgout << *process_list;
 
-    maplist_mutex.release();
+    proclist_mutex.release();
 }
 
 void VirMemManager::print_mmap(PID owner) {
     VirMemProcess* list_item;
 
-    maplist_mutex.grab_spin();
+    proclist_mutex.grab_spin();
 
         list_item = find_pid(owner);
         if(!list_item || !(list_item->map_pointer)) {
@@ -331,7 +340,7 @@ void VirMemManager::print_mmap(PID owner) {
             list_item->mutex.grab_spin();
         }
 
-    maplist_mutex.release();
+    proclist_mutex.release();
 
     if(list_item && list_item->map_pointer) {
         dbgout << *(list_item->map_pointer);

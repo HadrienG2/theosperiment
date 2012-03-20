@@ -773,34 +773,8 @@ DebugOutput& DebugOutput::operator<<(const MemoryChunk& input) {
     return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(const KnlMemoryChunk& input) {
-    bool tmp_padding = padding_on;
-    unsigned int tmp_padsize = padsize;
-    KnlMemoryChunk* map = (KnlMemoryChunk*) &input;
-    DebugNumberBase tmp = number_base;
-
-    *this << pad_status(true);
-    *this << pad_size(18);
-    *this << numberbase(HEXADECIMAL) << endl;
-    *this << "Location           | Size               | Belongs to" << endl;
-    *this << "-------------------+--------------------+-------------------------------------";
-
-    do {
-        *this << endl << map->location << " | " << map->size << " | ";
-        if(map->belongs_to) {
-            dbgout << "BEL-" << (uint64_t) map->belongs_to;
-        }
-        map = map->next_item;
-    } while(map);
-
-    if(!tmp_padding) *this << pad_status(false);
-    if(tmp_padsize) *this << pad_size(tmp_padsize);
-    *this << numberbase(tmp) << endl;
-    return *this;
-}
-
-DebugOutput& DebugOutput::operator<<(const MallocPIDList& input) {
-    MallocPIDList* list = (MallocPIDList*) &input;
+DebugOutput& DebugOutput::operator<<(const MallocProcess& input) {
+    MallocProcess* list = (MallocProcess*) &input;
     bool tmp_padding = padding_on;
     unsigned int tmp_padsize = padsize;
     DebugNumberBase tmp = number_base;

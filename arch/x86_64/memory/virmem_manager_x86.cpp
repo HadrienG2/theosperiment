@@ -34,18 +34,31 @@ VirMemChunk* VirMemManager::chunk_mapper(VirMemProcess* target,
     //We have two goals here :
     // -To map that chunk of physical memory in the virtual memory map of the target.
     // -To put it in its virtual address space, too.
+    //
     //The location parameter is optional. By default, it is NULL, meaning that the chunk may be
-    //mapped at any location. If it is not NULL, it means that the chunk must be mapped at this
-    //precise location (identity mapping), and that allocation will fail if that is not doable.
-
-    size_t total_size, offset, tmp;
-    VirMemChunk *result;
-    PhyMemChunk *chunk_parser;
+    //mapped at any location and that non-contiguous physical memory chunks will be mapped as a
+    //contiguous virtual memory chunk.
+    //If location is nonzero, the physical chunk will be mapped at the specified location in a fashion
+    //that strictly follows its physical layout with only an address offset, and that this will happen.
 
     //First, prevent non-kernel processes from handling K pages
     if((target->owner != PID_KERNEL) && (flags & VIRMEM_FLAG_K)) return NULL;
 
-    //Find virtual chunk size
+    if(location == NULL) {
+        return chunk_mapper_contig(target, phys_chunk, flags);
+    } else {
+        return chunk_mapper_identity(target, phys_chunk, flags, location-phys_chunk->location);
+    }
+}
+
+VirMemChunk* VirMemManager::chunk_mapper_contig(VirMemProcess* target,
+                                                const PhyMemChunk* phys_chunk,
+                                                const VirMemFlags flags) {
+    size_t total_size, offset, tmp;
+    PhyMemChunk *chunk_parser;
+    VirMemChunk *result;
+
+    //Find total virtual chunk size
     chunk_parser = (PhyMemChunk*) phys_chunk;
     total_size = 0;
     while(chunk_parser) {
@@ -54,7 +67,7 @@ VirMemChunk* VirMemManager::chunk_mapper(VirMemProcess* target,
     }
 
     //Allocate a contiguous chunk of virtual address space to map our physical chunk
-    result = alloc_virtual_address_space(target, location, total_size);
+    result = alloc_virtual_address_space(target, total_size);
     if(!result) return NULL;
 
     //Finish setting up the allocated chunk
@@ -72,7 +85,7 @@ VirMemChunk* VirMemManager::chunk_mapper(VirMemProcess* target,
         return NULL;
     }
 
-    //Fill those structures we just allocated
+    //Fill those structures which we just allocated
     chunk_parser = (PhyMemChunk*) phys_chunk;
     offset = 0;
     while(chunk_parser) {
@@ -82,6 +95,52 @@ VirMemChunk* VirMemManager::chunk_mapper(VirMemProcess* target,
                                  x86flags(result->flags),
                                  target->pml4t_location);
         offset+= chunk_parser->size;
+        chunk_parser = chunk_parser->next_buddy;
+    }
+
+    return result;
+}
+
+VirMemChunk* VirMemManager::chunk_mapper_identity(VirMemProcess* target,
+                                                  const PhyMemChunk* phys_chunk,
+                                                  const VirMemFlags flags,
+                                                  size_t offset) {
+    size_t tmp;
+    PhyMemChunk *chunk_parser;
+    VirMemChunk *result, *current_virchunk;
+
+    //For identity-mapping, we map each part of the chunk separately.
+    chunk_parser = (PhyMemChunk*) phys_chunk;
+    while(chunk_parser) {
+        //Allocate virtual address space for the current part of the physical chunk
+        current_virchunk = alloc_virtual_address_space(target,
+                                                       chunk_parser->size,
+                                                       chunk_parser->location+offset);
+        if(!current_virchunk) return NULL;
+        if(chunk_parser == phys_chunk) result = current_virchunk;
+
+        //Finish setting up the allocated chunk
+        current_virchunk->flags = flags;
+        current_virchunk->points_to = chunk_parser;
+
+        //Allocate paging structures. For pages with the K flag enabled, also identity-map them.
+        tmp = x86paging::setup_4kpages(current_virchunk->location,
+                                       current_virchunk->size,
+                                       target->pml4t_location,
+                                       phymem_manager);
+        if(!tmp) {
+            chunk_liberator(target, result);
+            return NULL;
+        }
+
+        //Fill those structures which we just allocated
+        x86paging::fill_4kpaging(chunk_parser->location,
+                                 current_virchunk->location,
+                                 chunk_parser->size,
+                                 x86flags(current_virchunk->flags),
+                                 target->pml4t_location);
+
+        //Go to next part of the physical chunk
         chunk_parser = chunk_parser->next_buddy;
     }
 
@@ -184,7 +243,7 @@ bool VirMemManager::map_kernel() {
     phy_knl_rw_loc = x86paging::get_target(vir_knl_rw_loc, kernel_pml4t);
 
     //Parse and map the kernel's virtual address space properly (save for the address associated
-    //to the NULL pointer, which must remain invalid.
+    //to the NULL pointer, which must remain invalid)
     phy_mmap = phymem_manager->dump_mmap();
     while(phy_mmap) {
         if(phy_mmap->has_owner(PID_KERNEL)) {
@@ -310,7 +369,8 @@ uint64_t VirMemManager::x86flags(VirMemFlags flags) {
 
 VirMemManager::VirMemManager(PhyMemManager& physmem) : phymem_manager(&physmem),
                                                        free_mapitems(NULL),
-                                                       free_process_descs(NULL) {
+                                                       free_process_descs(NULL),
+                                                       malloc_active(false) {
     //Allocate some data storage space.
     alloc_process_descs();
     alloc_mapitems();
@@ -329,12 +389,12 @@ VirMemManager::VirMemManager(PhyMemManager& physmem) : phymem_manager(&physmem),
 uint64_t VirMemManager::cr3_value(const PID target) {
     uint64_t result = NULL;
 
-    maplist_mutex.grab_spin();
+    proclist_mutex.grab_spin();
 
         VirMemProcess* list_item = find_pid(target);
         if(list_item) result = list_item->pml4t_location;
 
-    maplist_mutex.release();
+    proclist_mutex.release();
 
     return result;
 }
@@ -342,7 +402,7 @@ uint64_t VirMemManager::cr3_value(const PID target) {
 void VirMemManager::print_pml4t(PID owner) {
     VirMemProcess* list_item;
 
-    maplist_mutex.grab_spin();
+    proclist_mutex.grab_spin();
 
         list_item = find_pid(owner);
         if(!list_item || !(list_item->pml4t_location)) {
@@ -352,7 +412,7 @@ void VirMemManager::print_pml4t(PID owner) {
             list_item->mutex.grab_spin();
         }
 
-    maplist_mutex.release();
+    proclist_mutex.release();
 
     if(list_item && list_item->pml4t_location) {
         x86paging::dbg_print_pml4t(list_item->pml4t_location);

@@ -530,6 +530,12 @@ bool PhyMemManager::split_chunk(PhyMemChunk* chunk, const size_t position) {
 }
 
 
+void PhyMemManager::init_malloc() {
+    //For now, there are no malloc-based features in PhyMemManager, so we just set a flag on.
+    malloc_active = true;
+}
+
+
 void PhyMemManager::remove_process(PID target) {
     mmap_mutex.grab_spin();
 

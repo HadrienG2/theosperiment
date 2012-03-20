@@ -49,7 +49,7 @@ KString::KString(const KString& source) {
 }
 
 KString::~KString() {
-    if(contents) kfree((void*) contents);
+    if(contents) kfree(PID_KERNEL, (void*) contents);
 }
 
 KString& KString::operator=(const char* source) {
