@@ -2,9 +2,9 @@ ENTRY(kinit)
 
 PHDRS {
   headers PT_PHDR PHDRS;
-  r-x PT_LOAD FLAGS(5);
-  r-- PT_LOAD FLAGS(4);
-  rw- PT_LOAD FLAGS(6);
+  rx PT_LOAD FLAGS(5);
+  r PT_LOAD FLAGS(4);
+  rw PT_LOAD FLAGS(6);
 }
 
 SECTIONS {
