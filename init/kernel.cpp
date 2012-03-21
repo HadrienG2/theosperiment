@@ -39,5 +39,7 @@ extern "C" int kmain(const KernelInformation& kinfo) {
 
     dbgout << "* Kernel initialized, ready to proceed !";
 
+    //Now, do something useful with that kernel ! :P
+
     return 0;
 }
