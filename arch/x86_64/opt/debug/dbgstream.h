@@ -23,7 +23,9 @@
 #include <hack_stdint.h>
 #include <kernel_information.h>
 #include <kstring.h>
-#include <memory_support.h>
+#include <mallocator_support.h>
+#include <phymem_support.h>
+#include <virmem_support.h>
 #include <x86paging.h>
 
 
@@ -193,6 +195,7 @@ class DebugOutput {
     DebugOutput& operator<<(const bool input);
     DebugOutput& operator<<(const char input);
     DebugOutput& operator<<(const char* input);
+    DebugOutput& operator<<(const double input);
     DebugOutput& operator<<(const int input) {int64_t tmp=input; *this << tmp; return *this;}
     DebugOutput& operator<<(const int64_t input);
     DebugOutput& operator<<(const KString& input);

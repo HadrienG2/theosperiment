@@ -22,49 +22,55 @@
 #include <address.h>
 #include <align.h>
 #include <kernel_information.h>
-#include <memory_support.h>
+#include <phymem_support.h>
 #include <pid.h>
+#include <process_support.h>
 #include <synchronization.h>
 
 const int PHYMEMMANAGER_VERSION = 2; //Increase this when changes require a modification of
                                      //the testing protocol
 
-//This class takes care of
-// -Mapping which pages of physical memory are in use by processes, which are free
-// -...which PID (Process IDentifier) owns each used page of memory
-// -Allocation of pages of memory to a specific PID
-// -Allocation of multiple non-contiguous pages, called a chunk of memory and managed as a whole
-// -Sharing of physical memory pages/chunks (adding and removing owners).
-// -Getting access to a reserved part of memory under explicit request
-// -Killing a process
+class ProcessManager;
 class PhyMemManager {
     private:
+        //Link to other kernel functionality
+        ProcessManager* process_manager;
+
+        //Map of physical memory (and its mutex)
+        OwnerlessMutex mmap_mutex;
         PhyMemChunk* phy_mmap; //A map of the whole memory
         PhyMemChunk* phy_highmmap; //A map of high memory (addresses >0x100000)
         PhyMemChunk* free_lowmem; //A noncontiguous chunk representing free low memory
         PhyMemChunk* free_mem; //A noncontiguous chunk representing free high memory
+
+        //Higher-level functionality
+        bool malloc_active; //Tells if kernel-wide allocation through kalloc is available
+        OwnerlessMutex proclist_mutex;
+        PhyMemProcess* process_list;
+
+        //Buffer of management structures
         PhyMemChunk* free_mapitems; //A collection of spare PhyMemChunk objects forming a dummy chunk,
-                                  //ready for use in a memory map
+                                    //ready for use in a memory map
         PIDs* free_pids; //A collection of spare PIDs objects forming a dummy PIDs, ready for use
                          //in a memory map
-        OwnerlessMutex mmap_mutex; //Hold when concurrent actions must be avoided
-        bool malloc_active; //Tells if kernel-wide allocation through kalloc is available
 
         //Support methods used by public methods
         bool alloc_mapitems(PhyMemChunk* free_mem_override = NULL); //Get some memory map storage space
         bool alloc_pids(PhyMemChunk* free_mem_override = NULL); //Get some PIDs storage space
-        PhyMemChunk* chunk_allocator(const PID initial_owner,
+        PhyMemChunk* chunk_allocator(PhyMemProcess* initial_owner,
                                      const size_t size,
                                      PhyMemChunk*& free_mem_used,
                                      bool contiguous);
         bool chunk_liberator(PhyMemChunk* chunk);
-        bool chunk_owneradd(PhyMemChunk* chunk, const PID new_owner);
-        bool chunk_ownerdel(PhyMemChunk* chunk, const PID former_owner);
+        bool chunk_owneradd(PhyMemProcess* new_owner, PhyMemChunk* chunk);
+        bool chunk_ownerdel(PhyMemProcess* former_owner, PhyMemChunk* chunk);
         void discard_empty_chunks();
         void fill_mmap(const KernelInformation& kinfo);
+        PhyMemProcess* find_process(const PID target);
         void fix_overlap(PhyMemChunk* first_chunk, PhyMemChunk* second_chunk);
         PhyMemChunk* generate_chunk(const KernelInformation& kinfo, size_t& index);
-        void killer(PID target);
+        bool generate_process_list();
+        void killer(PhyMemProcess* target);
         void merge_with_next(PhyMemChunk* first_item); //Merge two consecutive elements of
                                                        //the memory map (in order to save space)
         void pids_liberator(PIDs& target);
@@ -73,10 +79,13 @@ class PhyMemManager {
         PhyMemManager(const KernelInformation& kinfo);
 
         //Late feature initialization
-        void init_malloc(); //To be run once memory allocation is available
+        bool init_malloc(); //Run once memory allocation is available
+        bool init_process(ProcessManager& process_manager); //Run once process management is available
 
         //Process management functions
+        //TODO : PID add_process(PID id, ProcessProperties properties); //Adds a new process to PhyMemManager's database
         void remove_process(PID target); //Removes all traces of a PID in PhyMemManager
+        //TODO : PID update_process(PID old_process, PID new_process); //Swaps two PIDs for live updating purposes
 
         //Page/chunk allocation, sharing and freeing functions
         PhyMemChunk* alloc_chunk(const PID initial_owner,     //Allocates a chunk of memory which is
@@ -103,6 +112,12 @@ class PhyMemManager {
         void print_highmmap(); //Print a map of high memory (>=1MB)
         void print_lowmmap(); //Print a map of low memory (<1MB)
         void print_mmap(); //Print the full memory map
+        void print_mem_usage(const PID target);
 };
+
+//Global shortcuts to PhyMemManager's process management functions
+//TODO : PID phymem_manager_add_process(PID id, ProcessProperties properties);
+void phymem_manager_remove_process(PID target);
+//TODO : PID phymem_manager_update_process(PID old_process, PID new_process);
 
 #endif

@@ -22,6 +22,8 @@
 #include <dbgstream.h>
 
 
+PhyMemManager* phymem_manager = NULL;
+
 bool PhyMemManager::chunk_liberator(PhyMemChunk* chunk) {
     PhyMemChunk *current_chunk, *next_chunk = chunk;
 
@@ -67,12 +69,15 @@ bool PhyMemManager::chunk_liberator(PhyMemChunk* chunk) {
 }
 
 
-PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
+PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : process_manager(NULL),
+                                                               phy_mmap(NULL),
                                                                phy_highmmap(NULL),
                                                                free_lowmem(NULL),
                                                                free_mem(NULL),
+                                                               malloc_active(false),
+                                                               process_list(NULL),
                                                                free_mapitems(NULL),
-                                                               malloc_active(false) {
+                                                               free_pids(NULL) {
     //This function...
     //  1/Determines the amount of memory necessary to store the management structures
     //  2/Find this amount of free space in the memory map
@@ -157,32 +162,59 @@ PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : phy_mmap(NULL),
     //Allocate extra map items and PIDs right away
     alloc_mapitems();
     alloc_pids();
+
+    //Activate global physical memory management service
+    phymem_manager = this;
 }
 
 
 PhyMemChunk* PhyMemManager::alloc_lowchunk(const PID initial_owner,
-                                         const size_t size,
-                                         bool contiguous) {
+                                           const size_t size,
+                                           bool contiguous) {
     PhyMemChunk *result, *lowmem_end = phy_mmap;
+    PhyMemProcess* process;
 
-    mmap_mutex.grab_spin();
+    proclist_mutex.grab_spin();
 
-        //Find the end of low memory
-        while(lowmem_end->next_mapitem!=phy_highmmap) lowmem_end = lowmem_end->next_mapitem;
+        //Find the PhyMemProcess associated to the requested PID
+        process = find_process(initial_owner);
+        if(!process) {
+            proclist_mutex.release();
+            return NULL;
+        }
 
-        //Temporarily make high memory disappear
-        lowmem_end->next_mapitem = NULL;
+    process->mutex.grab_spin();
+    proclist_mutex.release();
 
-        //Do the allocation job
-        result = chunk_allocator(initial_owner,
-                                 align_pgup(size),
-                                 free_lowmem,
-                                 contiguous);
+        //Check if we can allocate the requested memory without busting caps
+        if(process->memory_usage + align_pgup(size) > process->memory_cap) {
+            process->mutex.release();
+            return NULL;
+        }
 
-        //Make high memory come back
-        lowmem_end->next_mapitem = phy_highmmap;
+        mmap_mutex.grab_spin();
 
-    mmap_mutex.release();
+            //Find the end of low memory
+            while(lowmem_end->next_mapitem!=phy_highmmap) lowmem_end = lowmem_end->next_mapitem;
+
+            //Temporarily make high memory disappear
+            lowmem_end->next_mapitem = NULL;
+
+            //Do the allocation job
+            result = chunk_allocator(process,
+                                     align_pgup(size),
+                                     free_lowmem,
+                                     contiguous);
+
+            //Make high memory come back
+            lowmem_end->next_mapitem = phy_highmmap;
+
+        mmap_mutex.release();
+
+        //Update process memory usage if allocation has been successful
+        if(result) process->memory_usage+= align_pgup(size);
+
+    process->mutex.release();
 
     return result;
 }
@@ -211,3 +243,27 @@ void PhyMemManager::print_lowmmap() {
 
     mmap_mutex.release();
 }
+
+/* PID phymem_manager_add_process(PID id, ProcessProperties properties) {
+    if(!phymem_manager) {
+        return PID_INVALID;
+    } else {
+        return phymem_manager->add_process(id, properties);
+    }
+} */
+
+void phymem_manager_remove_process(PID target) {
+    if(!phymem_manager) {
+        return;
+    } else {
+        phymem_manager->remove_process(target);
+    }
+}
+
+/*PID phymem_manager_update_process(PID old_process, PID new_process) {
+    if(!phymem_manager) {
+        return PID_INVALID;
+    } else {
+        return phymem_manager->update_process(old_process, new_process);
+    }
+}*/

@@ -469,6 +469,26 @@ DebugOutput& DebugOutput::operator<<(const char* input) {
     return *this;
 }
 
+DebugOutput& DebugOutput::operator<<(const double input) {
+    uint64_t truncated;
+    double decimals;
+
+    //First display the integer part of the number
+    truncated = input;
+    *this << truncated << ".";
+
+    //Then display the decimals
+    decimals = input - truncated;
+    while(decimals) {
+        decimals*= 10;
+        truncated = decimals;
+        *this << truncated;
+        decimals-=truncated;
+    }
+
+    return *this;
+}
+
 DebugOutput& DebugOutput::operator<<(const int64_t input) {
     uint64_t absolute_value;
 
@@ -729,7 +749,7 @@ DebugOutput& DebugOutput::operator<<(const VirMemProcess& input) {
     *this << "-----------+--------------------+--------------------+-------------------------";
 
     do {
-        *this << endl << pad_size(10) << list->owner;
+        *this << endl << pad_size(10) << list->identifier;
         *this << pad_size(18) << " | " << (uint64_t) list->map_pointer << " | ";
         *this << list->pml4t_location << " | ";
         if(list->mutex.state()) {
@@ -786,7 +806,7 @@ DebugOutput& DebugOutput::operator<<(const MallocProcess& input) {
     *this << "-----------+--------------------+--------------------+-------------------------";
 
     do {
-        *this << endl << pad_size(10) << list->owner;
+        *this << endl << pad_size(10) << list->identifier;
         *this << pad_size(18) << " | " << (uint64_t) list->busy_map << " | ";
         *this << (uint64_t) list->free_map << " | ";
         if(list->mutex.state()) {

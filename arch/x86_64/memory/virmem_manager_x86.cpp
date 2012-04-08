@@ -27,6 +27,9 @@
 #include <dbgstream.h>
 #include <display_paging.h>
 
+
+VirMemManager* virmem_manager = NULL;
+
 VirMemChunk* VirMemManager::chunk_mapper(VirMemProcess* target,
                                          const PhyMemChunk* phys_chunk,
                                          const VirMemFlags flags,
@@ -42,7 +45,7 @@ VirMemChunk* VirMemManager::chunk_mapper(VirMemProcess* target,
     //that strictly follows its physical layout with only an address offset, and that this will happen.
 
     //First, prevent non-kernel processes from handling K pages
-    if((target->owner != PID_KERNEL) && (flags & VIRMEM_FLAG_K)) return NULL;
+    if((target->identifier != PID_KERNEL) && (flags & VIRMEM_FLAG_K)) return NULL;
 
     if(location == NULL) {
         return chunk_mapper_contig(target, phys_chunk, flags);
@@ -154,7 +157,7 @@ bool VirMemManager::chunk_liberator(VirMemProcess* target,
     //First, manage K pages : non-kernel processes cannot get rid of them, and if they
     //are ditched by the kernel they are ditched by all other processes too.
     if(chunk->flags & VIRMEM_FLAG_K) {
-        if(target->owner != PID_KERNEL) {
+        if(target->identifier != PID_KERNEL) {
             if(target->may_free_kpages==0) return false;
         } else {
             unmap_k_chunk(chunk);
@@ -193,7 +196,7 @@ bool VirMemManager::chunk_liberator(VirMemProcess* target,
     }
 
     //Check if this PID's address space is empty, if so delete it.
-    if(target->map_pointer == NULL) remove_pid(target->owner);
+    if(target->map_pointer == NULL) remove_pid(target->identifier);
 
     return true;
 }
@@ -207,7 +210,7 @@ VirMemChunk* VirMemManager::flag_adjust(VirMemProcess* target,
     //Only the kernel may alter the status of K pages, and the only use case which is taken into
     //account for now is the loss of the K flag.
     if(mask & VIRMEM_FLAG_K) {
-        if(target->owner != PID_KERNEL) return NULL;
+        if(target->identifier != PID_KERNEL) return NULL;
         if((flags & VIRMEM_FLAG_K) == 0) unmap_k_chunk(chunk);
     }
 
@@ -280,7 +283,7 @@ bool VirMemManager::remove_pid(PID target) {
     //target can't be the first item of the map list, as this item is the kernel. One can't kill the kernel.
     previous_item = process_list;
     while(previous_item->next_item) {
-        if(previous_item->next_item->owner == target) break;
+        if(previous_item->next_item->identifier == target) break;
         previous_item = previous_item->next_item;
     }
     deleted_item = previous_item->next_item;
@@ -317,7 +320,7 @@ VirMemProcess* VirMemManager::setup_pid(PID target) {
     result = free_process_descs;
     free_process_descs = free_process_descs->next_item;
     result->next_item = NULL;
-    result->owner = target;
+    result->identifier = target;
     result->pml4t_location = pml4t_page->location;
     x86paging::create_pml4t(result->pml4t_location);
 
@@ -326,7 +329,7 @@ VirMemProcess* VirMemManager::setup_pid(PID target) {
     if(!tmp) {
         result->next_item = process_list->next_item;
         process_list->next_item = result;
-        remove_pid(result->owner);
+        remove_pid(result->identifier);
         return NULL;
     }
 
@@ -368,6 +371,7 @@ uint64_t VirMemManager::x86flags(VirMemFlags flags) {
 }
 
 VirMemManager::VirMemManager(PhyMemManager& physmem) : phymem_manager(&physmem),
+                                                       process_manager(NULL),
                                                        free_mapitems(NULL),
                                                        free_process_descs(NULL),
                                                        malloc_active(false) {
@@ -379,11 +383,14 @@ VirMemManager::VirMemManager(PhyMemManager& physmem) : phymem_manager(&physmem),
     process_list = free_process_descs;
     free_process_descs = free_process_descs->next_item;
     process_list->next_item = NULL;
-    process_list->owner = PID_KERNEL;
+    process_list->identifier = PID_KERNEL;
     process_list->pml4t_location = x86paging::get_pml4t();
 
     //Map the kernel's virtual address space
     map_kernel();
+
+    //Activate global virtual memory management service
+    virmem_manager = this;
 }
 
 uint64_t VirMemManager::cr3_value(const PID target) {
@@ -419,3 +426,27 @@ void VirMemManager::print_pml4t(PID owner) {
         list_item->mutex.release();
     }
 }
+
+/*PID virmem_manager_add_process(PID id, ProcessProperties properties) {
+    if(!virmem_manager) {
+        return PID_INVALID;
+    } else {
+        return virmem_manager->add_process(id, properties);
+    }
+}*/
+
+void virmem_manager_remove_process(PID target) {
+    if(!virmem_manager) {
+        return;
+    } else {
+        virmem_manager->remove_process(target);
+    }
+}
+
+/*PID virmem_manager_update_process(PID old_process, PID new_process) {
+    if(!virmem_manager) {
+        return PID_INVALID;
+    } else {
+        return virmem_manager->update_process(old_process, new_process);
+    }
+}*/

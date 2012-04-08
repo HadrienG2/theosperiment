@@ -127,10 +127,10 @@ bool PhyMemManager::alloc_pids(PhyMemChunk* free_mem_override) {
 }
 
 
-PhyMemChunk* PhyMemManager::chunk_allocator(const PID initial_owner,
-                                          const size_t size,
-                                          PhyMemChunk*& free_mem_used,
-                                          bool contiguous) {
+PhyMemChunk* PhyMemManager::chunk_allocator(PhyMemProcess* initial_owner,
+                                            const size_t size,
+                                            PhyMemChunk*& free_mem_used,
+                                            bool contiguous) {
     size_t remaining_freemem = 0, to_be_allocd = 0;
     PhyMemChunk *previous_free_chunk = NULL, *new_free_chunk = NULL;
     PhyMemChunk *current_chunk, *previous_chunk, *result;
@@ -160,7 +160,7 @@ PhyMemChunk* PhyMemManager::chunk_allocator(const PID initial_owner,
     // 1-We allocated too much and must split current_chunk in an allocated part and a free part.
     // 2-We allocated exactly the right amount of memory.
     // 3-We allocated too little memory and need to allocate more.
-    current_chunk->owners = initial_owner;
+    current_chunk->owners = initial_owner->identifier;
     result = current_chunk;
     if(current_chunk->size > size) {
         remaining_freemem = current_chunk->size-size;
@@ -177,7 +177,7 @@ PhyMemChunk* PhyMemManager::chunk_allocator(const PID initial_owner,
             chunk_liberator(result);
             return NULL;
         }
-        current_chunk->owners = initial_owner;
+        current_chunk->owners = initial_owner->identifier;
 
         //Update to_be_allocd and remaining_freemem
         if(current_chunk->size < to_be_allocd) {
@@ -226,7 +226,7 @@ PhyMemChunk* PhyMemManager::chunk_allocator(const PID initial_owner,
 }
 
 
-bool PhyMemManager::chunk_owneradd(PhyMemChunk* chunk, const PID new_owner) {
+bool PhyMemManager::chunk_owneradd(PhyMemProcess* new_owner, PhyMemChunk* chunk) {
     PhyMemChunk* current_item = chunk;
 
     while(current_item) {
@@ -236,27 +236,27 @@ bool PhyMemManager::chunk_owneradd(PhyMemChunk* chunk, const PID new_owner) {
         }
 
         //Add a new owner to the chunk
-        PIDs*& next_owner = current_item->owners.next_item;
-        PIDs* old_next_owner = next_owner;
-        next_owner = free_pids;
+        PIDs& chunk_owners = current_item->owners;
+        PIDs* old_next_owner = chunk_owners.next_item;
+        chunk_owners.next_item = free_pids;
         free_pids = free_pids->next_item;
-        next_owner->next_item = old_next_owner;
+        chunk_owners.next_item->next_item = old_next_owner;
 
         //Set up the new owner to an appropriate value
-        *next_owner = new_owner;
+        *(chunk_owners.next_item) = new_owner->identifier;
 
         //Examine next chunk buddy
         current_item = current_item->next_buddy;
     }
 
     //If the operation fails, reverts changes.
-    if(current_item) chunk_ownerdel(chunk, new_owner);
+    if(current_item) chunk_ownerdel(new_owner, chunk);
 
     return true;
 }
 
 
-bool PhyMemManager::chunk_ownerdel(PhyMemChunk* chunk, const PID former_owner) {
+bool PhyMemManager::chunk_ownerdel(PhyMemProcess* former_owner, PhyMemChunk* chunk) {
     PhyMemChunk* current_chunk = chunk;
 
     while(current_chunk) {
@@ -264,7 +264,7 @@ bool PhyMemManager::chunk_ownerdel(PhyMemChunk* chunk, const PID former_owner) {
         PIDs* former_pids = NULL;
 
         //Find out if a PIDs is to be liberated, if yes mark it with the former_pids pointer
-        if(current_owners.current_pid == former_owner) {
+        if(current_owners.current_pid == former_owner->identifier) {
             if(!current_owners.next_item) {
                 current_owners.current_pid = PID_INVALID;
             } else {
@@ -277,7 +277,7 @@ bool PhyMemManager::chunk_ownerdel(PhyMemChunk* chunk, const PID former_owner) {
         } else {
             PIDs* parser = &current_owners;
             while(parser->next_item) {
-                if(parser->next_item->current_pid == former_owner) {
+                if(parser->next_item->current_pid == former_owner->identifier) {
                     former_pids = parser->next_item;
                     parser->next_item = former_pids->next_item;
                     break;
@@ -332,15 +332,15 @@ void PhyMemManager::discard_empty_chunks() {
         }
 
         //Remove all empty chunks immediately after previous_item
-        PhyMemChunk*& current_item = previous_item->next_mapitem;
-        while(current_item && (current_item->size == 0)) {
+        //PhyMemChunk*& current_item = previous_item->next_mapitem;
+        while((previous_item->next_mapitem) && (previous_item->next_mapitem->size == 0)) {
             //Take current item out of the memory map
-            deleted_item = current_item;
-            current_item = current_item->next_mapitem;
+            deleted_item = previous_item->next_mapitem;
+            previous_item->next_mapitem = previous_item->next_mapitem->next_mapitem;
 
             //Take care of buddies
-            if(current_item == last_buddy_owner->next_buddy) {
-                last_buddy_owner->next_buddy = current_item->next_buddy;
+            if(previous_item->next_mapitem == last_buddy_owner->next_buddy) {
+                last_buddy_owner->next_buddy = previous_item->next_mapitem->next_buddy;
             }
 
             //Free up the extracted map item
@@ -350,7 +350,7 @@ void PhyMemManager::discard_empty_chunks() {
         }
 
         //Move to next map item
-        if(current_item) previous_item = current_item;
+        if(previous_item->next_mapitem) previous_item = previous_item->next_mapitem;
     }
 }
 
@@ -390,6 +390,28 @@ void PhyMemManager::fill_mmap(const KernelInformation& kinfo) {
             last_free = current_item;
         }
         previous_item = previous_item->next_mapitem;
+    }
+}
+
+
+PhyMemProcess* PhyMemManager::find_process(const PID target) {
+    if(malloc_active) {
+        PhyMemProcess* proc_parser;
+
+        proc_parser = process_list;
+        while(proc_parser) {
+            if(proc_parser->identifier == target) break;
+            proc_parser = proc_parser->next_item;
+        }
+
+        return proc_parser;
+    } else {
+        //PhyMemProcesses only make sense once the memory allocator is active. Before that, we can
+        //just return a dummy value.
+        static PhyMemProcess dummy_process;
+        dummy_process = PhyMemProcess();
+        dummy_process.identifier = (PID) target;
+        return &dummy_process;
     }
 }
 
@@ -466,11 +488,33 @@ PhyMemChunk* PhyMemManager::generate_chunk(const KernelInformation& kinfo, size_
 }
 
 
-void PhyMemManager::killer(PID target) {
+bool PhyMemManager::generate_process_list() {
+    //Called once memory allocation is available, this function generates the "process list", which
+    //at this point only includes an entry about the kernel
+    PhyMemChunk* map_parser;
+
+    process_list = new PhyMemProcess();
+    if(!process_list) {
+        proclist_mutex.release();
+        return false;
+    }
+
+    process_list->identifier = PID_KERNEL;
+    map_parser = phy_mmap;
+    while(map_parser) {
+        if(map_parser->has_owner(PID_KERNEL)) process_list->memory_usage+= map_parser->size;
+        map_parser = map_parser->next_mapitem;
+    }
+
+    return true;
+}
+
+
+void PhyMemManager::killer(PhyMemProcess* target) {
     PhyMemChunk* parser = phy_mmap;
 
     while(parser) {
-        if(parser->has_owner(target)) chunk_ownerdel(parser, target);
+        if(parser->has_owner(target->identifier)) chunk_ownerdel(target, parser);
         parser = parser->next_mapitem;
     }
 }
@@ -530,32 +574,90 @@ bool PhyMemManager::split_chunk(PhyMemChunk* chunk, const size_t position) {
 }
 
 
-void PhyMemManager::init_malloc() {
-    //For now, there are no malloc-based features in PhyMemManager, so we just set a flag on.
-    malloc_active = true;
+bool PhyMemManager::init_malloc() {
+    //Enable malloc-based features of PhyMemManager here
+    if(generate_process_list()) malloc_active = true;
+    return malloc_active;
+}
+
+bool PhyMemManager::init_process(ProcessManager& procman) {
+    //Initialize process management-related functionality here
+    process_manager = &procman;
+
+    //Setup an insulator associated to PhyMemManager
+    InsulatorDescriptor phymem_insulator_desc;
+    phymem_insulator_desc.insulator_name = "PhyMemManager";
+    //TODO : phymem_insulator_desc.add_process = (void*) phymem_manager_add_process;
+    phymem_insulator_desc.remove_process = (void*) phymem_manager_remove_process;
+    //TODO : phymem_insulator_desc.update_process = (void*) phymem_manager_update_process;
+    //TODO : process_manager->add_insulator(PID_KERNEL, phymem_insulator_desc);
+
+    return true;
 }
 
 
 void PhyMemManager::remove_process(PID target) {
-    mmap_mutex.grab_spin();
+    PhyMemProcess* process;
 
-        killer(target);
+    proclist_mutex.grab_spin();
 
-    mmap_mutex.release();
+        //Find the PhyMemProcess associated to the requested PID
+        process = find_process(target);
+        if(!process) {
+            proclist_mutex.release();
+            return;
+        }
+
+    process->mutex.grab_spin();
+    proclist_mutex.release();
+
+        mmap_mutex.grab_spin();
+
+            //Kill the process
+            killer(process);
+
+        mmap_mutex.release();
+
+    process->mutex.release();
 }
 
 
 PhyMemChunk* PhyMemManager::alloc_chunk(const PID initial_owner, const size_t size, bool contiguous) {
     PhyMemChunk* result;
+    PhyMemProcess* process;
 
-    mmap_mutex.grab_spin();
+    proclist_mutex.grab_spin();
 
-        result = chunk_allocator(initial_owner,
-                                 align_pgup(size),
-                                 free_mem,
-                                 contiguous);
+        //Find the PhyMemProcess associated to the requested PID
+        process = find_process(initial_owner);
+        if(!process) {
+            proclist_mutex.release();
+            return NULL;
+        }
 
-    mmap_mutex.release();
+    process->mutex.grab_spin();
+    proclist_mutex.release();
+
+        //Check if we can allocate the requested memory without busting caps
+        if(process->memory_usage + align_pgup(size) > process->memory_cap) {
+            process->mutex.release();
+            return NULL;
+        }
+
+        mmap_mutex.grab_spin();
+
+            //Allocate a chunk of memory
+            result = chunk_allocator(process,
+                                     align_pgup(size),
+                                     free_mem,
+                                     contiguous);
+
+        mmap_mutex.release();
+
+        //Update process memory usage if allocation has been successful
+        if(result) process->memory_usage+= align_pgup(size);
+
+    process->mutex.release();
 
     return result;
 }
@@ -564,17 +666,45 @@ PhyMemChunk* PhyMemManager::alloc_chunk(const PID initial_owner, const size_t si
 bool PhyMemManager::share_chunk(const PID new_owner,
                                 size_t chunk_beginning) {
     bool result;
+    PhyMemProcess* process;
 
-    mmap_mutex.grab_spin();
+    proclist_mutex.grab_spin();
 
-        PhyMemChunk* chunk = phy_mmap->find_thischunk(chunk_beginning);
-        if(!chunk) {
-            mmap_mutex.release();
+        //Find the PhyMemProcess associated to the requested PID
+        process = find_process(new_owner);
+        if(!process) {
+            proclist_mutex.release();
             return false;
         }
-        result = chunk_owneradd(chunk, new_owner);
 
-    mmap_mutex.release();
+    process->mutex.grab_spin();
+    proclist_mutex.release();
+
+        mmap_mutex.grab_spin();
+
+            //Find the chunk that is to be shared
+            PhyMemChunk* chunk = phy_mmap->find_thischunk(chunk_beginning);
+            if(!chunk) {
+                mmap_mutex.release();
+                return false;
+            }
+
+            //Check if we can allocate the requested memory without busting caps
+            if(process->memory_usage + align_pgup(chunk->size) > process->memory_cap) {
+                mmap_mutex.release();
+                process->mutex.release();
+                return false;
+            }
+
+            //Share the chunk with its new owner
+            result = chunk_owneradd(process, chunk);
+
+            //Update process memory usage if allocation has been successful
+            if(result) process->memory_usage+= align_pgup(chunk->size);
+
+        mmap_mutex.release();
+
+    process->mutex.release();
 
     return result;
 }
@@ -582,17 +712,38 @@ bool PhyMemManager::share_chunk(const PID new_owner,
 bool PhyMemManager::free_chunk(const PID former_owner,
                                size_t chunk_beginning) {
     bool result;
+    PhyMemProcess* process;
 
-    mmap_mutex.grab_spin();
+    proclist_mutex.grab_spin();
 
-        PhyMemChunk* chunk = phy_mmap->find_thischunk(chunk_beginning);
-        if(!chunk) {
-            mmap_mutex.release();
+        //Find the PhyMemProcess associated to the requested PID
+        process = find_process(former_owner);
+        if(!process) {
+            proclist_mutex.release();
             return false;
         }
-        result = chunk_ownerdel(chunk, former_owner);
 
-    mmap_mutex.release();
+    process->mutex.grab_spin();
+    proclist_mutex.release();
+
+        mmap_mutex.grab_spin();
+
+            //Find the chunk that is to be shared
+            PhyMemChunk* chunk = phy_mmap->find_thischunk(chunk_beginning);
+            if(!chunk) {
+                mmap_mutex.release();
+                return false;
+            }
+
+            //Free the chunk
+            result = chunk_ownerdel(process, chunk);
+
+            //Update process memory usage if allocation has been successful
+            if(result) process->memory_usage-= align_pgup(chunk->size);
+
+        mmap_mutex.release();
+
+    process->mutex.release();
 
     return result;
 }
@@ -604,4 +755,31 @@ void PhyMemManager::print_mmap() {
         dbgout << *phy_mmap;
 
     mmap_mutex.release();
+}
+
+void PhyMemManager::print_mem_usage(const PID target) {
+    PhyMemProcess* process;
+    unsigned int MB_used, KB_used, miliMB_used;
+
+    proclist_mutex.grab_spin();
+
+        process = find_process(target);
+        if(!process) {
+            proclist_mutex.release();
+            dbgout << txtcolor(TXT_LIGHTRED) << "Error : Unknown PID" << txtcolor(TXT_LIGHTGRAY) << endl;
+            return;
+        }
+
+    process->mutex.grab_spin();
+    proclist_mutex.release();
+
+        MB_used = (process->memory_usage)/(1024*1024);
+        KB_used = (process->memory_usage)/1024 - MB_used*1024;
+        if((process->memory_usage)%1024) ++KB_used;
+        miliMB_used = KB_used*1000;
+        miliMB_used/= 1024;
+        dbgout << "Process " << (unsigned int) target << " uses " << MB_used << "." << miliMB_used;
+        dbgout << "MB of physical RAM." << endl;
+
+    process->mutex.release();
 }

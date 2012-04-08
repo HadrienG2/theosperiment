@@ -180,12 +180,12 @@ VirMemProcess* VirMemManager::find_or_create_pid(PID target) {
 
     list_item = process_list;
     while(list_item->next_item) {
-        if(list_item->owner == target) {
+        if(list_item->identifier == target) {
             break;
         }
         list_item = list_item->next_item;
     }
-    if(list_item->owner != target) {
+    if(list_item->identifier != target) {
         list_item->next_item = setup_pid(target);
         list_item = list_item->next_item;
     }
@@ -198,7 +198,7 @@ VirMemProcess* VirMemManager::find_pid(const PID target) {
 
     list_item = process_list;
     do {
-        if(list_item->owner == target) break;
+        if(list_item->identifier == target) break;
         list_item = list_item->next_item;
     } while(list_item);
 
@@ -224,9 +224,26 @@ bool VirMemManager::map_k_chunks(VirMemProcess* target) {
     return true;
 }
 
-void VirMemManager::init_malloc() {
+bool VirMemManager::init_malloc() {
     //For now, there are no malloc-based features in VirMemManager, so we just set a flag on.
     malloc_active = true;
+
+    return true;
+}
+
+bool VirMemManager::init_process(ProcessManager& procman) {
+    //Initialize process management-related functionality
+    process_manager = &procman;
+
+    //Setup an insulator associated to VirMemManager
+    InsulatorDescriptor virmem_insulator_desc;
+    virmem_insulator_desc.insulator_name = "VirMemManager";
+    //virmem_insulator_desc.add_process = (void*) virmem_manager_add_process;
+    virmem_insulator_desc.remove_process = (void*) virmem_manager_remove_process;
+    //virmem_insulator_desc.update_process = (void*) virmem_manager_update_process;
+    //process_manager->add_insulator(PID_KERNEL, virmem_insulator_desc);
+
+    return true;
 }
 
 VirMemChunk* VirMemManager::map_chunk(const PID target,
