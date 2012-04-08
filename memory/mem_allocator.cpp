@@ -95,15 +95,15 @@ size_t MemAllocator::allocator(MallocProcess* target,
     //Step 2 : If there's none, create it
     if(!hole) {
         //Allocating enough memory
-        phy_chunk = phymem_manager->alloc_chunk(target->owner, align_pgup(size));
+        phy_chunk = phymem_manager->alloc_chunk(target->identifier, align_pgup(size));
         if(!phy_chunk) {
             if(!force) return NULL;
             liberate_memory();
             return allocator(target, size, flags, force);
         }
-        vir_chunk = virmem_manager->map_chunk(target->owner, phy_chunk, flags);
+        vir_chunk = virmem_manager->map_chunk(target->identifier, phy_chunk, flags);
         if(!vir_chunk) {
-            phymem_manager->free_chunk(target->owner, phy_chunk->location);
+            phymem_manager->free_chunk(target->identifier, phy_chunk->location);
             if(!force) return NULL;
             liberate_memory();
             return allocator(target, size, flags, force);
@@ -113,8 +113,8 @@ size_t MemAllocator::allocator(MallocProcess* target,
         if(!free_mapitems) {
             alloc_mapitems();
             if(!free_mapitems) {
-                virmem_manager->free_chunk(target->owner, vir_chunk->location);
-                phymem_manager->free_chunk(target->owner, phy_chunk->location);
+                virmem_manager->free_chunk(target->identifier, vir_chunk->location);
+                phymem_manager->free_chunk(target->identifier, phy_chunk->location);
                 if(!force) return NULL;
                 liberate_memory();
                 return allocator(target, size, flags, force);
@@ -146,8 +146,8 @@ size_t MemAllocator::allocator(MallocProcess* target,
     if(!free_mapitems) {
         alloc_mapitems();
         if(!free_mapitems) {
-            if(vir_chunk) virmem_manager->free_chunk(target->owner, vir_chunk->location);
-            if(phy_chunk) phymem_manager->free_chunk(target->owner, phy_chunk->location);
+            if(vir_chunk) virmem_manager->free_chunk(target->identifier, vir_chunk->location);
+            if(phy_chunk) phymem_manager->free_chunk(target->identifier, phy_chunk->location);
             if(!force) return NULL;
             liberate_memory();
             return allocator(target, size, flags, force);
@@ -207,15 +207,15 @@ size_t MemAllocator::allocator_shareable(MallocProcess* target,
     //Same as above, but always allocates a new chunk and does not put extra memory in free_map
 
     //Allocating memory
-    PhyMemChunk* phy_chunk = phymem_manager->alloc_chunk(target->owner, align_pgup(size));
+    PhyMemChunk* phy_chunk = phymem_manager->alloc_chunk(target->identifier, align_pgup(size));
     if(!phy_chunk) {
         if(!force) return NULL;
         liberate_memory();
         return allocator_shareable(target, size, flags, force);
     }
-    VirMemChunk* vir_chunk = virmem_manager->map_chunk(target->owner, phy_chunk, flags);
+    VirMemChunk* vir_chunk = virmem_manager->map_chunk(target->identifier, phy_chunk, flags);
     if(!vir_chunk) {
-        phymem_manager->free_chunk(target->owner, phy_chunk->location);
+        phymem_manager->free_chunk(target->identifier, phy_chunk->location);
         if(!force) return NULL;
         liberate_memory();
         return allocator_shareable(target, size, flags, force);
@@ -225,8 +225,8 @@ size_t MemAllocator::allocator_shareable(MallocProcess* target,
     if(!free_mapitems) {
         alloc_mapitems();
         if(!free_mapitems) {
-            virmem_manager->free_chunk(target->owner, vir_chunk->location);
-            phymem_manager->free_chunk(target->owner, phy_chunk->location);
+            virmem_manager->free_chunk(target->identifier, vir_chunk->location);
+            phymem_manager->free_chunk(target->identifier, phy_chunk->location);
             if(!force) return NULL;
             liberate_memory();
             return allocator_shareable(target, size, flags, force);
@@ -305,11 +305,11 @@ bool MemAllocator::liberator(MallocProcess* target, const size_t location) {
         //Step 3a : Liberate the chunks and any item of free_map belonging to them.
 
         //Liberate the physical/virtual chunks associated with our item if possible.
-        //We use phymem->ownerdel instead of phymem->free here, since the process might have shared
+        //We use phymem->identifierdel instead of phymem->free here, since the process might have shared
         //this data with other processes, in which case freeing it would be a bit brutal for those.
         VirMemChunk* belonged_to = freed_item->belongs_to;
-        phymem_manager->free_chunk(target->owner, belonged_to->points_to->location);
-        virmem_manager->free_chunk(target->owner, belonged_to->location);
+        phymem_manager->free_chunk(target->identifier, belonged_to->points_to->location);
+        virmem_manager->free_chunk(target->identifier, belonged_to->location);
         freed_item = new(freed_item) MemoryChunk();
         freed_item->next_item = free_mapitems;
         free_mapitems = freed_item;
@@ -326,7 +326,7 @@ bool MemAllocator::liberator(MallocProcess* target, const size_t location) {
         if(target->free_map == NULL) {
             //Nothing left in the target's free map, so our job is done.
             //If this PID's busy_map is now empty, its free_map is empty too : remove it
-            if(target->busy_map == NULL) remove_pid(target->owner);
+            if(target->busy_map == NULL) remove_pid(target->identifier);
             return true;
         }
         previous_item = target->free_map;
@@ -342,7 +342,7 @@ bool MemAllocator::liberator(MallocProcess* target, const size_t location) {
         }
 
         //If this PID's busy_map is now empty, its free_map is empty too : remove it
-        if(target->busy_map == NULL) remove_pid(target->owner);
+        if(target->busy_map == NULL) remove_pid(target->identifier);
         return true;
     }
 
@@ -448,7 +448,7 @@ size_t MemAllocator::share(MallocProcess* source,
         if(force) panic(PANIC_IMPOSSIBLE_SHARING);
         return NULL;
     }
-    PID target_pid = target->owner;
+    PID target_pid = target->identifier;
     PhyMemChunk* phy_item = shared_item->belongs_to->points_to;
     //Check that the chunk is not shared with target already, if so simply increment the share_count
     //of the shared object in target's address space and quit. If not, pursue sharing operation
@@ -516,10 +516,10 @@ size_t MemAllocator::share(MallocProcess* source,
     return busy_item->location;
 }
 
-MemoryChunk* MemAllocator::shared_already(PhyMemChunk* to_share, MallocProcess* target_owner) {
-    //This function checks if a physical page "to_share" is already shared with "target_owner", and
+MemoryChunk* MemAllocator::shared_already(PhyMemChunk* to_share, MallocProcess* target_identifier) {
+    //This function checks if a physical page "to_share" is already shared with "target_identifier", and
     //if so returns a pointer to the MemoryChunk object associated with the shared object.
-    MemoryChunk* map_parser = target_owner->busy_map;
+    MemoryChunk* map_parser = target_identifier->busy_map;
     while(map_parser) {
         if(map_parser->belongs_to->points_to == to_share) break;
         map_parser = map_parser->next_item;
@@ -533,7 +533,7 @@ MallocProcess* MemAllocator::find_pid(const PID target) {
 
     process = process_list;
     while(process) {
-        if(process->owner == target) break;
+        if(process->identifier == target) break;
         process = process->next_item;
     }
 
@@ -549,10 +549,10 @@ MallocProcess* MemAllocator::find_or_create_pid(PID target, const bool force) {
     }
     process = process_list;
     while(process->next_item) {
-        if(process->owner == target) break;
+        if(process->identifier == target) break;
         process = process->next_item;
     }
-    if(process->owner != target) {
+    if(process->identifier != target) {
         process->next_item = setup_pid(target);
         process = process->next_item;
     }
@@ -576,7 +576,7 @@ MallocProcess* MemAllocator::setup_pid(PID target) {
     //Fill them
     result = free_process_descs;
     free_process_descs = free_process_descs->next_item;
-    result->owner = target;
+    result->identifier = target;
     result->next_item = NULL;
 
     return result;
@@ -586,13 +586,13 @@ bool MemAllocator::remove_pid(PID target) {
     MallocProcess *deleted_process, *previous_process;
 
     //Remove the PID from the map list
-    if(process_list->owner == target) {
+    if(process_list->identifier == target) {
         deleted_process = process_list;
         process_list = process_list->next_item;
     } else {
         previous_process = process_list;
         while(previous_process->next_item) {
-            if(previous_process->next_item->owner == target) break;
+            if(previous_process->next_item->identifier == target) break;
             previous_process = previous_process->next_item;
         }
         deleted_process = previous_process->next_item;
@@ -634,6 +634,7 @@ void MemAllocator::liberate_memory() {
 }
 
 MemAllocator::MemAllocator(PhyMemManager& phymem, VirMemManager& virmem) : phymem_manager(&phymem),
+                                                                           process_manager(NULL),
                                                                            virmem_manager(&virmem),
                                                                            process_list(NULL),
                                                                            free_mapitems(NULL),
@@ -645,6 +646,25 @@ MemAllocator::MemAllocator(PhyMemManager& phymem, VirMemManager& virmem) : phyme
     mem_allocator = this;
     phymem_manager->init_malloc();
     virmem_manager->init_malloc();
+}
+
+bool MemAllocator::init_process(ProcessManager& procman) {
+    //Initialize process management-related functionality in virmem_manager and phymem_manager
+    phymem_manager->init_process(procman);
+    virmem_manager->init_process(procman);
+
+    //Initialize process management-related functionality
+    process_manager = &procman;
+
+    //Setup an insulator associated to MemAllocator
+    InsulatorDescriptor mallocator_insulator_desc;
+    mallocator_insulator_desc.insulator_name = "MemAllocator";
+    //mallocator_insulator_desc.add_process = (void*) mem_allocator_add_process;
+    mallocator_insulator_desc.remove_process = (void*) mem_allocator_remove_process;
+    //mallocator_insulator_desc.update_process = (void*) mem_allocator_update_process;
+    //process_manager->add_insulator(PID_KERNEL, mallocator_insulator_desc);
+
+    return true;
 }
 
 size_t MemAllocator::malloc(PID target, const size_t size, const VirMemFlags flags, const bool force) {
@@ -860,10 +880,10 @@ void MemAllocator::print_maplist() {
     proclist_mutex.release();
 }
 
-void MemAllocator::print_busymap(const PID owner) {
+void MemAllocator::print_busymap(const PID identifier) {
     proclist_mutex.grab_spin();
 
-        MallocProcess* process = find_pid(owner);
+        MallocProcess* process = find_pid(identifier);
         if(!process) {
             dbgout << txtcolor(TXT_RED) << "Error : PID not registered";
             dbgout << txtcolor(TXT_LIGHTGRAY);
@@ -884,10 +904,10 @@ void MemAllocator::print_busymap(const PID owner) {
     process->mutex.release();
 }
 
-void MemAllocator::print_freemap(const PID owner) {
+void MemAllocator::print_freemap(const PID identifier) {
     proclist_mutex.grab_spin();
 
-        MallocProcess* process = find_pid(owner);
+        MallocProcess* process = find_pid(identifier);
         if(!process) {
             dbgout << txtcolor(TXT_RED) << "Error : PID not registered";
             dbgout << txtcolor(TXT_LIGHTGRAY);
@@ -950,6 +970,30 @@ bool kenter_pool(PID target, void* pool) {
 }
 
 void* kleave_pool(PID target) {
-    if(!mem_allocator) return false;
+    if(!mem_allocator) return NULL;
     return (void*) mem_allocator->leave_pool(target);
 }
+
+/*PID mem_allocator_add_process(PID id, ProcessProperties properties) {
+    if(!mem_allocator) {
+        return PID_INVALID;
+    } else {
+        return mem_allocator->add_process(id, properties);
+    }
+}*/
+
+void mem_allocator_remove_process(PID target) {
+    if(!mem_allocator) {
+        return;
+    } else {
+        mem_allocator->remove_process(target);
+    }
+}
+
+/*PID mem_allocator_update_process(PID old_process, PID new_process) {
+    if(!mem_allocator) {
+        return PID_INVALID;
+    } else {
+        return mem_allocator->update_process(old_process, new_process);
+    }
+}*/

@@ -19,10 +19,10 @@
 #include <kernel_information.h>
 #include <mem_allocator.h>
 #include <phymem_manager.h>
+#include <process_manager.h>
 #include <virmem_manager.h>
 
 #include <dbgstream.h>
-#include <rpc_benchmark.h>
 
 extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << "* Kernel loaded, " << kinfo.cpu_info.core_amount << " CPU core(s) detected" << endl;
@@ -34,10 +34,10 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     VirMemManager virmem_manager(phymem_manager);
     MemAllocator mem_allocator(phymem_manager, virmem_manager);
 
-    //TODO : dbgout << "* Setting up process management..." << endl;
-    //TODO : Process management structures, RPC
+    dbgout << "* Setting up process management..." << endl;
+    ProcessManager process_manager(mem_allocator);
 
-    dbgout << "* Kernel initialized, ready to proceed !";
+    dbgout << "* Kernel ready !" << endl;
 
     //Now, do something useful with that kernel ! :P
 

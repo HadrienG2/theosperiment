@@ -16,7 +16,7 @@ BS_ASM_SRC = $(wildcard arch/$(ARCH)/bootstrap/*.s arch/$(ARCH)/bootstrap/lib/*.
 BS_C_SRC = $(wildcard arch/$(ARCH)/bootstrap/*.c arch/$(ARCH)/bootstrap/lib/*.c)
 KNL_ASM_SRC=$(wildcard arch/$(ARCH)/init/*.s)
 KNL_CPP_SRC = $(wildcard arch/$(ARCH)/memory/*.cpp arch/$(ARCH)/synchronization/*.cpp)
-KNL_CPP_SRC += $(wildcard init/*.cpp memory/*.cpp lib/*.cpp)
+KNL_CPP_SRC += $(wildcard init/*.cpp memory/*.cpp process/*.cpp lib/*.cpp)
 ifeq ($(Fdebug),1)
     BS_C_SRC += $(wildcard arch/$(ARCH)/bootstrap/opt/debug/*.c)
     KNL_CPP_SRC += $(wildcard arch/$(ARCH)/opt/debug/*.cpp opt/debug/*.cpp)

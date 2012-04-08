@@ -21,25 +21,24 @@
 #define _VIRTMEM_H_
 
 #include <address.h>
-#include <memory_support.h>
 #include <phymem_manager.h>
+#include <process_support.h>
 #include <pid.h>
 #include <synchronization.h>
+#include <virmem_support.h>
+
 
 const int VIRMEMMANAGER_VERSION = 2; //Increase this when deep changes require a modification of
                                      //the testing protocol
 
-//This class is an abstraction of the paging mechanism. It allows...
-//-Page grouping in chunks and management of chunks as a whole
-//-Allocation/miberation of a contiguous chunk of linear addresses pointing to a
-// non-contiguous chunk of physical addresses.
-//-Interoperability with the physical memory manager
-//-Transparent management of per-process page tables (and hence multiple process management)
-//
-//Later : -Switching processes
+class ProcessManager;
 class VirMemManager {
     private:
+        //Link to other kernel functionality
         PhyMemManager* phymem_manager;
+        ProcessManager* process_manager;
+
+        //VirMemManager's internal state
         OwnerlessMutex proclist_mutex; //Hold that mutex when parsing the process list or altering it
         VirMemProcess* process_list;
         VirMemChunk* free_mapitems; //A collection of ready to use virtual memory map items
@@ -82,14 +81,16 @@ class VirMemManager {
         void unmap_k_chunk(VirMemChunk* chunk); //Removes K pages from the address space of non-kernel processes.
         uint64_t x86flags(VirMemFlags flags); //Converts VirMemFlags to x86 paging flags
     public:
-        //Constructor gets the current layout of paged memory, setup management structures
         VirMemManager(PhyMemManager& physmem);
 
         //Late feature initialization
-        void init_malloc(); //To be run once memory allocation is available
+        bool init_malloc(); //Run once memory allocation is available
+        bool init_process(ProcessManager& process_manager); //Run once process management is available
 
         //Process management functions
+        //TODO : PID add_process(PID id, ProcessProperties properties); //Adds a new process to VirMemManager's database
         void remove_process(PID target); //Removes all traces of a PID in VirMemManager
+        //TODO : PID update_process(PID old_process, PID new_process); //Swaps two PIDs for live updating purposes
 
         //Chunk manipulation functions
         VirMemChunk* map_chunk(const PID target,               //Map a non-contiguous physical memory chunk as a
@@ -111,5 +112,10 @@ class VirMemManager {
         void print_mmap(PID owner);
         void print_pml4t(PID owner);
 };
+
+//Global shortcuts to VirMemManager's process management functions
+//TODO : PID virmem_manager_add_process(PID id, ProcessProperties properties);
+void virmem_manager_remove_process(PID target);
+//TODO : PID virmem_manager_update_process(PID old_process, PID new_process);
 
 #endif

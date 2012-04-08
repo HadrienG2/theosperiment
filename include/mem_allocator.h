@@ -20,21 +20,24 @@
 #define _KMEM_ALLOCATOR_H_
 
 #include <address.h>
-#include <memory_support.h>
+#include <mallocator_support.h>
 #include <phymem_manager.h>
+#include <process_manager.h>
 #include <pid.h>
 #include <virmem_manager.h>
 
-const int MEMALLOCATOR_VERSION = 1; //Increase this when deep changes require a modification of
+const int MEMALLOCATOR_VERSION = 2; //Increase this when deep changes require a modification of
                                     //the testing protocol
 
-//The goal of this class is simple : to implement an architecture-independent malloc/free-style
-//functionality on top of the arch-specific [Phy|Vir]MemManager
-//To do later : -Switching address spaces
+class ProcessManager;
 class MemAllocator {
     private:
+        //Link to other kernel functionality
         PhyMemManager* phymem_manager;
+        ProcessManager* process_manager;
         VirMemManager* virmem_manager;
+
+        //Internal MemAllocator state
         MallocProcess* process_list;
         MemoryChunk* free_mapitems; //A collection of ready to use memory map items
         MallocProcess* free_process_descs; //A collection of ready to use process descriptors
@@ -79,8 +82,13 @@ class MemAllocator {
     public:
         MemAllocator(PhyMemManager& physmem, VirMemManager& virtmem);
 
-        //Kill a process, more exactly remove all traces of it from MemAllocator
-        void remove_process(PID target);
+        //Late feature initialization
+        bool init_process(ProcessManager& process_manager); //Run once process management is available
+
+        //Process management functions
+        //PID add_process(PID id, ProcessProperties properties); //Adds a new process to MemAllocator's database
+        void remove_process(PID target); //Removes all traces of a PID in MemAllocator
+        //PID update_process(PID old_process, PID new_process); //Swaps noncritical parts of two PIDs for live updating purposes
 
         //Allocate memory to a process, returns location
         size_t malloc(PID target,
@@ -117,14 +125,12 @@ class MemAllocator {
         //reinstate_pool() using it as a parameter later.
         //
         //Some things to keep in mind :
-        // * You can only free the whole pool, not individual objects (that's the principle), so
-        //   keep a pointer to it.
+        // * You can only free the whole pool, not individual objects (that's the idea), so
+        //   keep a pointer to said pool.
         // * You should make sure that pooled allocation is atomic as far as memory management is
         //   concerned, to prevent unrelated allocation requests from going to the pool and possibly
         //   causing pool overflow.
-        // * To ensure better performance, pooled allocation comes with zero safety checks. This
-        //   means in particular no protection against pool overflow, so don't forget to call
-        //   leave_pool() when you're done.
+        // * Don't forget to call leave_pool() when you're done.
         bool enter_pool(PID target, size_t pool_location);
         size_t leave_pool(PID target);
 
@@ -153,5 +159,10 @@ void* kshare(const PID source,
 //Pooled allocation
 bool kenter_pool(PID target, void* pool);
 void* kleave_pool(PID target);
+
+//Global shortcuts to MemAllocator's process management functions
+//PID mem_allocator_add_process(PID id, ProcessProperties properties);
+void mem_allocator_remove_process(PID target);
+//PID mem_allocator_update_process(PID old_process, PID new_process);
 
 #endif

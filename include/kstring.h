@@ -33,31 +33,30 @@ class KString {
     uint32_t len;
   public:
     //KString construction and destruction
-    KString() : contents(NULL), len(0) {};
-    KString(const char* source);
+    KString(const char* source = "");
     KString(const KString& source);
     ~KString();
     KString& operator=(const char* source);
     KString& operator=(const KString& source);
-    
+
     //KString concatenation
     KString& operator+=(const char* source);
     KString& operator+=(const KString& source);
     //No operator+. It can be implemented very easily, but not with good performance (when doing
     //a = b+c, a new object is created, only to be copied to a and destroyed shortly thereafter)
-    
+
     //KString comparison
     bool operator==(const char* param) const;
     bool operator==(const KString& param) const;
     bool operator!=(const char* param) const {return !operator==(param);}
     bool operator!=(const KString& param) const {return !operator==(param);}
-    
+
     //KString indexed access
     char& operator[](const uint32_t index) const {return contents[index];}
-    
+
     //Length access
     uint32_t length() const {return len;}
-    
+
     //Returns the size of the heap object associated to this string
     size_t heap_size();
 };

@@ -1,5 +1,7 @@
-boot:           cdrom
-ata0-master:    type=cdrom, path="cdimage.iso", status=inserted
-magic_break:    enabled=1
-megs:           256
-#cpu:            count=2
+megs:               128
+cpu:                count=2
+cpuid:              mmx=1, apic=x2apic, sep=1, sse=sse4_2, x86_64=1
+vga:                extension=vbe
+ata0-master:        type=cdrom, path="cdimage.iso", status=inserted
+boot:               cdrom
+magic_break:        enabled=1
