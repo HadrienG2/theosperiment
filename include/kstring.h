@@ -25,37 +25,51 @@
 #include <address.h>
 
 void* memcpy(void* destination, const void* source, size_t num);
-uint32_t strlen(const char* str);
+size_t strlen(const char* str);
 
 class KString {
   private:
+    size_t len;
     char* contents;
-    uint32_t len;
+    size_t current_location;
   public:
-    //KString construction and destruction
+    //Initialization and destruction
     KString(const char* source = "");
     KString(const KString& source);
-    ~KString();
+    ~KString() {clear();}
     KString& operator=(const char* source);
     KString& operator=(const KString& source);
+    void clear(); //Resets a KString to a blank state
 
-    //KString concatenation
-    KString& operator+=(const char* source);
-    KString& operator+=(const KString& source);
-    //No operator+. It can be implemented very easily, but not with good performance (when doing
-    //a = b+c, a new object is created, only to be copied to a and destroyed shortly thereafter)
+    //Length of the string in ASCII chars
+    size_t length() const {return len;}
+    void set_length(size_t desired_length, bool keep_contents = true);
 
-    //KString comparison
+    //Comparison
     bool operator==(const char* param) const;
     bool operator==(const KString& param) const;
     bool operator!=(const char* param) const {return !operator==(param);}
     bool operator!=(const KString& param) const {return !operator==(param);}
 
-    //KString indexed access
+    //Concatenation
+    KString& operator+=(const char* source);
+    KString& operator+=(const KString& source);
+    //No operator+ because it cannot be implemented with good performance in C++
+
+    //Extract of a subset of another string into this string
+    bool extract_from(KString& source, size_t first_char, size_t length);
+
+    //Paste a string, or a portion of it, in the middle of another, erasing existing characters
+    bool paste(KString& source, size_t dest_index) {return paste(source, 0, source.length(), dest_index);}
+    bool paste(KString& source, size_t first_char, size_t length, size_t dest_index);
+
+    //Indexed character access
     char& operator[](const uint32_t index) const {return contents[index];}
 
-    //Length access
-    uint32_t length() const {return len;}
+    //Text file parsing
+    bool read_line(KString& dest); //Returns false if at end of file, true otherwise.
+    size_t line_index() {return current_location;}
+    void goto_index(size_t index) {current_location = index;}
 
     //Returns the size of the heap object associated to this string
     size_t heap_size();

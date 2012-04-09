@@ -27,8 +27,6 @@
 extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << "* Kernel loaded, " << kinfo.cpu_info.core_amount << " CPU core(s) detected" << endl;
 
-    //Some test suites should be run here, before kernel starts.
-
     dbgout << "* Setting up memory management..." << endl;
     PhyMemManager phymem_manager(kinfo);
     VirMemManager virmem_manager(phymem_manager);
@@ -40,6 +38,11 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << "* Kernel ready !" << endl;
 
     //Now, do something useful with that kernel ! :P
+    dbgout << set_window(screen_win);
+    KString test_file = "*** Process properties v1 ***\nTest:\n toto=3< >\"\\\"\\\n \"[ ]{{\n }}";
+    ProcessPropertiesParser test_parser;
+    dbgout << "Parsing file..." << endl << test_file << endl;
+    test_parser.open_and_check(test_file);
 
     return 0;
 }
