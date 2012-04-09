@@ -43,6 +43,13 @@ const ProcessPropertyType ARRAY = 8; //Array properties are generally an array o
 class ProcessPropertiesParser {
   private:
     ProcessProperties parsed_copy;
+
+    bool check_brackets();
+    bool check_header();
+    bool check_insulator_decls();
+    bool check_property_assignments();
+    bool is_valid_naming_char(char c);
+    void remove_comments_and_spacing();
   public:
     //Parsing initialization
     bool open_and_check(ProcessProperties& properties);
