@@ -1,3 +1,6 @@
+# Binaries other than the final iso image
+bin/*
+
 # Compiled Object files
 *.slo
 *.lo

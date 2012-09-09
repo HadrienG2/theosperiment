@@ -89,7 +89,7 @@ TMP_FILES += Makefile~
 
 #Make rules
 all: cdimage Makefile
-	@echo "Reminder : remember to run svn update, status, and commit frequently !"
+	@echo "Reminder : remember to run git pull, git status, and git commit -a && git push frequently !"
 
 run: all Makefile
 	@echo c > comm_test

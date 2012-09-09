@@ -1,0 +1,2 @@
+-Implement fast memcpy using SSE2, AVX when supported.
+-Discuss thread-local storage, batched RPC calls
