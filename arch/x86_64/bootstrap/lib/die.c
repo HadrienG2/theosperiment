@@ -28,8 +28,8 @@ GRUB brings vital information to it. Hence I'm afraid operation must stop.";
 const char* NO_MEMORYMAP = "Generation of the memory map failed.\n\
 This may come from a GRUB malfunction or it may be an error on our side.\n\
 In doubt, please contact us and tell us about this problem.";
-const char* NO_LONGMODE = "Sorry, but we require a 64-bit processor with DEP/NX support.\n\
-Your computer does not meet those requirements.";
+const char* INADEQUATE_CPU = "Sorry, but we require a 64-bit processor with DEP, NX and SSE2 support.\n\
+Your computer does not seem to meet those requirements.";
 
 void die(const char* issue) {
     set_attr(TXT_WHITE | BKG_PURPLE);

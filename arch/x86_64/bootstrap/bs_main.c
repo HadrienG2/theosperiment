@@ -30,7 +30,7 @@
 int bootstrap_longmode(const multiboot_info_t* mbd, const uint32_t magic) {
     KernelInformation* kinfo;
 
-    //Video memory initialization (for kernel silencing purposes)
+    //Video memory initialization
     init_videomem();
     clear_screen();
 
@@ -42,13 +42,13 @@ int bootstrap_longmode(const multiboot_info_t* mbd, const uint32_t magic) {
     //Some silly text
     movecur_abs(26, 11);
     set_attr(TXT_WHITE);
-    print_str("Greetings, OS-perimenter !");
-    movecur_abs(32, 12);
+    print_str("Greetings, OS|perimenter !");
+    movecur_rel(-20, +1);
     set_attr(TXT_LIGHTPURPLE);
     print_str("Please wait...\n\n");
     set_attr(TXT_LIGHTGRAY);
 
-    //Generate kernel information and check CPU features (we need long mode and NX to be available)
+    //Generate kernel information and check CPU features (we need long mode, SSE2 and NX to be available)
     kinfo = kinfo_gen(mbd);
 
     //Set up segmentation structures which are more secure than GRUB's ones
@@ -57,7 +57,7 @@ int bootstrap_longmode(const multiboot_info_t* mbd, const uint32_t magic) {
     //Generate a page table
     const uint32_t cr3_value = generate_paging(kinfo);
 
-    //Switch to the 32-bit subset of long mode
+    //Switch to the 32-bit subset of long mode, enable SSE2
     enable_longmode(cr3_value);
 
     //Locate the kernel in memory
