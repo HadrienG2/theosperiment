@@ -25,7 +25,7 @@ extern const char* KERNEL_NOT_FOUND;
 extern const char* MMAP_TOO_SMALL;
 extern const char* MULTIBOOT_MISSING;
 extern const char* NO_MEMORYMAP;
-extern const char* NO_LONGMODE;
+extern const char* INADEQUATE_CPU;
 
 /* Display a purple screen of death with the provided invoked cause */
 void die(const char* issue);

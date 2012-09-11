@@ -5,7 +5,7 @@ Ftests = 1
 #Target architecture and arch-specific data go here
 ARCH = x86_64
 BS_ARCH = i686
-CXX_ARCH = -mcmodel=small -mno-red-zone -mno-mmx -mno-sse -mno-sse2 -mno-sse3 -mno-3dnow
+CXX_ARCH = -mcmodel=small -mno-red-zone -mno-mmx -mno-sse3 -mno-3dnow
 L_ARCH = -zmax-page-size=0x1000
 GENISO_PARAMS = -R -b System/boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4
 GENISO_PARAMS += -boot-info-table -quiet -A "The OS-periment"

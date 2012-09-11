@@ -39,7 +39,7 @@ extern "C" int kmain(const KernelInformation& kinfo) {
 
     //Now, do something useful with that kernel ! :P
     dbgout << set_window(screen_win);
-    KString test_file = "*** Process properties v1 ***\nTest:\n toto=3< >\"\\\"\\\n \"[ ]{{\n }}";
+    KString test_file("*** Process properties v1 ***\nTest:\n toto=3< >\"\\\"\\\n \"[ ]{{\n }}");
     ProcessPropertiesParser test_parser;
     dbgout << "Parsing file..." << endl << test_file << endl;
     test_parser.open_and_check(test_file);

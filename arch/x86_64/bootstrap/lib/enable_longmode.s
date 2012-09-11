@@ -13,10 +13,14 @@ enable_longmode:
     mov     %esp, %ebp
 
     /* At this point, we know that long-mode support is available
-         Step 1 : Enable PAE and global pages */
+         Step 1 : Enable SSE2, PAE and global pages */
+    mov     %cr0, %eax
+    bts     $1,   %eax
+    mov     %eax, %cr0
     mov     %cr4, %eax
     bts     $5,   %eax
     bts     $7,   %eax
+    bts     $9,   %eax
     mov     %eax, %cr4
 
     /* Step 2 : Load CR3 value */

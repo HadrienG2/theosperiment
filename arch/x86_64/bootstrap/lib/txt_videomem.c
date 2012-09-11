@@ -117,11 +117,8 @@ void movecur_abs(const unsigned int col, const unsigned int row) {
 
 void movecur_rel(const int col_offset, const int row_offset) {
     unsigned int dest_col = cursor_col + col_offset;
-    unsigned int dest_row = cursor_col + col_offset;
-    if(dest_col < number_of_cols)
-        cursor_col+=col_offset;
-    if(dest_row < number_of_rows)
-        cursor_row+=row_offset;
+    unsigned int dest_row = cursor_row + row_offset;
+    movecur_abs(dest_col, dest_row);
 }
 
 void print_bin8(const uint8_t integer) {

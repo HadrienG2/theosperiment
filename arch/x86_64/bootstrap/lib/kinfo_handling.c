@@ -253,7 +253,7 @@ KernelCPUInfo* generate_cpu_info(KernelInformation* kinfo) {
 
     //Check CPUID support by trying to toggle bit 21 (ID) in EFLAGS.
     //If CPU does not support CPUID, it won't support long mode either
-    if(!cpuid_check()) die(NO_LONGMODE);
+    if(!cpuid_check()) die(INADEQUATE_CPU);
 
     //Get vendor string and max accessible standard CPUID function
     cpuid(0,eax,ebx,ecx,edx);
@@ -273,7 +273,7 @@ KernelCPUInfo* generate_cpu_info(KernelInformation* kinfo) {
     vendor_string[12]='\0';
     arch_info->vendor_string = (uint32_t) vendor_string;
     //If CPU does not support CPUID function 1, kill kernel : no PAE support means no long mode support
-    if(max_std_function==0) die(NO_LONGMODE);
+    if(max_std_function==0) die(INADEQUATE_CPU);
 
     //Get the information of CPUID standard function 1
     cpuid(1,eax,ebx,ecx,edx);
@@ -299,15 +299,16 @@ KernelCPUInfo* generate_cpu_info(KernelInformation* kinfo) {
         arch_info->global_page_support = 1; //Global page support (enable if available)
         __asm__ volatile("mov %%cr4, %%eax; bts $7, %%eax; mov %%eax, %%cr4":::"%eax");
     }
-    //If CPU does not support PAE or APIC, it won't support long mode either
-    if(!(edx&0x240)) die(NO_LONGMODE);
+    //If CPU does not support PAE or APIC, it won't support long mode either.
+    //We also require SSE2 support now, since every AMD64 CPU has it.
+    if(!(edx&0x4000240)) die(INADEQUATE_CPU);
 
     //Now, we're going to examine CPUID's extended fields. Note that those may vary from
     //one vendor to another.
     cpuid(0x80000000,eax,ebx,ecx,edx);
     max_ext_function=eax;
     //If CPU does not support CPUID function 0x80000001, it does not support long mode
-    if(max_ext_function==0x80000000) die(NO_LONGMODE);
+    if(max_ext_function==0x80000000) die(INADEQUATE_CPU);
 
     //Get information from CPUID's extended function 0x80000001
     cpuid(0x80000001,eax,ebx,ecx,edx);
@@ -319,7 +320,7 @@ KernelCPUInfo* generate_cpu_info(KernelInformation* kinfo) {
     if(edx&0x40000000) arch_info->instruction_exts[1]+= 1<<3; //3DNowExt support
     if(edx&0x80000000) arch_info->instruction_exts[1]+= 1<<2; //3DNow support
     //If CPU does not support long mode and NX/DEP, it doesn't fit our needs
-    if(!(edx&0x20100000)) die(NO_LONGMODE);
+    if(!(edx&0x20100000)) die(INADEQUATE_CPU);
 
     //Grab processor name if available
     if(max_ext_function>=0x80000004) {
