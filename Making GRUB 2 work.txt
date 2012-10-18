@@ -1,0 +1,9 @@
+Créer un ISO de GRUB 2 passe par les étapes suivantes :
+-> Créer un dossier pour les fichiers de l'ISO
+-> Créer le sous-dossier dans lequel GRUB sera installé, et un sous-sous dossier pour les fichiers de l'architecture spécifique visée (ex : System/boot/grub2/i386-pc)
+-> Copier tous les fichiers .mod et .lst de GRUB dans ce sous-sous-dossier. On les trouve à l'origine dans un dossier tel que /usr/lib/grub2
+-> Créer un dossier locale pour les traductions de grub2, dans l'exemple précédent System/boot/grub2/locale. Y caser toutes les locales de grub qu'on peut trouver dans /usr/share/locale ou créer soi-même, avec à chaque fois la syntaxe <locale>.mo
+-> Créer une image de base GRUB avec la directive grub2-mkimage. Joindre au moins les modules biosdisk, search, iso9660, configfile, normal et tar
+-> Concaténer le fichier cdboot.img de GRUB et le fichier créé précédemment avec cat pour obtenir une image bootable de grub 2, compatible El Torito
+-> FACULTATIF : Pour obtenir une iso "gravable" sur clé usb, il faut combiner boot.img avec le fichier créé précédemment et demander plus tard au programme qui crée les iso de placer cette image au début de l'image ISO, par exemple avec l'option "-G" de genisoimage
+-> C'est prêt, plus qu'à tenter le coup !

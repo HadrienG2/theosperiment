@@ -23,7 +23,7 @@
 #include <kinfo_handling.h>
 #include <paging.h>
 
-//Path to the kernel
+//Kernel's multiboot module name
 const char* KERNEL_NAME="/System/boot/kernel.bin";
 
 void load_kernel(KernelInformation* kinfo,
