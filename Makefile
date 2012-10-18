@@ -7,9 +7,9 @@ ARCH = x86_64
 BS_ARCH = i686
 CXX_ARCH = -mcmodel=small -mno-red-zone -mno-mmx -mno-sse3 -mno-3dnow
 L_ARCH = -zmax-page-size=0x1000
-GENISO_PARAMS = -R -b System/boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4
-GENISO_PARAMS += -boot-info-table -quiet -A "The OS-periment"
-GENISO_PARAMS += -graft-points boot/grub/menu.lst=bin/cdimage/System/boot/grub/menu.lst
+GENISO_PARAMS = -r -no-emul-boot -boot-info-table -quiet -A "The OS|periment" --boot-load-size 16
+GENISO_PARAMS += -graft-points
+GRUB2_LOCAL_PREFIX = /usr/lib/grub2
 
 #Source files go here
 BS_ASM_SRC = $(wildcard arch/$(ARCH)/bootstrap/*.s arch/$(ARCH)/bootstrap/lib/*.s)
@@ -77,8 +77,8 @@ LFLAGS = -s --warn-common --warn-once $(L_ARCH)
 
 #Abstracting away filenames
 CDIMAGE = cdimage.iso
-BS_BIN = bin/bs_kernel.bin
-BS_GZ = $(BS_BIN).gz
+CDIMAGE_ROOT = bin/cdimage
+BS_BIN = bin/bs-kernel.bin
 KNL_BIN = bin/kernel.bin
 BS_ASM_OBJ = $(BS_ASM_SRC:.s=.bsasm.o)
 BS_C_OBJ = $(BS_C_SRC:.c=.bsc.o)
@@ -86,6 +86,13 @@ KNL_ASM_OBJ = $(KNL_ASM_SRC:.s=.knlasm.o)
 KNL_CPP_OBJ = $(KNL_CPP_SRC:.cpp=.knlcpp.o)
 TMP_FILES = $(BS_ASM_SRC:.s=.s~) $(BS_C_SRC:.c=.c~) $(KNL_ASM_SRC:.s=.s~) $(KNL_CPP_SRC:.cpp=.cpp~)
 TMP_FILES += Makefile~
+
+#GRUB image generation parameters
+GRUB_DEST_PREFIX = System/boot/grub
+GRUB2_DEST_PREFIX = System/boot/grub2
+GRUB2_CORE_IMG = bin/grub2-core.img
+GRUB2_ELTORITO_IMG = bin/grub2-eltorito.img
+GRUB2_STATIC_MODULES = biosdisk iso9660 normal configfile
 
 #Make rules
 all: cdimage Makefile
@@ -98,28 +105,49 @@ run: all Makefile
 
 cdimage: $(CDIMAGE) Makefile
 
-bootstrap: $(BS_GZ) Makefile
+cdimage.grub_legacy: $(CDIMAGE).grub_legacy Makefile
+
+bootstrap: $(BS_BIN) Makefile
 
 kernel: $(KNL_BIN) Makefile
 
 clean: Makefile
-	@rm -f $(BS_GZ) $(BS_BIN) $(BS_ASM_OBJ) $(BS_C_OBJ) $(KNL_BIN) $(KNL_ASM_OBJ) $(KNL_CPP_OBJ)
-	@rm -rf cdimage/* $(TMP_FILES)
+	@rm -f $(BS_BIN) $(BS_ASM_OBJ) $(BS_C_OBJ) $(KNL_BIN) $(KNL_ASM_OBJ) $(KNL_CPP_OBJ)
+	@rm -rf $(GRUB2_ELTORITO_IMG) $(GRUB2_CORE_IMG) $(CDIMAGE_ROOT)/* $(TMP_FILES)
 
 mrproper: clean Makefile
 	@rm -f $(CDIMAGE)
 
-$(CDIMAGE): $(BS_GZ) $(KNL_BIN) Makefile
+$(CDIMAGE): $(BS_BIN) $(KNL_BIN) $(GRUB2_ELTORITO_IMG) Makefile
 	@rm -rf $(CDIMAGE)
-	@rm -rf bin/cdimage/*
-	@mkdir bin/cdimage/System
-	@mkdir bin/cdimage/System/boot
-	@mkdir bin/cdimage/System/boot/grub
-	@cp support/stage2_eltorito bin/cdimage/System/boot/grub
-	@cp $(BS_GZ) bin/cdimage/System/boot
+	@rm -rf $(CDIMAGE_ROOT)/*
+	@mkdir -p $(CDIMAGE_ROOT)/$(GRUB2_DEST_PREFIX)/i386-pc
+	@cp $(GRUB2_LOCAL_PREFIX)/i386-pc/* $(CDIMAGE_ROOT)/$(GRUB2_DEST_PREFIX)/i386-pc
+	@mkdir -p $(CDIMAGE_ROOT)/$(GRUB2_DEST_PREFIX)/locale
+	@cp support/grub2/grub2.cfg $(CDIMAGE_ROOT)/$(GRUB2_DEST_PREFIX)
+	@cp $(GRUB2_ELTORITO_IMG) $(CDIMAGE_ROOT)/$(GRUB2_DEST_PREFIX)/grub2_eltorito.img
+	@cp $(BS_BIN) bin/cdimage/System/boot
 	@cp $(KNL_BIN) bin/cdimage/System/boot
-	@cp support/menu.lst bin/cdimage/System/boot/grub
-	@genisoimage -o $(CDIMAGE) $(GENISO_PARAMS) bin/cdimage
+	@genisoimage -o $(CDIMAGE).grub2 -b $(GRUB2_DEST_PREFIX)/grub2_eltorito.img $(GENISO_PARAMS) bin/cdimage
+	@mv $(CDIMAGE).grub2 $(CDIMAGE)
+
+$(GRUB2_ELTORITO_IMG): $(GRUB2_CORE_IMG) Makefile
+	@cat $(GRUB2_LOCAL_PREFIX)/i386-pc/cdboot.img $(GRUB2_CORE_IMG) > $(GRUB2_ELTORITO_IMG)
+
+$(GRUB2_CORE_IMG): support/grub2/grub2.cfg Makefile
+	@echo "configfile /System/boot/grub2/grub2.cfg" > grub2_tmp.cfg
+	@grub2-mkimage -p '(cd)/$(GRUB2_DEST_PREFIX)/i386-pc' -c grub2_tmp.cfg -o $(GRUB2_CORE_IMG) -O i386-pc $(GRUB2_STATIC_MODULES)
+	@rm -r grub2_tmp.cfg
+
+$(CDIMAGE).grub_legacy: $(BS_BIN) $(KNL_BIN) Makefile support/grub/menu.lst
+	@rm -rf $(CDIMAGE).grub_legacy
+	@rm -rf $(CDIMAGE_ROOT)/*
+	@mkdir -p $(CDIMAGE_ROOT)/$(GRUB_DEST_PREFIX)
+	@cp support/grub/stage2_eltorito $(CDIMAGE_ROOT)/$(GRUB_DEST_PREFIX)
+	@cp $(BS_BIN) bin/cdimage/System/boot
+	@cp $(KNL_BIN) bin/cdimage/System/boot
+	@cp support/grub/menu.lst $(CDIMAGE_ROOT)/$(GRUB_DEST_PREFIX)
+	@genisoimage -o $(CDIMAGE).grub_legacy -b $(GRUB_DEST_PREFIX)/stage2_eltorito $(GENISO_PARAMS) $(CDIMAGE_ROOT) boot/grub/menu.lst=$(CDIMAGE_ROOT)/$(GRUB_DEST_PREFIX)/menu.lst
 
 $(BS_BIN): $(BS_ASM_OBJ) $(BS_C_OBJ) $(BS_HEADERS) Makefile
 	@$(LD32) -T support/bs_linker.lds -o $@ $(BS_ASM_OBJ) $(BS_C_OBJ) $(LFLAGS)
@@ -138,6 +166,3 @@ $(KNL_BIN): $(KNL_ASM_OBJ) $(KNL_CPP_OBJ) $(HEADERS) Makefile
 
 %.knlcpp.o: %.cpp $(HEADERS) Makefile
 	@$(CXX) -o $@ -c $< $(CXXFLAGS) $(INCLUDES)
-
-%.bin.gz: %.bin Makefile
-	@gzip -c $< > $@
