@@ -7,8 +7,7 @@ ARCH = x86_64
 BS_ARCH = i686
 CXX_ARCH = -mcmodel=small -mno-red-zone -mno-mmx -mno-sse3 -mno-3dnow
 L_ARCH = -zmax-page-size=0x1000
-GENISO_PARAMS = -r -no-emul-boot -boot-info-table -quiet -A "The OS|periment" --boot-load-size 16
-GENISO_PARAMS += -graft-points
+GENISO_PARAMS = -r -no-emul-boot -boot-info-table -quiet -A "The OS|periment" --boot-load-size 4
 GRUB2_LOCAL_PREFIX = /usr/lib/grub2
 
 #Source files go here
@@ -88,11 +87,10 @@ TMP_FILES = $(BS_ASM_SRC:.s=.s~) $(BS_C_SRC:.c=.c~) $(KNL_ASM_SRC:.s=.s~) $(KNL_
 TMP_FILES += Makefile~
 
 #GRUB image generation parameters
-GRUB_DEST_PREFIX = System/boot/grub
 GRUB2_DEST_PREFIX = System/boot/grub2
 GRUB2_CORE_IMG = bin/grub2-core.img
 GRUB2_ELTORITO_IMG = bin/grub2-eltorito.img
-GRUB2_STATIC_MODULES = biosdisk iso9660 normal configfile
+GRUB2_STATIC_MODULES = biosdisk iso9660 configfile
 
 #Make rules
 all: cdimage Makefile
@@ -104,8 +102,6 @@ run: all Makefile
 	@rm -f comm_test
 
 cdimage: $(CDIMAGE) Makefile
-
-cdimage.grub_legacy: $(CDIMAGE).grub_legacy Makefile
 
 bootstrap: $(BS_BIN) Makefile
 
@@ -128,26 +124,15 @@ $(CDIMAGE): $(BS_BIN) $(KNL_BIN) $(GRUB2_ELTORITO_IMG) Makefile
 	@cp $(GRUB2_ELTORITO_IMG) $(CDIMAGE_ROOT)/$(GRUB2_DEST_PREFIX)/grub2_eltorito.img
 	@cp $(BS_BIN) bin/cdimage/System/boot
 	@cp $(KNL_BIN) bin/cdimage/System/boot
-	@genisoimage -o $(CDIMAGE).grub2 -b $(GRUB2_DEST_PREFIX)/grub2_eltorito.img $(GENISO_PARAMS) bin/cdimage
-	@mv $(CDIMAGE).grub2 $(CDIMAGE)
+	@genisoimage -o $(CDIMAGE) -b $(GRUB2_DEST_PREFIX)/grub2_eltorito.img $(GENISO_PARAMS) bin/cdimage
 
 $(GRUB2_ELTORITO_IMG): $(GRUB2_CORE_IMG) Makefile
 	@cat $(GRUB2_LOCAL_PREFIX)/i386-pc/cdboot.img $(GRUB2_CORE_IMG) > $(GRUB2_ELTORITO_IMG)
 
 $(GRUB2_CORE_IMG): support/grub2/grub2.cfg Makefile
 	@echo "configfile /System/boot/grub2/grub2.cfg" > grub2_tmp.cfg
-	@grub2-mkimage -p '(cd)/$(GRUB2_DEST_PREFIX)/i386-pc' -c grub2_tmp.cfg -o $(GRUB2_CORE_IMG) -O i386-pc $(GRUB2_STATIC_MODULES)
+	@grub2-mkimage -p '/$(GRUB2_DEST_PREFIX)/i386-pc' -c grub2_tmp.cfg -o $(GRUB2_CORE_IMG) -O i386-pc $(GRUB2_STATIC_MODULES)
 	@rm -r grub2_tmp.cfg
-
-$(CDIMAGE).grub_legacy: $(BS_BIN) $(KNL_BIN) Makefile support/grub/menu.lst
-	@rm -rf $(CDIMAGE).grub_legacy
-	@rm -rf $(CDIMAGE_ROOT)/*
-	@mkdir -p $(CDIMAGE_ROOT)/$(GRUB_DEST_PREFIX)
-	@cp support/grub/stage2_eltorito $(CDIMAGE_ROOT)/$(GRUB_DEST_PREFIX)
-	@cp $(BS_BIN) bin/cdimage/System/boot
-	@cp $(KNL_BIN) bin/cdimage/System/boot
-	@cp support/grub/menu.lst $(CDIMAGE_ROOT)/$(GRUB_DEST_PREFIX)
-	@genisoimage -o $(CDIMAGE).grub_legacy -b $(GRUB_DEST_PREFIX)/stage2_eltorito $(GENISO_PARAMS) $(CDIMAGE_ROOT) boot/grub/menu.lst=$(CDIMAGE_ROOT)/$(GRUB_DEST_PREFIX)/menu.lst
 
 $(BS_BIN): $(BS_ASM_OBJ) $(BS_C_OBJ) $(BS_HEADERS) Makefile
 	@$(LD32) -T support/bs_linker.lds -o $@ $(BS_ASM_OBJ) $(BS_C_OBJ) $(LFLAGS)
