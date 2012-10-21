@@ -1,6 +1,0 @@
-default 0
-timeout 0
-
-title The OS-periment
-kernel /System/boot/bs-kernel.bin
-module /System/boot/kernel.bin
