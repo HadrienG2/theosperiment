@@ -16,18 +16,13 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA    02110-1301    USA */
 
-#ifndef _BS_ARCH_INFO_H_
-#define _BS_ARCH_INFO_H_
+#ifndef _ARCH_INFO_H_
+#define _ARCH_INFO_H_
 
-#include <address.h>
-#include <stdint.h>
-#include <x86multiproc.h>
+#include <hack_stdint.h>
 
-//WARNING : ANY CHANGE MADE TO THIS FILE SHOULD BE MIRRORED TO ARCH_SPECIFIC_KINFO.H.
+//WARNING : ANY CHANGE MADE TO THIS FILE SHOULD BE MIRRORED TO BS_ARCH_SPECIFIC_KINFO.H.
 //OTHERWISE, INCONSISTENT BEHAVIOR WILL OCCUR.
-
-typedef struct ArchSpecificKInfo ArchSpecificKInfo;
-typedef struct StartupDriveInfo StartupDriveInfo;
 
 struct StartupDriveInfo {
     uint8_t drive_number;
@@ -37,7 +32,7 @@ struct StartupDriveInfo {
 } __attribute__ ((packed));
 
 struct ArchSpecificKInfo {
-    size_t startup_drive; /* 64-bit pointer to a StartupDriveInfo structure */
+    StartupDriveInfo* startup_drive;
 } __attribute__ ((packed));
 
 #endif

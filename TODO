@@ -1,2 +1,0 @@
--Retravailler mmap pour mieux séparer BSK et KNL
--Donner une section séparée aux modules dans la kernel information

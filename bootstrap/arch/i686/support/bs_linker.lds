@@ -5,7 +5,7 @@ SECTIONS {
   sbs_kernel = .;
 
   .text : {
-    arch/x86_64/bootstrap/bs_multiboot.bsasm.o(.text) /* Multiboot header put as early as possible */
+    bootstrap/arch/i686/bs_multiboot.bsasm.o(.text) /* Multiboot header put as early as possible */
     *(.text)
   }
 
@@ -18,7 +18,7 @@ SECTIONS {
   }
 
   .bss ALIGN (0x1000) : {
-    arch/x86_64/bootstrap/bs_multiboot.bsasm.o(.bss) /* Easiest way to get an aligned stack */
+    bootstrap/arch/i686/bs_multiboot.bsasm.o(.bss) /* Easiest way to get an aligned stack */
     *(COMMON)
     *(.bss)
   }
