@@ -52,18 +52,18 @@ void load_kernel(KernelInformation* kinfo,
         if(phdr_table[i].p_memsz == 0) continue; //Loading an empty segment is pointless.
 
         //We have encountered a loadable segment. Let's allocate enough space to load it. The virtual
-        //address will later be mapped there using some paging tricks later
+        //address will later be mapped there using some paging tricks
         switch(phdr_table[i].p_flags) {
             case PF_R:
                 mmap_name = "Kernel R-- segment";
                 flags = PBIT_NOEXECUTE + PBIT_GLOBALPAGE;
                 break;
             case PF_R+PF_W:
-                mmap_name =    "Kernel RW- segment";
+                mmap_name = "Kernel RW- segment";
                 flags = PBIT_NOEXECUTE + PBIT_WRITABLE + PBIT_GLOBALPAGE;
                 break;
             case PF_R+PF_X:
-                mmap_name =    "Kernel R-X segment";
+                mmap_name = "Kernel R-X segment";
                 flags = PBIT_GLOBALPAGE;
                 break;
             default:
@@ -86,8 +86,11 @@ void load_kernel(KernelInformation* kinfo,
 
         //Now setup paging so that p_vaddr *does* point to load_addr
         for(current_offset=0; current_offset<phdr_table[i].p_memsz; current_offset+=PG_SIZE) {
-            setup_pagetranslation(kinfo, cr3_value, phdr_table[i].p_vaddr+current_offset,
-                load_addr+current_offset, flags);
+            setup_pagetranslation(kinfo,
+                                  cr3_value,
+                                  phdr_table[i].p_vaddr+current_offset,
+                                  load_addr+current_offset,
+                                  flags);
         }
 
         //These are the sole page translations we'll ever use in the kernel. If we could do otherwise,

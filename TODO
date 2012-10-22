@@ -1,4 +1,2 @@
--Implement fast memcpy using SSE2, AVX when supported.
--Discuss thread-local storage, batched RPC calls
-
-A FAIRE : Retravailler la mmap ? Faire du cross-mapping entre les addresses où le noyau est physiquement chargé et celles où il est virtuellement chargé au lieu de ne faire les choses que dans un sens et perdre de la RAM ?
+-Retravailler mmap pour mieux séparer BSK et KNL
+-Donner une section séparée aux modules dans la kernel information

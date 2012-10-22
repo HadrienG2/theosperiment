@@ -30,8 +30,9 @@
 typedef uint8_t KItemNature;
 const KItemNature NATURE_FRE = 0; //Free memory
 const KItemNature NATURE_RES = 1; //Reserved address range
-const KItemNature NATURE_BSK = 2; //Bootstrap kernel component
-const KItemNature NATURE_KNL = 3; //Kernel, vital resources, modules
+const KItemNature NATURE_BSK = 2; //Bootstrap kernel component, kernel information structure
+const KItemNature NATURE_KNL = 3; //Kernel, vital kernel resources
+const KItemNature NATURE_MOD = 4; //Kernel module
 
 //Supported CPU architectures
 typedef uint8_t CpuArch;
@@ -42,7 +43,6 @@ struct KernelCPUInfo {
   CpuArch arch;
   uint32_t core_amount; //Indicates how many CPU cores there are on this system
   uint32_t cache_line_size; //Size of a cache line in bytes. 0 means that caching is not supported
-  ArchSpecificCPUInfo arch_info; //Other arch-specific info
 } __attribute__ ((packed));
 
 struct KernelMemoryMap {

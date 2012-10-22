@@ -127,7 +127,7 @@ KernelMemoryMap* add_mbdata(KernelMemoryMap* kmmap_buffer, unsigned int *index_p
     if(mbd->flags & 4) {
         kmmap_buffer[index].location = (uint32_t) mbd->cmdline;
         kmmap_buffer[index].size = strlen(mbd->cmdline)+1;
-        kmmap_buffer[index].nature = NATURE_KNL;
+        kmmap_buffer[index].nature = NATURE_BSK;
         kmmap_buffer[index].name = (uint32_t) "Kernel command line";
         ++index;
         if(index>=MAX_KMMAP_SIZE) {
@@ -143,7 +143,7 @@ KernelMemoryMap* add_mbdata(KernelMemoryMap* kmmap_buffer, unsigned int *index_p
         for(current_mod = 0; current_mod < mbd->mods_count; ++current_mod) {
             kmmap_buffer[index].location = (uint32_t) mbd->mods_addr[current_mod].string;
             kmmap_buffer[index].size = strlen(mbd->mods_addr[current_mod].string)+1;
-            kmmap_buffer[index].nature = NATURE_KNL;
+            kmmap_buffer[index].nature = NATURE_BSK;
             kmmap_buffer[index].name = (uint32_t) "Multiboot modules string";
             ++index;
             if(index>=MAX_KMMAP_SIZE) {
@@ -157,34 +157,23 @@ KernelMemoryMap* add_mbdata(KernelMemoryMap* kmmap_buffer, unsigned int *index_p
     return kmmap_buffer;
 }
 
-KernelMemoryMap* add_modules(KernelMemoryMap* kmmap_buffer, unsigned int* index_ptr, const multiboot_info_t* mbd) {
-    if((index_ptr == 0) || (mbd == 0) || (kmmap_buffer == 0)) return 0; //Parameter checking
-    if(*index_ptr>=MAX_KMMAP_SIZE) return 0; //Parameter checking, round 2
-
-    unsigned int index = *index_ptr;
+void add_modules(KernelInformation* kinfo, const multiboot_info_t* mbd) {
     unsigned int current_mod = 0;
 
     //Add module information only if it is present (it should be)
     if(mbd->flags & 8) {
         while(current_mod < mbd->mods_count) {
-            kmmap_buffer[index].location = mbd->mods_addr[current_mod].mod_start;
-            kmmap_buffer[index].size = mbd->mods_addr[current_mod].mod_end -
-                mbd->mods_addr[current_mod].mod_start + 1;
-            kmmap_buffer[index].nature = NATURE_KNL; //The kernel and its modules
-            kmmap_buffer[index].name = (uint32_t) mbd->mods_addr[current_mod].string;
+            kmmap_add(kinfo,
+                      mbd->mods_addr[current_mod].mod_start,
+                      mbd->mods_addr[current_mod].mod_end-mbd->mods_addr[current_mod].mod_start+1,
+                      NATURE_MOD,
+                      mbd->mods_addr[current_mod].string);
 
             //Move to next module
             ++current_mod;
-            ++index;
-            if(index>=MAX_KMMAP_SIZE) {
-                //Not enough room for memory map, quitting...
-                die(MMAP_TOO_SMALL);
-            }
         }
     }
-
-    *index_ptr = index;
-    return kmmap_buffer;
+    kmmap_update(kinfo);
 }
 
 KernelMemoryMap* copy_memory_map_chunk(const KernelMemoryMap* source,
@@ -244,9 +233,6 @@ KernelMemoryMap* find_freemem_pgalign(const KernelInformation* kinfo, const uint
 
 KernelCPUInfo* generate_cpu_info(KernelInformation* kinfo) {
     uint32_t max_std_function, max_ext_function, eax, ebx, ecx, edx;
-    ArchSpecificCPUInfo* arch_info = &(kinfo->cpu_info.arch_info);
-    static char vendor_string[13];
-    static char processor_name[48];
 
     //Architecture is X86_64
     kinfo->cpu_info.arch = ARCH_X86_64;
@@ -255,128 +241,36 @@ KernelCPUInfo* generate_cpu_info(KernelInformation* kinfo) {
     //If CPU does not support CPUID, it won't support long mode either
     if(!cpuid_check()) die(INADEQUATE_CPU);
 
-    //Get vendor string and max accessible standard CPUID function
+    //Get max accessible standard CPUID function.
     cpuid(0,eax,ebx,ecx,edx);
     max_std_function=eax;
-    vendor_string[0]=ebx&0xff;
-    vendor_string[1]=(ebx&0xff00)>>8;
-    vendor_string[2]=(ebx&0xff0000)>>16;
-    vendor_string[3]=(ebx&0xff000000)>>24;
-    vendor_string[4]=edx&0xff;
-    vendor_string[5]=(edx&0xff00)>>8;
-    vendor_string[6]=(edx&0xff0000)>>16;
-    vendor_string[7]=(edx&0xff000000)>>24;
-    vendor_string[8]=ecx&0xff;
-    vendor_string[9]=(ecx&0xff00)>>8;
-    vendor_string[10]=(ecx&0xff0000)>>16;
-    vendor_string[11]=(ecx&0xff000000)>>24;
-    vendor_string[12]='\0';
-    arch_info->vendor_string = (uint32_t) vendor_string;
-    //If CPU does not support CPUID function 1, kill kernel : no PAE support means no long mode support
+
+    //CPUID function 1 must be supported for long mode support to be available
     if(max_std_function==0) die(INADEQUATE_CPU);
 
     //Get the information of CPUID standard function 1
     cpuid(1,eax,ebx,ecx,edx);
-    //Set family = base family. Add up extended family if needed
-    arch_info->family = (eax&0xf00)>>8;
-    if(arch_info->family==0xf) arch_info->family += (eax&0x0ff00000)>>20;
-    //Set model = base model. Add up extended model if needed
-    arch_info->model = (eax&0xf0)>>4;
-    if(arch_info->model==0xf) arch_info->model += (eax&0x000f0000)>>16;
-    arch_info->stepping = eax&0xf;                            //Stepping (sort of revision number)
-    kinfo->cpu_info.cache_line_size = ((ebx&0xff00)>>8)*8;    //Size of a cache line in bytes
-    arch_info->instruction_exts[0] = (ecx&0x1)<<2;            //SSE3 support
-    if(ecx&0x200) arch_info->instruction_exts[0]+= 1<<3;      //SSSE3 support
-    if(ecx&0x80000) arch_info->instruction_exts[0]+= 1<<4;    //SSE4.1 support
-    arch_info->instruction_exts[1] = (edx&0x1);               //x87 instruction support
-    if(edx&0x800000) arch_info->instruction_exts[1]+= 1<<5;   //MMX support
-    if(edx&0x2000000) arch_info->instruction_exts[0]+= 1;     //SSE support
-    if(edx&0x4000000) arch_info->instruction_exts[0]+= 1<<1;  //SSE2 support
-    //128-bit media support is available if part of the SSE standard+FXSAVE/FXRSTOR are supported
-    if((arch_info->instruction_exts[0]) && (edx&0x1000000)) arch_info->instruction_exts[1]+= 1<<1;
-    if(edx&0x10000000) arch_info->hyperthreading_support = 1; //Hyperthreading support
-    if(edx&0x2000) {
-        arch_info->global_page_support = 1; //Global page support (enable if available)
+    if(edx&0x2000) { //Global page support (enable if available)
         __asm__ volatile("mov %%cr4, %%eax; bts $7, %%eax; mov %%eax, %%cr4":::"%eax");
     }
+
     //If CPU does not support PAE or APIC, it won't support long mode either.
-    //We also require SSE2 support now, since every AMD64 CPU has it.
+    //We also require SSE2 support, since every AMD64 CPU has it.
     if(!(edx&0x4000240)) die(INADEQUATE_CPU);
 
     //Now, we're going to examine CPUID's extended fields. Note that those may vary from
     //one vendor to another.
     cpuid(0x80000000,eax,ebx,ecx,edx);
     max_ext_function=eax;
+
     //If CPU does not support CPUID function 0x80000001, it does not support long mode
     if(max_ext_function==0x80000000) die(INADEQUATE_CPU);
 
     //Get information from CPUID's extended function 0x80000001
     cpuid(0x80000001,eax,ebx,ecx,edx);
-    if(ecx&0x40) arch_info->instruction_exts[0]+= 1<<5;       //SSE4A support
-    if(ecx&0x100) arch_info->instruction_exts[1]+= 1<<4;      //3DNowPrefetch support
-    if(ecx&0x800) arch_info->instruction_exts[0]+= 1<<6;      //SSE5 support
-    if(edx&0x800) arch_info->fast_syscall_support=1;          //SYSCALL/SYSRET support
-    if(edx&0x400000) arch_info->instruction_exts[1]+= 1<<6;   //MMXExt support
-    if(edx&0x40000000) arch_info->instruction_exts[1]+= 1<<3; //3DNowExt support
-    if(edx&0x80000000) arch_info->instruction_exts[1]+= 1<<2; //3DNow support
+
     //If CPU does not support long mode and NX/DEP, it doesn't fit our needs
     if(!(edx&0x20100000)) die(INADEQUATE_CPU);
-
-    //Grab processor name if available
-    if(max_ext_function>=0x80000004) {
-        cpuid(0x80000002,eax,ebx,ecx,edx);
-        processor_name[0]=eax&0xff;
-        processor_name[1]=(eax&0xff00)>>8;
-        processor_name[2]=(eax&0xff0000)>>16;
-        processor_name[3]=(eax&0xff000000)>>24;
-        processor_name[4]=ebx&0xff;
-        processor_name[5]=(ebx&0xff00)>>8;
-        processor_name[6]=(ebx&0xff0000)>>16;
-        processor_name[7]=(ebx&0xff000000)>>24;
-        processor_name[8]=ecx&0xff;
-        processor_name[9]=(ecx&0xff00)>>8;
-        processor_name[10]=(ecx&0xff0000)>>16;
-        processor_name[11]=(ecx&0xff000000)>>24;
-        processor_name[12]=edx&0xff;
-        processor_name[13]=(edx&0xff00)>>8;
-        processor_name[14]=(edx&0xff0000)>>16;
-        processor_name[15]=(edx&0xff000000)>>24;
-        cpuid(0x80000003,eax,ebx,ecx,edx);
-        processor_name[16]=eax&0xff;
-        processor_name[17]=(eax&0xff00)>>8;
-        processor_name[18]=(eax&0xff0000)>>16;
-        processor_name[19]=(eax&0xff000000)>>24;
-        processor_name[20]=ebx&0xff;
-        processor_name[21]=(ebx&0xff00)>>8;
-        processor_name[22]=(ebx&0xff0000)>>16;
-        processor_name[23]=(ebx&0xff000000)>>24;
-        processor_name[24]=ecx&0xff;
-        processor_name[25]=(ecx&0xff00)>>8;
-        processor_name[26]=(ecx&0xff0000)>>16;
-        processor_name[27]=(ecx&0xff000000)>>24;
-        processor_name[28]=edx&0xff;
-        processor_name[29]=(edx&0xff00)>>8;
-        processor_name[30]=(edx&0xff0000)>>16;
-        processor_name[31]=(edx&0xff000000)>>24;
-        cpuid(0x80000004,eax,ebx,ecx,edx);
-        processor_name[32]=eax&0xff;
-        processor_name[33]=(eax&0xff00)>>8;
-        processor_name[34]=(eax&0xff0000)>>16;
-        processor_name[35]=(eax&0xff000000)>>24;
-        processor_name[36]=ebx&0xff;
-        processor_name[37]=(ebx&0xff00)>>8;
-        processor_name[38]=(ebx&0xff0000)>>16;
-        processor_name[39]=(ebx&0xff000000)>>24;
-        processor_name[40]=ecx&0xff;
-        processor_name[41]=(ecx&0xff00)>>8;
-        processor_name[42]=(ecx&0xff0000)>>16;
-        processor_name[43]=(ecx&0xff000000)>>24;
-        processor_name[44]=edx&0xff;
-        processor_name[45]=(edx&0xff00)>>8;
-        processor_name[46]=(edx&0xff0000)>>16;
-        processor_name[47]=(edx&0xff000000)>>24;
-        arch_info->processor_name = (uint32_t) processor_name;
-    }
 
     //A separate function takes care of the multiprocessing thing, as it is... say...
     //more complicated than it could be.
@@ -402,7 +296,6 @@ KernelMemoryMap* generate_memory_map(const multiboot_info_t* mbd, KernelInformat
 
     //Here's part 1
     if(add_bios_mmap(kmmap_buffer, &index, mbd) == 0) die(NO_MEMORYMAP);
-    if(add_modules(kmmap_buffer, &index, mbd) == 0) die(NO_MEMORYMAP);
     if(add_mbdata(kmmap_buffer, &index, mbd) == 0) die(NO_MEMORYMAP);
     if(add_bskernel(kmmap_buffer, &index, mbd) == 0) die(NO_MEMORYMAP);
     kinfo->kmmap = (uint32_t) kmmap_buffer;
@@ -434,7 +327,6 @@ KernelCPUInfo* generate_multiprocessing_info(KernelInformation* kinfo) {
         return &(kinfo->cpu_info);
     }
 
-    kinfo->cpu_info.arch_info.mp_fptr = (uint32_t) floating_ptr;
     //Are we, perchance, using any default 2-processor configuration ?
     if(floating_ptr->mp_sys_config_type) {
         kinfo->cpu_info.core_amount = 2;
@@ -483,9 +375,11 @@ KernelInformation* kinfo_gen(const multiboot_info_t* mbd) {
         sd_buff.subsub_partition_number = mbd->boot_device%256;
     }
     result.arch_info.startup_drive = (uint32_t) &sd_buff;
-    /* Memory map generation */
+    //Generate a memory map
     generate_memory_map(mbd, &result);
-    /* CPU information gathering */
+    //Generate module-related information
+    add_modules(&result, mbd);
+    //Gather CPU information
     generate_cpu_info(&result);
 
     return &result;
@@ -531,7 +425,7 @@ uint64_t kmmap_mem_amount(const KernelInformation* kinfo) {
     uint64_t memory_amount = kmmap[kinfo->kmmap_size-1].location+kmmap[kinfo->kmmap_size-1].size;
     #ifdef DEBUG
         //x86 reserves a small amount of memory around the end of the adressable space.
-        //I don't use it at the moment, and it slows Bochs down. Therefore, it should not be
+        //I don't use it at the moment, and it slows Bochs down a lot. Therefore, it should not be
         //mapped during the testing period.
         if(memory_amount==0x100000000) memory_amount = kmmap[kinfo->kmmap_size-2].location+kmmap[kinfo->kmmap_size-2].size;
     #endif

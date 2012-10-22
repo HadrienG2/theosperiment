@@ -14,7 +14,7 @@
 
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
-    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */  
+    Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #ifndef _GEN_KINFO_H_
 #define _GEN_KINFO_H_
@@ -30,8 +30,8 @@ KernelMemoryMap* add_bios_mmap(KernelMemoryMap* kmmap_buffer, unsigned int *inde
 KernelMemoryMap* add_bskernel(KernelMemoryMap* kmmap_buffer, unsigned int *index_ptr, const multiboot_info_t* mbd);
 //Add interesting parts of multiboot information structures to the kernel memory map
 KernelMemoryMap* add_mbdata(KernelMemoryMap* kmmap_buffer, unsigned int *index_ptr, const multiboot_info_t* mbd);
-//Add modules-related memory map information to the kernel memory map
-KernelMemoryMap* add_modules(KernelMemoryMap* kmmap_buffer, unsigned int *index_ptr, const multiboot_info_t* mbd);
+//Add modules-related information to the kernel information structure
+void add_modules(KernelInformation* kinfo, const multiboot_info_t* mbd);
 //Duplicate part of a memory map structure in another.
 KernelMemoryMap* copy_memory_map_chunk(const KernelMemoryMap* source,
                                        KernelMemoryMap* dest,

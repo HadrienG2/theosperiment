@@ -52,7 +52,7 @@ void dbg_print_kinfo(const KernelInformation* kinfo) {
 void dbg_print_kmmap(const KernelInformation* kinfo) {
     unsigned int i = 0;
     KernelMemoryMap* kmmap = (KernelMemoryMap*) (uint32_t) kinfo->kmmap;
-    print_str("Address                        | Size                             | Type | Name\n");
+    print_str("Address            | Size               | Type | Name\n");
     print_str("-------------------------------------------------------------------------------\n");
     for(; i<kinfo->kmmap_size; ++i) {
         print_hex64(kmmap[i].location);
@@ -65,16 +65,19 @@ void dbg_print_kmmap(const KernelInformation* kinfo) {
                 print_str("FREE | ");
                 break;
             case 1:
-                print_str("RES    | ");
+                print_str("RES  | ");
                 break;
             case 2:
-                print_str("BSK    | ");
+                print_str("BSK  | ");
                 break;
             case 3:
-                print_str("KNL    | ");
+                print_str("KNL  | ");
+                break;
+            case 4:
+                print_str("MOD  | ");
                 break;
             default:
-                print_str("UNSP | ");
+                print_str("???  | ");
         }
 
         if(!kmmap[i].name) {

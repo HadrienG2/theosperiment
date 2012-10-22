@@ -49,12 +49,13 @@ int find_map_region_privileges(const KernelMemoryMap* map_region) {
     //Bootstrap segments are considered as R-X
     if(map_region->nature == NATURE_BSK) return 0;
     //Kernel elements are set up according to their specified permission
-    if(map_region->nature == NATURE_KNL) {
+    if(map_region->nature >= NATURE_KNL) {
         if(strcmp((char*) (uint32_t) map_region->name, "Kernel RW- segment")==0) return 2;
         if(strcmp((char*) (uint32_t) map_region->name, "Kernel R-X segment")==0) return 0;
-        //It's either a R kernel segment or a module
-        return 1;
+        return 1; //It must be a R kernel segment
     }
+    //Modules are always read-only
+    if(map_region->nature == NATURE_MOD) return 1;
     //Well, I don't know (control should never reach this point)
     return -1;
 }
@@ -246,10 +247,10 @@ void protect_stack(const uint32_t pt_location) {
 }
 
 void setup_pagetranslation(KernelInformation* kinfo,
-                                                     const uint32_t cr3_value,
-                                                     const uint64_t virt_addr,
-                                                     const uint64_t phys_addr,
-                                                     const uint64_t flags) {
+                           const uint32_t cr3_value,
+                           const uint64_t virt_addr,
+                           const uint64_t phys_addr,
+                           const uint64_t flags) {
     pml4e* pml4t;
     pdpe* pdpt;
     pde* page_dir;

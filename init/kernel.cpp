@@ -25,7 +25,12 @@
 #include <dbgstream.h>
 
 extern "C" int kmain(const KernelInformation& kinfo) {
+    dbgout << set_window(screen_win);
     dbgout << "* Kernel loaded, " << kinfo.cpu_info.core_amount << " CPU core(s) detected" << endl;
+    dbgout << "* Probing kernel modules..." << endl;
+    for(int i=0; i<kinfo.kmmap_size; ++i) {
+        if(kinfo.kmmap[i].nature == NATURE_MOD) dbgout << kinfo.kmmap[i] << endl;
+    }
 
     dbgout << "* Setting up memory management..." << endl;
     PhyMemManager phymem_manager(kinfo);
@@ -38,7 +43,6 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << "* Kernel ready !" << endl;
 
     //Now, do something useful with that kernel ! :P
-    dbgout << set_window(screen_win);
     KString test_file("*** Process properties v1 ***\nTest:\n toto=3< >\"\\\"\\\n \"[ ]{{\n }}");
     ProcessPropertiesParser test_parser;
     dbgout << "Parsing file..." << endl << test_file << endl;
