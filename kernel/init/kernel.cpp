@@ -28,7 +28,7 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << set_window(screen_win);
     dbgout << "* Kernel loaded, " << kinfo.cpu_info.core_amount << " CPU core(s) detected" << endl;
     dbgout << "* Probing kernel modules..." << endl;
-    for(int i=0; i<kinfo.kmmap_size; ++i) {
+    for(unsigned int i=0; i<kinfo.kmmap_size; ++i) {
         if(kinfo.kmmap[i].nature == NATURE_MOD) dbgout << kinfo.kmmap[i] << endl;
     }
 

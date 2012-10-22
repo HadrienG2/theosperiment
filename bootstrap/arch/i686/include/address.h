@@ -1,4 +1,5 @@
- /* Some macros that align things on a page (or other) basis.
+ /* A very simple header with one goal : create an size_t type that is an unsigned integer of the
+    same size as the standard kernel pointer type, and its NULL value.
 
       Copyright (C) 2010  Hadrien Grasland
 
@@ -16,18 +17,13 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#ifndef _ALIGN_H_
-#define _ALIGN_H_
+#ifndef _ADDRESS_H_
+#define _ADDRESS_H_
 
-#include <address.h>
+#include <stdint.h>
 
-#define align_up(quantity, align) (((quantity)%(align)!=0) \
-                                   ?(((quantity)/(align) + 1) * (align))\
-                                   :(quantity))
-#define align_down(quantity, align) (((quantity)/(align)) * (align))
+#define NULL 0
 
-#define PG_SIZE 0x1000 //Page size is 4KB
-#define align_pgup(quantity) align_up(quantity, PG_SIZE)
-#define align_pgdown(quantity) align_down(quantity, PG_SIZE)
+typedef uint64_t size_t; //On x86_64, addresses are unsigned 64-bit integers
 
 #endif

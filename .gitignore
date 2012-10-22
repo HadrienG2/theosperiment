@@ -1,5 +1,5 @@
 # Binaries other than the final iso image
-bin/*
+arch/x86_64/bin/*
 
 # Compiled Object files
 *.slo

@@ -19,7 +19,7 @@
 #ifndef _MULTIBOOT_H_
 #define _MULTIBOOT_H_
 
-#include <hack_stdint.h>
+#include <stdint.h>
 
 /* Macros. */
 

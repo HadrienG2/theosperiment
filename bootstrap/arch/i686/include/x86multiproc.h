@@ -20,7 +20,7 @@
 #ifndef _X86MP_H_
 #define _X86MP_H_
 
-#include <hack_stdint.h>
+#include <stdint.h>
 
 typedef struct mp_floating_ptr mp_floating_ptr;
 typedef struct mp_config_table_hdr mp_config_table_hdr;
