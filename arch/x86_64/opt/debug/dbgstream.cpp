@@ -599,8 +599,8 @@ DebugOutput& DebugOutput::operator<<(const KernelInformation& input) {
     DebugNumberBase tmp = number_base;
 
     *this << numberbase(HEXADECIMAL) << endl;
-    *this << "Location           | Size               | Nat | Misc" << endl;
-    *this << "-------------------+--------------------+-----+-------------------------------";
+    *this << "Location           | Size               | Nat  | Misc" << endl;
+    *this << "-------------------+--------------------+------+------------------------------";
 
     for(index=0; index<input.kmmap_size; ++index) {
         *this << endl << input.kmmap[index];
@@ -620,17 +620,22 @@ DebugOutput& DebugOutput::operator<<(const KernelMemoryMap& input) {
 
     switch(input.nature) {
         case NATURE_FRE:
-            *this << " | FRE | ";
+            *this << " | FREE | ";
             break;
         case NATURE_RES:
-            *this << " | RES | ";
+            *this << " | RES  | ";
             break;
         case NATURE_BSK:
-            *this << " | BSK | ";
+            *this << " | BSK  | ";
             break;
         case NATURE_KNL:
-            *this << " | KNL | ";
+            *this << " | KNL  | ";
             break;
+        case NATURE_MOD:
+            *this << " | MOD  | ";
+            break;
+        default:
+            *this << " | ???  | ";
     }
     *this << input.name;
 

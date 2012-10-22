@@ -51,7 +51,7 @@ int bootstrap_longmode(const multiboot_info_t* mbd, const uint32_t magic) {
     //Generate kernel information and check CPU features (we need long mode, SSE2 and NX to be available)
     kinfo = kinfo_gen(mbd);
 
-    //Set up segmentation structures which are more secure than GRUB's ones
+    //Set up segmentation structures which are more safe than GRUB's ones
     replace_sgt(kinfo);
 
     //Generate a page table
