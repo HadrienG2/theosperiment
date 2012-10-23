@@ -24,6 +24,7 @@
 
 #include <dbgstream.h>
 
+
 extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << set_window(screen_win);
     dbgout << "* Kernel loaded, " << kinfo.cpu_info.core_amount << " CPU core(s) detected" << endl;

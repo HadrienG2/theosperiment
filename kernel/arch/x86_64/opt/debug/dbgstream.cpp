@@ -669,7 +669,7 @@ DebugOutput& DebugOutput::operator<<(const PhyMemChunk& input) {
         }
         if(map->allocatable) *this << "ALLOCA ";
         if(map->next_buddy) {
-            *this << "BUDDY-" << pad_status(false) << (uint64_t) map->next_buddy;
+            *this << "BUDDY-" << pad_status(false) << map->next_buddy->location;
             *this << pad_status(true);
         }
         map = map->next_mapitem;

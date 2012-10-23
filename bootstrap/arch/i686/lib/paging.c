@@ -49,7 +49,7 @@ int find_map_region_privileges(const KernelMemoryMap* map_region) {
     //Bootstrap segments are considered as R-X
     if(map_region->nature == NATURE_BSK) return 0;
     //Kernel elements are set up according to their specified permission
-    if(map_region->nature >= NATURE_KNL) {
+    if(map_region->nature == NATURE_KNL) {
         if(strcmp((char*) (uint32_t) map_region->name, "Kernel RW- segment")==0) return 2;
         if(strcmp((char*) (uint32_t) map_region->name, "Kernel R-X segment")==0) return 0;
         return 1; //It must be a R kernel segment
