@@ -68,7 +68,6 @@ bool PhyMemManager::chunk_liberator(PhyMemChunk* chunk) {
     return true;
 }
 
-
 PhyMemManager::PhyMemManager(const KernelInformation& kinfo) : process_manager(NULL),
                                                                phy_mmap(NULL),
                                                                phy_highmmap(NULL),

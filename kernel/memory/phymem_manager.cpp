@@ -469,14 +469,11 @@ PhyMemChunk* PhyMemManager::generate_chunk(const KernelInformation& kinfo, size_
 
     //Examine all kmmap items comprised in the allocated chunk to set chunk attributes
     while((kmmap[index].location < chunk_end) && (index < kinfo.kmmap_size)) {
-        switch(kmmap[index].nature) {
-            case NATURE_BSK:
-            case NATURE_KNL:
-                result->owners = PID_KERNEL;
-                break;
-            case NATURE_RES:
-                result->allocatable = false;
-                break;
+        if(kmmap[index].nature>=NATURE_BSK) {
+            result->owners = PID_KERNEL;
+        }
+        if(kmmap[index].nature==NATURE_RES) {
+            result->allocatable = false;
         }
         ++index;
     }
