@@ -2,32 +2,33 @@
 BS_ARCH = $(ARCH:x86_64=i686)
 
 #Source files go here
-BS_ASM_SRC = $(wildcard bootstrap/arch/$(BS_ARCH)/*.s bootstrap/arch/$(BS_ARCH)/lib/*.s)
-BS_C_SRC = $(wildcard bootstrap/arch/$(BS_ARCH)/*.c bootstrap/arch/$(BS_ARCH)/lib/*.c)
+BS_ASM_SRC = $(shell find bootstrap/ -path '*/opt/*' -prune -o -name '*.s' -print)
+BS_C_SRC = $(shell find bootstrap/ -path '*/opt/*' -prune -o -name '*.c' -print)
 ifeq ($(Fdebug),1)
-    BS_C_SRC += $(wildcard bootstrap/arch/$(BS_ARCH)/opt/debug/*.c)
+	BS_ASM_SRC += $(shell find bootstrap/ -path '*/opt/debug/*' -name '*.s' -print)
+    BS_C_SRC += $(shell find bootstrap/ -path '*/opt/debug/*' -name '*.c' -print)
 endif
 
-#Headers go there (Yeah, duplication sucks. If you know how to avoid it...)
-BS_HEADERS=$(wildcard bootstrap/arch/$(BS_ARCH)/include)
-BS_INCLUDES=-Ibootstrap/arch/$(BS_ARCH)/include
+#Headers go there
+BS_HEADERS = $(shell find bootstrap/ -path '*/opt/*' -prune -o -name '*.h' -print)
+BS_INCLUDES = $(shell find bootstrap/ -path '*/opt/*' -prune -o -path '*/include' -printf '-I%p ')
 ifeq ($(Fdebug),1)
-    BS_HEADERS += $(wildcard bootstrap/arch/$(BS_ARCH)/opt/debug/*.h)
-    BS_INCLUDES += -Ibootstrap/arch/$(BS_ARCH)/opt/debug/
+    BS_HEADERS += $(shell find bootstrap/ -path '*/opt/debug/*' -name '*.h' -print)
+    BS_INCLUDES += $(shell find bootstrap/ -path '*/opt/debug/*' -path '*/include' -printf '-I%p ')
 endif
 
 #Compilation parameters for the bootstrap part
-AS32=$(BS_ARCH)-elf-as
-CC32=$(BS_ARCH)-elf-gcc
-LD32=$(BS_ARCH)-elf-ld
-C_WARNINGS=-Wall -Wextra -Werror
-C_LIBS=-nostdlib -ffreestanding
-C_STD=-std=c99
-CFLAGS=$(C_WARNINGS) $(C_LIBS) $(C_STD)
+BS_AS = $(BS_ARCH)-elf-as
+BS_CC = $(BS_ARCH)-elf-gcc
+BS_LD = $(BS_ARCH)-elf-ld
+BS_C_WARNINGS = -Wall -Wextra -Werror
+BS_C_LIBS = -nostdlib -ffreestanding
+BS_C_STD = -std=c99
+BS_CFLAGS = $(BS_C_WARNINGS) $(BS_C_LIBS) $(BS_C_STD)
 ifeq ($(Fdebug),1)
-    CFLAGS += -O0 -DDEBUG
+    BS_CFLAGS += -O0 -DDEBUG
 else
-    CFLAGS += -O3
+    BS_CFLAGS += -O3
 endif
 
 #Abstracting away filenames
@@ -40,10 +41,10 @@ BIN_OBJECTS += $(BS_ASM_OBJ) $(BS_C_OBJ)
 bootstrap: $(BS_BIN) Makefile bootstrap/Makefile
 
 $(BS_BIN): $(BS_ASM_OBJ) $(BS_C_OBJ) $(BS_HEADERS) Makefile bootstrap/Makefile
-	@$(LD32) -T bootstrap/arch/$(BS_ARCH)/support/bs_linker.lds -o $@ $(BS_ASM_OBJ) $(BS_C_OBJ) $(LFLAGS)
+	@$(BS_LD) -T bootstrap/arch/$(BS_ARCH)/support/bs_linker.lds -o $@ $(BS_ASM_OBJ) $(BS_C_OBJ) $(LFLAGS)
 
 %.bsasm.o: %.s Makefile bootstrap/Makefile
-	@$(AS32) $< -o $@
+	@$(BS_AS) $< -o $@
 
 %.bsc.o: %.c $(BS_HEADERS) Makefile bootstrap/Makefile
-	@$(CC32) -o $@ -c $< $(CFLAGS) $(BS_INCLUDES)
+	@$(BS_CC) -o $@ -c $< $(BS_CFLAGS) $(BS_INCLUDES)
