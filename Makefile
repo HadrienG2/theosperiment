@@ -30,8 +30,7 @@ all: cdimage Makefile
 	@echo "Reminder : remember to run git pull, git status, and git commit -a && git push frequently !"
 
 #Include bootstrap and kernel makefiles
-include kernel/Makefile
-include bootstrap/Makefile
+include */Makefile
 
 #Make rules
 run: all Makefile
