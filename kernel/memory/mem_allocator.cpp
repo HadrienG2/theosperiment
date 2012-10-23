@@ -872,7 +872,7 @@ void MemAllocator::print_maplist() {
 
         if(!process_list) {
             dbgout << txtcolor(TXT_RED) << "Error : Map list does not exist";
-            dbgout << txtcolor(TXT_LIGHTGRAY);
+            dbgout << txtcolor(TXT_DEFAULT);
         } else {
             dbgout << *process_list;
         }
@@ -886,7 +886,7 @@ void MemAllocator::print_busymap(const PID identifier) {
         MallocProcess* process = find_pid(identifier);
         if(!process) {
             dbgout << txtcolor(TXT_RED) << "Error : PID not registered";
-            dbgout << txtcolor(TXT_LIGHTGRAY);
+            dbgout << txtcolor(TXT_DEFAULT);
             proclist_mutex.release();
             return;
         }
@@ -898,7 +898,7 @@ void MemAllocator::print_busymap(const PID identifier) {
             dbgout << *(process->busy_map);
         } else {
             dbgout << txtcolor(TXT_RED) << "Error : Map does not exist";
-            dbgout << txtcolor(TXT_LIGHTGRAY);
+            dbgout << txtcolor(TXT_DEFAULT);
         }
 
     process->mutex.release();
@@ -910,7 +910,7 @@ void MemAllocator::print_freemap(const PID identifier) {
         MallocProcess* process = find_pid(identifier);
         if(!process) {
             dbgout << txtcolor(TXT_RED) << "Error : PID not registered";
-            dbgout << txtcolor(TXT_LIGHTGRAY);
+            dbgout << txtcolor(TXT_DEFAULT);
             proclist_mutex.release();
             return;
         }
@@ -922,7 +922,7 @@ void MemAllocator::print_freemap(const PID identifier) {
             dbgout << *(process->free_map);
         } else {
             dbgout << txtcolor(TXT_RED) << "Error : Map does not exist";
-            dbgout << txtcolor(TXT_LIGHTGRAY);
+            dbgout << txtcolor(TXT_DEFAULT);
         }
 
     process->mutex.release();

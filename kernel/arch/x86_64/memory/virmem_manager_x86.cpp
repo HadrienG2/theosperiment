@@ -414,7 +414,7 @@ void VirMemManager::print_pml4t(PID owner) {
         list_item = find_pid(owner);
         if(!list_item || !(list_item->pml4t_location)) {
             dbgout << txtcolor(TXT_RED) << "Error : PML4T does not exist";
-            dbgout << txtcolor(TXT_LIGHTGRAY);
+            dbgout << txtcolor(TXT_DEFAULT);
         } else {
             list_item->mutex.grab_spin();
         }
