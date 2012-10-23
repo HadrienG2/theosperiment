@@ -404,7 +404,7 @@ void DebugOutput::scroll(const unsigned int amount) {
 }
 
 DebugOutput::DebugOutput(const DebugWindow& using_window):
-  attribute(TXT_LIGHTGRAY),
+  attribute(TXT_DEFAULT),
   buffer((char*) 0xb8000),
   col(0),
   row(0),

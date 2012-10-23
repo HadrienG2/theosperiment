@@ -352,7 +352,7 @@ void VirMemManager::print_mmap(PID owner) {
         list_item = find_pid(owner);
         if(!list_item || !(list_item->map_pointer)) {
             dbgout << txtcolor(TXT_RED) << "Error : Map does not exist";
-            dbgout << txtcolor(TXT_LIGHTGRAY);
+            dbgout << txtcolor(TXT_DEFAULT);
         } else {
             list_item->mutex.grab_spin();
         }

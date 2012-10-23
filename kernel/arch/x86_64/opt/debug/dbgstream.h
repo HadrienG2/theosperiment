@@ -52,6 +52,8 @@ const TxtAttr TXT_LIGHTPURPLE = 0x0D;
 const TxtAttr TXT_YELLOW = 0x0E;
 const TxtAttr TXT_WHITE = 0x0F;
 
+const TxtAttr TXT_DEFAULT = TXT_LIGHTGRAY;
+
 const TxtAttr TXT_BLINK = 0x80; //Blinking text
 
 //Background color attributes

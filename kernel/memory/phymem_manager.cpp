@@ -763,7 +763,7 @@ void PhyMemManager::print_mem_usage(const PID target) {
         process = find_process(target);
         if(!process) {
             proclist_mutex.release();
-            dbgout << txtcolor(TXT_LIGHTRED) << "Error : Unknown PID" << txtcolor(TXT_LIGHTGRAY) << endl;
+            dbgout << txtcolor(TXT_LIGHTRED) << "Error : Unknown PID" << txtcolor(TXT_DEFAULT) << endl;
             return;
         }
 

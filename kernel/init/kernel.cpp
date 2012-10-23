@@ -27,7 +27,7 @@
 
 extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << set_window(screen_win);
-    dbgout << "* Kernel loaded, " << kinfo.cpu_info.core_amount << " CPU core(s) detected" << endl;
+    dbgout << txtcolor(TXT_WHITE) << "* Kernel loaded, " << kinfo.cpu_info.core_amount << " CPU core(s) detected" << txtcolor(TXT_DEFAULT) << endl;
     dbgout << "* Probing kernel modules..." << endl;
     for(unsigned int i=0; i<kinfo.kmmap_size; ++i) {
         if(kinfo.kmmap[i].nature == NATURE_MOD) dbgout << kinfo.kmmap[i] << endl;
@@ -41,12 +41,12 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << "* Setting up process management..." << endl;
     ProcessManager process_manager(mem_allocator);
 
-    dbgout << "* Kernel ready !" << endl;
+    dbgout << txtcolor(TXT_WHITE) << "* Kernel ready !" << txtcolor(TXT_DEFAULT) << endl;
 
     //Now, do something useful with that kernel ! :P
     KString test_file("*** Process properties v1 ***\nTest:\n toto=3< >\"\\\"\\\n \"[ ]{{\n }}");
     ProcessPropertiesParser test_parser;
-    dbgout << "Parsing file..." << endl << test_file << endl;
+    dbgout << "* Parsing process property file..." << endl << test_file << endl;
     test_parser.open_and_check(test_file);
 
     return 0;
