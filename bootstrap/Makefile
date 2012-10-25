@@ -1,4 +1,5 @@
-#The bootstrap component for an x86_64 kernel is built for the i686 architecture
+#An important peculiarity of x86_64 is that bootstrap code must be built for the i686 architecture.
+#This bit cannot be put in the arch-specific makefile since it is used to locate it.
 BS_ARCH:= $(ARCH:x86_64=i686)
 
 #Source files go here
@@ -30,24 +31,23 @@ else
 endif
 
 #Abstracting away filenames
+BS_MAKEFILES:= bootstrap/Makefile
 BS_ASM_OBJ:= $(BS_ASM_SRC:.s=.bsasm.o)
 BS_C_OBJ:= $(BS_C_SRC:.c=.bsc.o)
 BS_DEPEND_FILES:= $(BS_C_OBJ:.o=.d)
-TMP_FILES+= $(BS_ASM_SRC:.s=.s~) $(BS_C_SRC:.c=.c~) bootstrap/Makefile~
 BIN_OBJECTS+= $(BS_ASM_OBJ) $(BS_C_OBJ) $(BS_DEPEND_FILES)
 
+#Arch-specific definitions belong to a separate makefile.
+include bootstrap/arch/$(BS_ARCH)/Makefile
+
 #Make rules
-.PHONY: bootstrap
-
-bootstrap: $(BS_BIN) Makefile bootstrap/Makefile
-
-$(BS_BIN): $(BS_ASM_OBJ) $(BS_C_OBJ) Makefile bootstrap/Makefile
+$(BS_BIN): $(BS_ASM_OBJ) $(BS_C_OBJ) $(MAKEFILES) $(BS_MAKEFILES)
 	@$(BS_LD) -T bootstrap/arch/$(BS_ARCH)/support/bs_linker.lds -o $@ $(BS_ASM_OBJ) $(BS_C_OBJ) $(LFLAGS)
 
-%.bsasm.o: %.s Makefile bootstrap/Makefile
+%.bsasm.o: %.s $(MAKEFILES) $(BS_MAKEFILES)
 	@$(BS_AS) $< -o $@
 
-%.bsc.o: %.c Makefile bootstrap/Makefile
+%.bsc.o: %.c $(MAKEFILES) $(BS_MAKEFILES)
 	@$(BS_CC) -MD -MP -o $@ -c $< $(BS_CFLAGS) $(BS_INCLUDES)
 
 -include $(BS_DEPEND_FILES)
