@@ -234,9 +234,6 @@ KernelMemoryMap* find_freemem_pgalign(const KernelInformation* kinfo, const uint
 KernelCPUInfo* generate_cpu_info(KernelInformation* kinfo) {
     uint32_t max_std_function, max_ext_function, eax, ebx, ecx, edx;
 
-    //Architecture is X86_64
-    kinfo->cpu_info.arch = ARCH_X86_64;
-
     //Check CPUID support by trying to toggle bit 21 (ID) in EFLAGS.
     //If CPU does not support CPUID, it won't support long mode either
     if(!cpuid_check()) die(INADEQUATE_CPU);

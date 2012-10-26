@@ -18,7 +18,7 @@ BIN_OBJECTS+= $(GRUB2_ELTORITO_IMG) $(GRUB2_CORE_IMG)
 #Architecture-specific make rules
 .PHONY: all_arch run_arch clean_arch mrproper_arch cdimage
 
-all_arch: cdimage $(MAKEFILES)
+all_arch: $(CDIMAGE) $(MAKEFILES)
 
 run_arch: all $(MAKEFILES)
 	@echo c > comm_test
@@ -30,8 +30,6 @@ clean_arch: $(MAKEFILES)
 
 mrproper_arch: clean_arch $(MAKEFILES)
 	@rm -f $(CDIMAGE)
-
-cdimage: $(CDIMAGE) $(MAKEFILES)
 
 $(CDIMAGE): $(BS_BIN) $(KNL_BIN) $(GRUB2_ELTORITO_IMG) $(MAKEFILES)
 	@rm -f $(CDIMAGE)

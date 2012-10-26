@@ -12,5 +12,3 @@ We now use makefiles. Available make commands are :
 -make run : Build everything and run it in an emulator
 -make clean : Clean up intermediary build products
 -make mrproper : Clean up everything including final products
-* For x86_64 target
--make cdimage : Build a CD-rom image

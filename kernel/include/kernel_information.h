@@ -35,12 +35,7 @@ const KItemNature NATURE_KNL = 3; //Kernel, vital kernel resources
 const KItemNature NATURE_MOD = 4; //Kernel module
 
 //Supported CPU architectures
-typedef uint8_t CpuArch;
-const CpuArch ARCH_INVALID = 0;
-const CpuArch ARCH_X86_64 = 1;
-
 struct KernelCPUInfo {
-  CpuArch arch;
   uint32_t core_amount; //Indicates how many CPU cores there are on this system
   uint32_t cache_line_size; //Size of a cache line in bytes. 0 means that caching is not supported
 } __attribute__ ((packed));
