@@ -37,7 +37,7 @@ const KItemNature NATURE_MOD = 4; //Kernel module
 //Supported CPU architectures
 struct KernelCPUInfo {
   uint32_t core_amount; //Indicates how many CPU cores there are on this system
-  uint32_t cache_line_size; //Size of a cache line in bytes. 0 means that caching is not supported
+  uint32_t cache_line_size; //Size of a cache line in bytes. 0 means that this information is not available
 } __attribute__ ((packed));
 
 struct KernelMemoryMap {
