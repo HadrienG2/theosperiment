@@ -29,7 +29,7 @@ MemoryChunk* MemoryChunk::find_contigchunk(const size_t requested_size) const {
     return current_item;
 }
 
-MemoryChunk* MemoryChunk::find_contigchunk(const size_t requested_size, const VirMemFlags flags) const {
+MemoryChunk* MemoryChunk::find_contigchunk(const size_t requested_size, const PageFlags flags) const {
     MemoryChunk* current_item = (MemoryChunk*) this;
 
     while(current_item) {

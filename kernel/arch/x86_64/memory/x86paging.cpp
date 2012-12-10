@@ -1,6 +1,6 @@
  /* Paging-related helper functions and defines
 
-    Copyright (C) 2010-2011  Hadrien Grasland
+    Copyright (C) 2010-2013  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -132,8 +132,8 @@ namespace x86paging {
     bool remove_paging(uint64_t vir_addr,
                        const uint64_t size,
                        uint64_t pml4t_location,
-                       PhyMemManager* phymem_manager) {
-        uint64_t additional_params[1] = {(uint64_t) phymem_manager};
+                       RAMManager* ram_manager) {
+        uint64_t additional_params[1] = {(uint64_t) ram_manager};
         return paging_parser(vir_addr,
                             size,
                             PML4T_LEVEL,
@@ -145,8 +145,8 @@ namespace x86paging {
     uint64_t setup_4kpages(uint64_t vir_addr,
                            const uint64_t size,
                            uint64_t pml4t_location,
-                           PhyMemManager* phymem_manager) {
-        uint64_t additional_params[1] = {(uint64_t) phymem_manager};
+                           RAMManager* ram_manager) {
+        uint64_t additional_params[1] = {(uint64_t) ram_manager};
         return paging_parser(vir_addr,
                             size,
                             PML4T_LEVEL,

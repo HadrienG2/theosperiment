@@ -1,7 +1,6 @@
- /* Virtual memory management, ie managing contiguous chunks of virtual memory
-    (allocation, permission management...)
+ /* Paging management classes
 
-    Copyright (C) 2012  Hadrien Grasland
+    Copyright (C) 2012-2013  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,62 +17,62 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include <new.h>
-#include <virmem_manager.h>
+#include <paging_manager.h>
 
 #include <dbgstream.h>
 
-bool VirMemManager::alloc_mapitems() {
+bool PagingManager::alloc_mapitems() {
     size_t used_space;
-    PhyMemChunk* allocated_page;
-    VirMemChunk* current_item;
+    RAMChunk* allocated_page;
+    PageChunk* current_item;
 
     //Allocate a page of memory
-    allocated_page = phymem_manager->alloc_chunk(PID_KERNEL);
+    allocated_page = ram_manager->alloc_chunk(PID_KERNEL);
     if(!allocated_page) return false;
 
     //Fill it with initialized map items
-    current_item = (VirMemChunk*) (allocated_page->location);
-    for(used_space = sizeof(VirMemChunk); used_space < PG_SIZE; used_space+=sizeof(VirMemChunk)) {
-        current_item = new(current_item) VirMemChunk;
+    current_item = (PageChunk*) (allocated_page->location);
+    for(used_space = sizeof(PageChunk); used_space < PG_SIZE; used_space+=sizeof(PageChunk)) {
+        current_item = new(current_item) PageChunk;
         current_item->next_buddy = current_item+1;
         ++current_item;
     }
-    current_item = new(current_item) VirMemChunk;
+    current_item = new(current_item) PageChunk;
     current_item->next_buddy = free_mapitems;
-    free_mapitems = (VirMemChunk*) (allocated_page->location);
+    free_mapitems = (PageChunk*) (allocated_page->location);
 
     //All good !
     return true;
 }
 
-bool VirMemManager::alloc_process_descs() {
+bool PagingManager::alloc_process_descs() {
     size_t used_space;
-    PhyMemChunk* allocated_page;
-    VirMemProcess* current_item;
+    RAMChunk* allocated_page;
+    PagingManagerProcess* current_item;
 
     //Allocate a page of memory
-    allocated_page = phymem_manager->alloc_chunk(PID_KERNEL);
+    allocated_page = ram_manager->alloc_chunk(PID_KERNEL);
     if(!allocated_page) return false;
 
     //Fill it with initialized list items
-    current_item = (VirMemProcess*) (allocated_page->location);
-    for(used_space = sizeof(VirMemProcess); used_space < PG_SIZE; used_space+=sizeof(VirMemProcess)) {
-        current_item = new(current_item) VirMemProcess();
+    current_item = (PagingManagerProcess*) (allocated_page->location);
+    for(used_space = sizeof(PagingManagerProcess); used_space < PG_SIZE; used_space+=sizeof(PagingManagerProcess)) {
+        current_item = new(current_item) PagingManagerProcess();
         current_item->next_item = current_item+1;
         ++current_item;
     }
-    current_item = new(current_item) VirMemProcess();
+    current_item = new(current_item) PagingManagerProcess();
     current_item->next_item = free_process_descs;
-    free_process_descs = (VirMemProcess*) (allocated_page->location);
+    free_process_descs = (PagingManagerProcess*) (allocated_page->location);
 
     //All good !
     return true;
 }
 
-VirMemChunk* VirMemManager::alloc_virtual_address_space(VirMemProcess* target,
+PageChunk* PagingManager::alloc_virtual_address_space(PagingManagerProcess* target,
                                                         size_t size,
                                                         size_t location) {
-    VirMemChunk *result, *map_parser = NULL, *last_item;
+    PageChunk *result, *map_parser = NULL, *last_item;
 
     //Allocate the new memory map item
     if(!free_mapitems) {
@@ -130,7 +129,7 @@ VirMemChunk* VirMemManager::alloc_virtual_address_space(VirMemProcess* target,
                 //Check collisions with it
                 if(target->map_pointer->location < location+size) {
                     //Required location is not available
-                    result = new(result) VirMemChunk();
+                    result = new(result) PageChunk();
                     result->next_buddy = free_mapitems;
                     free_mapitems = result;
                     return NULL;
@@ -149,7 +148,7 @@ VirMemChunk* VirMemManager::alloc_virtual_address_space(VirMemProcess* target,
                 //Check collisions with the item before it
                 if(last_item->location+last_item->size > location) {
                     //Required location is not available
-                    result = new(result) VirMemChunk();
+                    result = new(result) PageChunk();
                     result->next_buddy = free_mapitems;
                     free_mapitems = result;
                     return NULL;
@@ -158,7 +157,7 @@ VirMemChunk* VirMemManager::alloc_virtual_address_space(VirMemProcess* target,
                 if(map_parser) {
                     if(map_parser->location < location + size) {
                         //Required location is not available
-                        result = new(result) VirMemChunk();
+                        result = new(result) PageChunk();
                         result->next_buddy = free_mapitems;
                         free_mapitems = result;
                         return NULL;
@@ -175,8 +174,8 @@ VirMemChunk* VirMemManager::alloc_virtual_address_space(VirMemProcess* target,
     return result;
 }
 
-VirMemProcess* VirMemManager::find_or_create_pid(PID target) {
-    VirMemProcess* list_item;
+PagingManagerProcess* PagingManager::find_or_create_pid(PID target) {
+    PagingManagerProcess* list_item;
 
     list_item = process_list;
     while(list_item->next_item) {
@@ -193,8 +192,8 @@ VirMemProcess* VirMemManager::find_or_create_pid(PID target) {
     return list_item;
 }
 
-VirMemProcess* VirMemManager::find_pid(const PID target) {
-    VirMemProcess* list_item;
+PagingManagerProcess* PagingManager::find_pid(const PID target) {
+    PagingManagerProcess* list_item;
 
     list_item = process_list;
     do {
@@ -205,12 +204,12 @@ VirMemProcess* VirMemManager::find_pid(const PID target) {
     return list_item;
 }
 
-bool VirMemManager::map_k_chunks(VirMemProcess* target) {
-    VirMemProcess* kernel = process_list; //Kernel is the first item of the process list.
-    VirMemChunk *kernel_map_parser = kernel->map_pointer, *result;
+bool PagingManager::map_k_chunks(PagingManagerProcess* target) {
+    PagingManagerProcess* kernel = process_list; //Kernel is the first item of the process list.
+    PageChunk *kernel_map_parser = kernel->map_pointer, *result;
 
     while(kernel_map_parser) {
-        if(kernel_map_parser->flags & VIRMEM_FLAG_K) {
+        if(kernel_map_parser->flags & PAGE_FLAG_K) {
             result = chunk_mapper(target,
                                   kernel_map_parser->points_to,
                                   kernel_map_parser->flags,
@@ -224,35 +223,35 @@ bool VirMemManager::map_k_chunks(VirMemProcess* target) {
     return true;
 }
 
-bool VirMemManager::init_malloc() {
-    //For now, there are no malloc-based features in VirMemManager, so we just set a flag on.
+bool PagingManager::init_malloc() {
+    //For now, there are no malloc-based features in PagingManager, so we just set a flag on.
     malloc_active = true;
 
     return true;
 }
 
-bool VirMemManager::init_process(ProcessManager& procman) {
+bool PagingManager::init_process(ProcessManager& procman) {
     //Initialize process management-related functionality
     process_manager = &procman;
 
-    //Setup an insulator associated to VirMemManager
-    InsulatorDescriptor virmem_insulator_desc;
-    virmem_insulator_desc.insulator_name = "VirMemManager";
-    //virmem_insulator_desc.add_process = (void*) virmem_manager_add_process;
-    virmem_insulator_desc.remove_process = (void*) virmem_manager_remove_process;
-    //virmem_insulator_desc.update_process = (void*) virmem_manager_update_process;
-    //process_manager->add_insulator(PID_KERNEL, virmem_insulator_desc);
+    //Setup an insulator associated to PagingManager
+    InsulatorDescriptor paging_manager_insulator_desc;
+    paging_manager_insulator_desc.insulator_name = "PagingManager";
+    //paging_manager_insulator_desc.add_process = (void*) paging_manager_add_process;
+    paging_manager_insulator_desc.remove_process = (void*) paging_manager_remove_process;
+    //paging_manager_insulator_desc.update_process = (void*) paging_manager_update_process;
+    //process_manager->add_insulator(PID_KERNEL, paging_manager_insulator_desc);
 
     return true;
 }
 
-VirMemChunk* VirMemManager::map_chunk(const PID target,
-                                      const PhyMemChunk* phys_chunk,
-                                      const VirMemFlags flags) {
-    VirMemProcess* list_item;
-    VirMemChunk* result;
+PageChunk* PagingManager::map_chunk(const PID target,
+                                    const RAMChunk* ram_chunk,
+                                    const PageFlags flags) {
+    PagingManagerProcess* list_item;
+    PageChunk* result;
     size_t location = NULL;
-    if(target == PID_KERNEL) location = phys_chunk->location; //Kernel chunks are identity-mapped
+    if(target == PID_KERNEL) location = ram_chunk->location; //Kernel chunks are identity-mapped
 
     proclist_mutex.grab_spin();
 
@@ -265,7 +264,7 @@ VirMemChunk* VirMemManager::map_chunk(const PID target,
         list_item->mutex.grab_spin();
 
             //Map that chunk
-            result = chunk_mapper(list_item, phys_chunk, flags, location);
+            result = chunk_mapper(list_item, ram_chunk, flags, location);
 
             if(!result) {
                 //If mapping has failed, we might have created a PID without an address space, which is
@@ -283,10 +282,10 @@ VirMemChunk* VirMemManager::map_chunk(const PID target,
     return result;
 }
 
-bool VirMemManager::free_chunk(const PID target, size_t chunk_beginning) {
+bool PagingManager::free_chunk(const PID target, size_t chunk_beginning) {
     bool result;
-    VirMemProcess* chunk_owner;
-    VirMemChunk* chunk;
+    PagingManagerProcess* chunk_owner;
+    PageChunk* chunk;
 
     proclist_mutex.grab_spin();
 
@@ -304,12 +303,12 @@ bool VirMemManager::free_chunk(const PID target, size_t chunk_beginning) {
     return result;
 }
 
-VirMemChunk* VirMemManager::adjust_chunk_flags(const PID target,
+PageChunk* PagingManager::adjust_chunk_flags(const PID target,
                                                size_t chunk_beginning,
-                                               const VirMemFlags flags,
-                                               const VirMemFlags mask) {
-    VirMemProcess* chunk_owner;
-    VirMemChunk *chunk, *result;
+                                               const PageFlags flags,
+                                               const PageFlags mask) {
+    PagingManagerProcess* chunk_owner;
+    PageChunk *chunk, *result;
 
     proclist_mutex.grab_spin();
 
@@ -326,7 +325,7 @@ VirMemChunk* VirMemManager::adjust_chunk_flags(const PID target,
     return result;
 }
 
-void VirMemManager::remove_process(PID target) {
+void PagingManager::remove_process(PID target) {
     if(target == PID_KERNEL) return; //Find a more constructive way to commit suicide.
 
     proclist_mutex.grab_spin();
@@ -336,7 +335,7 @@ void VirMemManager::remove_process(PID target) {
     proclist_mutex.release();
 }
 
-void VirMemManager::print_maplist() {
+void PagingManager::print_maplist() {
     proclist_mutex.grab_spin();
 
         dbgout << *process_list;
@@ -344,8 +343,8 @@ void VirMemManager::print_maplist() {
     proclist_mutex.release();
 }
 
-void VirMemManager::print_mmap(PID owner) {
-    VirMemProcess* list_item;
+void PagingManager::print_mmap(PID owner) {
+    PagingManagerProcess* list_item;
 
     proclist_mutex.grab_spin();
 

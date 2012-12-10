@@ -1,6 +1,6 @@
- /* New and delete implementations based on the kernel memory manager
+ /* New and delete implementations based on kernel memory management
 
-      Copyright (C) 2011  Hadrien Grasland
+      Copyright (C) 2011-2013  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -24,14 +24,14 @@
 
 //State of the new allocator, and functions which alter it
 extern unsigned int fake_allocation; //Allocation is not actually performed, instead the number of
-                                    //bytes that would have been allocated is returned as the result
+                                       //bytes that would have been allocated is returned as the result
 inline void start_faking_allocation() {fake_allocation+=1;}
 inline void stop_faking_allocation() {if(fake_allocation) fake_allocation-=1;}
 
 //new operator
 inline void* operator new(const size_t size,
                           PID target,
-                          const VirMemFlags flags = VIRMEM_FLAGS_RW,
+                          const PageFlags flags = PAGE_FLAGS_RW,
                           const bool force = false) throw() {
     if(!fake_allocation) {
         return kalloc(target, size, flags, force);
@@ -44,7 +44,7 @@ inline void* operator new(const size_t size) throw() {return operator new(size, 
 //Array versions of new
 inline void* operator new[](const size_t size,
                             PID target,
-                            const VirMemFlags flags = VIRMEM_FLAGS_RW,
+                            const PageFlags flags = PAGE_FLAGS_RW,
                             const bool force = false) throw() {
     return operator new(size, target, flags, force);
 }

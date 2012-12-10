@@ -39,7 +39,7 @@ class RAMManager {
         //Map of RAM (and its mutex)
         OwnerlessMutex mmap_mutex;
         RAMChunk* ram_map; //A map of the whole memory
-        RAMChunk* highmem_mmap; //A map of high memory (addresses >0x100000)
+        RAMChunk* highmem_map; //A map of high memory (addresses >0x100000)
         RAMChunk* free_lowmem; //A noncontiguous chunk representing free low memory
         RAMChunk* free_mem; //A noncontiguous chunk representing free high memory
 

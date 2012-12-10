@@ -1,6 +1,6 @@
-/* Support classes for the memory allocator
+/*  Support classes for the memory allocator
 
-        Copyright (C) 2010-2012    Hadrien Grasland
+        Copyright (C) 2010-2013    Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -23,10 +23,10 @@
 #include <hack_stdint.h>
 #include <pid.h>
 #include <synchronization.h>
-#include <virmem_support.h>
+#include <paging_support.h>
 
 
-//VirMemManager and PhyMemManager work on a per-page basis. Memory allocation works on a per-byte
+//PagingManager and RAMManager work on a per-page basis. Memory allocation works on a per-byte
 //basis. MemAllocator was made to address this fundamental incompatibility without allocating a
 //full page when applications only ask for a few bytes. To do that, it maintains two sorted linked
 //lists per process : a list of allocated, but not used yet, "parts of page", and a list of
@@ -35,7 +35,7 @@
 struct MemoryChunk {
     size_t location;
     size_t size;
-    VirMemChunk* belongs_to; //The chunk of virtual memory it belongs to.
+    PageChunk* belongs_to; //The page chunk it belongs to.
     MemoryChunk* next_item;
     uint32_t shareable; //Boolean. Indicates that the content of the page has been allocated in a
                         //specific way which makes it suitable for sharing between processes.
@@ -53,7 +53,7 @@ struct MemoryChunk {
                   share_count(0) {};
     MemoryChunk* find_contigchunk(const size_t size) const; //Try to find at least "size" contiguous
                                                           //bytes in this map
-    MemoryChunk* find_contigchunk(const size_t size, const VirMemFlags flags) const;
+    MemoryChunk* find_contigchunk(const size_t size, const PageFlags flags) const;
     MemoryChunk* find_thischunk(const size_t location) const;
     //Comparing C-style structs is fairly straightforward and should be done by default
     //by the C++ compiler, but well...
