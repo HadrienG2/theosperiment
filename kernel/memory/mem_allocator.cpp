@@ -1,6 +1,6 @@
- /* A PhyMemManager- and VirMemManager-based memory allocator
+ /* A RAMManager- and PagingManager-based memory allocator
 
-    Copyright (C) 2010-2011  Hadrien Grasland
+    Copyright (C) 2010-2013  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -28,11 +28,11 @@ MemAllocator* mem_allocator = NULL;
 
 bool MemAllocator::alloc_mapitems() {
     size_t used_space;
-    PhyMemChunk* allocated_page;
+    RAMChunk* allocated_page;
     MemoryChunk* current_item;
 
     //Allocate a page of memory
-    allocated_page = phymem_manager->alloc_chunk(PID_KERNEL);
+    allocated_page = ram_manager->alloc_chunk(PID_KERNEL);
     if(!allocated_page) return false;
 
     //Fill it with initialized map items
@@ -52,11 +52,11 @@ bool MemAllocator::alloc_mapitems() {
 
 bool MemAllocator::alloc_process_descs() {
     size_t used_space;
-    PhyMemChunk* allocated_page;
+    RAMChunk* allocated_page;
     MallocProcess* current_item;
 
     //Allocate a page of memory
-    allocated_page = phymem_manager->alloc_chunk(PID_KERNEL);
+    allocated_page = ram_manager->alloc_chunk(PID_KERNEL);
     if(!allocated_page) return false;
 
     //Fill it with initialized list items
@@ -76,17 +76,17 @@ bool MemAllocator::alloc_process_descs() {
 
 size_t MemAllocator::allocator(MallocProcess* target,
                                const size_t size,
-                               const VirMemFlags flags,
+                               const PageFlags flags,
                                const bool force) {
     //How it works :
     //  1.Look for a suitable hole in the target's free_map linked list
-    //  2.If there is none, allocate a chunk through phymem and map it through virmem, then put
-    //    it in free_map. Return NULL if it fails
+    //  2.If there is none, allocate a chunk through ram_manager and map it through paging_manager,
+    //    then put it in free_map. Return NULL if it fails
     //  3.Take the requested space from the chunk found/created in free_map, update free_map and
     //    busy_map
 
-    PhyMemChunk* phy_chunk = NULL;
-    VirMemChunk* vir_chunk = NULL;
+    RAMChunk* ram_chunk = NULL;
+    PageChunk* page_chunk = NULL;
 
     //Steps 1 : Look for a suitable hole in target->free_map
     MemoryChunk* hole = NULL;
@@ -95,15 +95,15 @@ size_t MemAllocator::allocator(MallocProcess* target,
     //Step 2 : If there's none, create it
     if(!hole) {
         //Allocating enough memory
-        phy_chunk = phymem_manager->alloc_chunk(target->identifier, align_pgup(size));
-        if(!phy_chunk) {
+        ram_chunk = ram_manager->alloc_chunk(target->identifier, align_pgup(size));
+        if(!ram_chunk) {
             if(!force) return NULL;
             liberate_memory();
             return allocator(target, size, flags, force);
         }
-        vir_chunk = virmem_manager->map_chunk(target->identifier, phy_chunk, flags);
-        if(!vir_chunk) {
-            phymem_manager->free_chunk(target->identifier, phy_chunk->location);
+        page_chunk = paging_manager->map_chunk(target->identifier, ram_chunk, flags);
+        if(!page_chunk) {
+            ram_manager->free_chunk(target->identifier, ram_chunk->location);
             if(!force) return NULL;
             liberate_memory();
             return allocator(target, size, flags, force);
@@ -113,8 +113,8 @@ size_t MemAllocator::allocator(MallocProcess* target,
         if(!free_mapitems) {
             alloc_mapitems();
             if(!free_mapitems) {
-                virmem_manager->free_chunk(target->identifier, vir_chunk->location);
-                phymem_manager->free_chunk(target->identifier, phy_chunk->location);
+                paging_manager->free_chunk(target->identifier, page_chunk->location);
+                ram_manager->free_chunk(target->identifier, ram_chunk->location);
                 if(!force) return NULL;
                 liberate_memory();
                 return allocator(target, size, flags, force);
@@ -123,9 +123,9 @@ size_t MemAllocator::allocator(MallocProcess* target,
         hole = free_mapitems;
         free_mapitems = free_mapitems->next_item;
         hole->next_item = NULL;
-        hole->location = vir_chunk->location;
-        hole->size = vir_chunk->size;
-        hole->belongs_to = vir_chunk;
+        hole->location = page_chunk->location;
+        hole->size = page_chunk->size;
+        hole->belongs_to = page_chunk;
 
         //Put that block in target->free_map
         if(!(target->free_map) || (hole->location < target->free_map->location)) {
@@ -146,8 +146,8 @@ size_t MemAllocator::allocator(MallocProcess* target,
     if(!free_mapitems) {
         alloc_mapitems();
         if(!free_mapitems) {
-            if(vir_chunk) virmem_manager->free_chunk(target->identifier, vir_chunk->location);
-            if(phy_chunk) phymem_manager->free_chunk(target->identifier, phy_chunk->location);
+            if(page_chunk) paging_manager->free_chunk(target->identifier, page_chunk->location);
+            if(ram_chunk) ram_manager->free_chunk(target->identifier, ram_chunk->location);
             if(!force) return NULL;
             liberate_memory();
             return allocator(target, size, flags, force);
@@ -202,20 +202,20 @@ size_t MemAllocator::allocator(MallocProcess* target,
 
 size_t MemAllocator::allocator_shareable(MallocProcess* target,
                                          size_t size,
-                                         const VirMemFlags flags,
+                                         const PageFlags flags,
                                          const bool force) {
     //Same as above, but always allocates a new chunk and does not put extra memory in free_map
 
     //Allocating memory
-    PhyMemChunk* phy_chunk = phymem_manager->alloc_chunk(target->identifier, align_pgup(size));
-    if(!phy_chunk) {
+    RAMChunk* ram_chunk = ram_manager->alloc_chunk(target->identifier, align_pgup(size));
+    if(!ram_chunk) {
         if(!force) return NULL;
         liberate_memory();
         return allocator_shareable(target, size, flags, force);
     }
-    VirMemChunk* vir_chunk = virmem_manager->map_chunk(target->identifier, phy_chunk, flags);
-    if(!vir_chunk) {
-        phymem_manager->free_chunk(target->identifier, phy_chunk->location);
+    PageChunk* page_chunk = paging_manager->map_chunk(target->identifier, ram_chunk, flags);
+    if(!page_chunk) {
+        ram_manager->free_chunk(target->identifier, ram_chunk->location);
         if(!force) return NULL;
         liberate_memory();
         return allocator_shareable(target, size, flags, force);
@@ -225,8 +225,8 @@ size_t MemAllocator::allocator_shareable(MallocProcess* target,
     if(!free_mapitems) {
         alloc_mapitems();
         if(!free_mapitems) {
-            virmem_manager->free_chunk(target->identifier, vir_chunk->location);
-            phymem_manager->free_chunk(target->identifier, phy_chunk->location);
+            paging_manager->free_chunk(target->identifier, page_chunk->location);
+            ram_manager->free_chunk(target->identifier, ram_chunk->location);
             if(!force) return NULL;
             liberate_memory();
             return allocator_shareable(target, size, flags, force);
@@ -235,9 +235,9 @@ size_t MemAllocator::allocator_shareable(MallocProcess* target,
     MemoryChunk* allocated = free_mapitems;
     free_mapitems = free_mapitems->next_item;
     allocated->next_item = NULL;
-    allocated->location = vir_chunk->location;
-    allocated->size = vir_chunk->size;
-    allocated->belongs_to = vir_chunk;
+    allocated->location = page_chunk->location;
+    allocated->size = page_chunk->size;
+    allocated->belongs_to = page_chunk;
     allocated->shareable = true;
 
     //Putting that block in target->busy_map
@@ -262,7 +262,7 @@ bool MemAllocator::liberator(MallocProcess* target, const size_t location) {
     //  1.Find the relevant item in busy_map. If it fails, return false. Keep its predecessor around
     //    too : that will be useful in step 2. Check the item's share_count : if it is higher than
     //    1, decrement it and abort. If not, remove the item from busy_map.
-    //  2.In the way, check if that item is the sole item belonging to its chunk of virtual memory
+    //  2.In the way, check if that item is the sole item belonging to its page chunk
     //    in busy_map (examining the neighbours should be sufficient, since busy_map is sorted).
     // 3a.If so, liberate the chunk and remove any item of free_map belonging to it. If this results
     //    in busy_map being empty, free_map is necessarily empty too : remove that PID.
@@ -304,12 +304,10 @@ bool MemAllocator::liberator(MallocProcess* target, const size_t location) {
     if(item_is_alone) {
         //Step 3a : Liberate the chunks and any item of free_map belonging to them.
 
-        //Liberate the physical/virtual chunks associated with our item if possible.
-        //We use phymem->identifierdel instead of phymem->free here, since the process might have shared
-        //this data with other processes, in which case freeing it would be a bit brutal for those.
-        VirMemChunk* belonged_to = freed_item->belongs_to;
-        phymem_manager->free_chunk(target->identifier, belonged_to->points_to->location);
-        virmem_manager->free_chunk(target->identifier, belonged_to->location);
+        //Liberate the RAM/page chunks associated with our item if possible.
+        PageChunk* belonged_to = freed_item->belongs_to;
+        ram_manager->free_chunk(target->identifier, belonged_to->points_to->location);
+        paging_manager->free_chunk(target->identifier, belonged_to->location);
         freed_item = new(freed_item) MemoryChunk();
         freed_item->next_item = free_mapitems;
         free_mapitems = freed_item;
@@ -349,7 +347,7 @@ bool MemAllocator::liberator(MallocProcess* target, const size_t location) {
     //Step 3b : Move freed_item in free_map, merging it with neighbours if possible
     //A merge is possible if the following conditions are met :
      //  -There's a contiguous item in free_map
-     //  -It belongs to the same chunk of virtual memory
+     //  -It belongs to the same page chunk
     if(!(target->free_map) || (freed_item->location < target->free_map->location)) {
         //The item should be put before the first item of free_map
         //Is a merge with the first map item possible ?
@@ -420,7 +418,7 @@ bool MemAllocator::liberator(MallocProcess* target, const size_t location) {
 size_t MemAllocator::share(MallocProcess* source,
                            const size_t location,
                            MallocProcess* target,
-                           const VirMemFlags flags,
+                           const PageFlags flags,
                            const bool force) {
     //This function shares a memory block of source with target, giving target "flags" access flags
 
@@ -449,10 +447,10 @@ size_t MemAllocator::share(MallocProcess* source,
         return NULL;
     }
     PID target_pid = target->identifier;
-    PhyMemChunk* phy_item = shared_item->belongs_to->points_to;
+    RAMChunk* ram_chunk = shared_item->belongs_to->points_to;
     //Check that the chunk is not shared with target already, if so simply increment the share_count
     //of the shared object in target's address space and quit. If not, pursue sharing operation
-    MemoryChunk* already_shared = shared_already(phy_item, target);
+    MemoryChunk* already_shared = shared_already(ram_chunk, target);
     if(already_shared) {
         //Manage share_count overflows
         if(already_shared->share_count == 0xffffffff) {
@@ -462,7 +460,7 @@ size_t MemAllocator::share(MallocProcess* source,
         already_shared->share_count+= 1;
         return already_shared->location;
     }
-    if(phymem_manager->share_chunk(target_pid, phy_item->location) == false) {
+    if(ram_manager->share_chunk(target_pid, ram_chunk->location) == false) {
         //If a new item has been allocated for sharing, delete it
         if(shared_item != source->busy_map->find_thischunk(location)) {
             liberator(source, shared_item->location);
@@ -471,14 +469,14 @@ size_t MemAllocator::share(MallocProcess* source,
         liberate_memory();
         return share(source, location, target, flags, force);
     }
-    VirMemChunk* shared_chunk;
-    if(flags | VIRMEM_FLAGS_SAME) {
-        shared_chunk = virmem_manager->map_chunk(target_pid, phy_item, shared_item->belongs_to->flags);
+    PageChunk* shared_chunk;
+    if(flags | PAGE_FLAGS_SAME) {
+        shared_chunk = paging_manager->map_chunk(target_pid, ram_chunk, shared_item->belongs_to->flags);
     } else {
-        shared_chunk = virmem_manager->map_chunk(target_pid, phy_item, flags);
+        shared_chunk = paging_manager->map_chunk(target_pid, ram_chunk, flags);
     }
     if(!shared_chunk) {
-        phymem_manager->free_chunk(target_pid, phy_item->location);
+        ram_manager->free_chunk(target_pid, ram_chunk->location);
         //If a new item has been allocated for sharing, delete it
         if(shared_item != source->busy_map->find_thischunk(location)) {
             liberator(source, shared_item->location);
@@ -516,8 +514,8 @@ size_t MemAllocator::share(MallocProcess* source,
     return busy_item->location;
 }
 
-MemoryChunk* MemAllocator::shared_already(PhyMemChunk* to_share, MallocProcess* target_identifier) {
-    //This function checks if a physical page "to_share" is already shared with "target_identifier", and
+MemoryChunk* MemAllocator::shared_already(RAMChunk* to_share, MallocProcess* target_identifier) {
+    //This function checks if a RAM chunk "to_share" is already shared with "target_identifier", and
     //if so returns a pointer to the MemoryChunk object associated with the shared object.
     MemoryChunk* map_parser = target_identifier->busy_map;
     while(map_parser) {
@@ -633,9 +631,9 @@ void MemAllocator::liberate_memory() {
     panic(PANIC_OUT_OF_MEMORY);
 }
 
-MemAllocator::MemAllocator(PhyMemManager& phymem, VirMemManager& virmem) : phymem_manager(&phymem),
+MemAllocator::MemAllocator(RAMManager& ram_man, PagingManager& page_man) : ram_manager(&ram_man),
                                                                            process_manager(NULL),
-                                                                           virmem_manager(&virmem),
+                                                                           paging_manager(&page_man),
                                                                            process_list(NULL),
                                                                            free_mapitems(NULL),
                                                                            free_process_descs(NULL) {
@@ -644,14 +642,14 @@ MemAllocator::MemAllocator(PhyMemManager& phymem, VirMemManager& virmem) : phyme
 
     //Activate global memory allocation service
     mem_allocator = this;
-    phymem_manager->init_malloc();
-    virmem_manager->init_malloc();
+    ram_manager->init_malloc();
+    paging_manager->init_malloc();
 }
 
 bool MemAllocator::init_process(ProcessManager& procman) {
-    //Initialize process management-related functionality in virmem_manager and phymem_manager
-    phymem_manager->init_process(procman);
-    virmem_manager->init_process(procman);
+    //Initialize process management-related functionality in paging_manager and ram_manager
+    ram_manager->init_process(procman);
+    paging_manager->init_process(procman);
 
     //Initialize process management-related functionality
     process_manager = &procman;
@@ -667,7 +665,7 @@ bool MemAllocator::init_process(ProcessManager& procman) {
     return true;
 }
 
-size_t MemAllocator::malloc(PID target, const size_t size, const VirMemFlags flags, const bool force) {
+size_t MemAllocator::malloc(PID target, const size_t size, const PageFlags flags, const bool force) {
     if(!size) return NULL;
     MallocProcess* process;
     size_t result;
@@ -703,7 +701,7 @@ size_t MemAllocator::malloc(PID target, const size_t size, const VirMemFlags fla
 
 size_t MemAllocator::malloc_shareable(PID target,
                                       size_t size,
-                                      const VirMemFlags flags,
+                                      const PageFlags flags,
                                       const bool force) {
     MallocProcess* process;
     size_t result;
@@ -770,7 +768,7 @@ bool MemAllocator::free(PID target, const size_t location) {
 size_t MemAllocator::share(PID source,
                            const size_t location,
                            PID target,
-                           const VirMemFlags flags,
+                           const PageFlags flags,
                            const bool force) {
     MallocProcess *source_process, *target_process;
     size_t result = NULL;
@@ -928,7 +926,7 @@ void MemAllocator::print_freemap(const PID identifier) {
     process->mutex.release();
 }
 
-void* kalloc(PID target, const size_t size, const VirMemFlags flags, const bool force) {
+void* kalloc(PID target, const size_t size, const PageFlags flags, const bool force) {
     if(!mem_allocator) {
         if(!force) return NULL;
         //TODO : Something cleaner
@@ -937,7 +935,7 @@ void* kalloc(PID target, const size_t size, const VirMemFlags flags, const bool 
     return (void*) mem_allocator->malloc(target, size, flags, force);
 }
 
-void* kalloc_shareable(PID target, size_t size, const VirMemFlags flags, const bool force) {
+void* kalloc_shareable(PID target, size_t size, const PageFlags flags, const bool force) {
     if(!mem_allocator) {
         if(!force) return NULL;
         //TODO : Something cleaner
@@ -954,7 +952,7 @@ bool kfree(PID target, void* location) {
 void* kshare(const PID source,
              const void* location,
              PID target,
-             const VirMemFlags flags,
+             const PageFlags flags,
              const bool force) {
     if(!mem_allocator) {
         if(!force) return NULL;

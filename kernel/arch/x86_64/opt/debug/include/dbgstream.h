@@ -1,6 +1,6 @@
  /* Iostream-like objects for debugging purposes
 
-      Copyright (C) 2010  Hadrien Grasland
+      Copyright (C) 2010-2013  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -24,8 +24,8 @@
 #include <kernel_information.h>
 #include <kstring.h>
 #include <mallocator_support.h>
-#include <phymem_support.h>
-#include <virmem_support.h>
+#include <ram_support.h>
+#include <paging_support.h>
 #include <x86paging.h>
 
 
@@ -208,9 +208,9 @@ class DebugOutput {
     //Functions displaying memory management's custom types
     DebugOutput& operator<<(const KernelInformation& input); //Displays only the memory map atm
     DebugOutput& operator<<(const KernelMemoryMap& input);
-    DebugOutput& operator<<(const PhyMemChunk& input);
-    DebugOutput& operator<<(const VirMemChunk& input);
-    DebugOutput& operator<<(const VirMemProcess& input);
+    DebugOutput& operator<<(const RAMChunk& input);
+    DebugOutput& operator<<(const PageChunk& input);
+    DebugOutput& operator<<(const PagingManagerProcess& input);
     DebugOutput& operator<<(const MemoryChunk& input);
     DebugOutput& operator<<(const MallocProcess& input);
     //Manipulator functions

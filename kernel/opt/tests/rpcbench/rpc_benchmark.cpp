@@ -46,7 +46,7 @@ namespace Tests {
         if(source.default_value == NULL) {
             default_value = NULL;
         } else {
-            default_value = kalloc(PID_KERNEL, source.value_size, VIRMEM_FLAGS_RW, true);
+            default_value = kalloc(PID_KERNEL, source.value_size, PAGE_FLAGS_RW, true);
             memcpy(default_value, source.default_value, source.value_size);
         }
 
@@ -59,7 +59,7 @@ namespace Tests {
 
         start_faking_allocation();
             to_be_allocd+=
-              (size_t) new(PID_KERNEL, VIRMEM_FLAGS_RW, true) ServerParamDescriptor[params_amount];
+              (size_t) new(PID_KERNEL, PAGE_FLAGS_RW, true) ServerParamDescriptor[params_amount];
         stop_faking_allocation();
 
         for(unsigned int i = 0; i < params_amount; ++i) {
@@ -75,7 +75,7 @@ namespace Tests {
         function_ptr = source.function_ptr;
         call_name = source.call_name;
         params_amount = source.params_amount;
-        params = new(PID_KERNEL, VIRMEM_FLAGS_RW, true) ServerParamDescriptor[source.params_amount];
+        params = new(PID_KERNEL, PAGE_FLAGS_RW, true) ServerParamDescriptor[source.params_amount];
         for(uint32_t i = 0; i < source.params_amount; ++i) {
             params[i] = source.params[i];
         }
@@ -106,7 +106,7 @@ namespace Tests {
         server_name = sv_name;
         call_name = server_desc.call_name;
         params_amount = server_desc.params_amount;
-        params = new(PID_KERNEL, VIRMEM_FLAGS_RW, true) ClientParamDescriptor[params_amount];
+        params = new(PID_KERNEL, PAGE_FLAGS_RW, true) ClientParamDescriptor[params_amount];
         for(unsigned int i = 0; i < params_amount; ++i) {
             params[i] = server_desc.params[i];
         }
@@ -118,7 +118,7 @@ namespace Tests {
 
         start_faking_allocation();
             to_be_allocd+= (size_t)
-              new(PID_KERNEL, VIRMEM_FLAGS_RW, true) ClientParamDescriptor[params_amount];
+              new(PID_KERNEL, PAGE_FLAGS_RW, true) ClientParamDescriptor[params_amount];
         stop_faking_allocation();
 
         for(unsigned int i = 0; i < params_amount; ++i) {
@@ -134,7 +134,7 @@ namespace Tests {
         server_name = source.server_name;
         call_name = source.call_name;
         params_amount = source.params_amount;
-        params = new(PID_KERNEL, VIRMEM_FLAGS_RW, true) ClientParamDescriptor[source.params_amount];
+        params = new(PID_KERNEL, PAGE_FLAGS_RW, true) ClientParamDescriptor[source.params_amount];
         for(uint32_t i = 0; i < source.params_amount; ++i) {
             params[i] = source.params[i];
         }
@@ -170,7 +170,7 @@ namespace Tests {
             for(unsigned int i = cl_desc.params_amount; i < sv_desc.params_amount; ++i) {
                 compat_stack_size+= sv_desc.params[i].value_size;
             }
-            compat_stack = kalloc(PID_KERNEL, compat_stack_size, VIRMEM_FLAGS_RW, true);
+            compat_stack = kalloc(PID_KERNEL, compat_stack_size, PAGE_FLAGS_RW, true);
             void* moving_ptr = compat_stack;
             //WARNING : What follows is specific of an x86 cdecl calling convention (last parameter
             //pushed first, stack growing by reducing stack pointer), and is only correct for
@@ -192,7 +192,7 @@ namespace Tests {
 
     AsyncQueue::AsyncQueue(const size_t q_size) {
         queue_size = q_size;
-        queue_start = kalloc(PID_KERNEL, queue_size, VIRMEM_FLAGS_RW, true);
+        queue_start = kalloc(PID_KERNEL, queue_size, PAGE_FLAGS_RW, true);
         write_pos = queue_start;
         read_pos = NULL; //Indicates that there's no data to be read
     }

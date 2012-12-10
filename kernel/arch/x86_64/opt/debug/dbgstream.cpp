@@ -1,6 +1,6 @@
  /* Iostream-like objects for debugging purposes
 
-    Copyright (C) 2010  Hadrien Grasland
+    Copyright (C) 2010-2013  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -644,10 +644,10 @@ DebugOutput& DebugOutput::operator<<(const KernelMemoryMap& input) {
     return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(const PhyMemChunk& input) {
+DebugOutput& DebugOutput::operator<<(const RAMChunk& input) {
     bool tmp_padding = padding_on;
     unsigned int tmp_padsize = padsize;
-    PhyMemChunk* map = (PhyMemChunk*) &input;
+    RAMChunk* map = (RAMChunk*) &input;
     DebugNumberBase tmp = number_base;
 
     *this << pad_status(true);
@@ -681,10 +681,10 @@ DebugOutput& DebugOutput::operator<<(const PhyMemChunk& input) {
     return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(const VirMemChunk& input) {
+DebugOutput& DebugOutput::operator<<(const PageChunk& input) {
     bool tmp_padding = padding_on;
     unsigned int tmp_padsize = padsize;
-    VirMemChunk* map = (VirMemChunk*) &input;
+    PageChunk* map = (PageChunk*) &input;
     DebugNumberBase tmp = number_base;
 
     *this << pad_status(true);
@@ -696,27 +696,27 @@ DebugOutput& DebugOutput::operator<<(const VirMemChunk& input) {
     do {
         *this << endl << map->location << " | " << map->size << " | ";
 
-        if(map->flags & VIRMEM_FLAG_R) {
+        if(map->flags & PAGE_FLAG_R) {
             *this << 'R';
         } else {
             *this << '-';
         }
-        if(map->flags & VIRMEM_FLAG_W) {
+        if(map->flags & PAGE_FLAG_W) {
             *this << 'W';
         } else {
             *this << '-';
         }
-        if(map->flags & VIRMEM_FLAG_X) {
+        if(map->flags & PAGE_FLAG_X) {
             *this << 'X';
         } else {
             *this << '-';
         }
-        if(map->flags & VIRMEM_FLAG_A) {
+        if(map->flags & PAGE_FLAG_A) {
             *this << 'A';
         } else {
             *this << '-';
         }
-        if(map->flags & VIRMEM_FLAG_K) {
+        if(map->flags & PAGE_FLAG_K) {
             *this << "K | ";
         } else {
             *this << "- | ";
@@ -741,8 +741,8 @@ DebugOutput& DebugOutput::operator<<(const VirMemChunk& input) {
     return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(const VirMemProcess& input) {
-    VirMemProcess* list = (VirMemProcess*) &input;
+DebugOutput& DebugOutput::operator<<(const PagingManagerProcess& input) {
+    PagingManagerProcess* list = (PagingManagerProcess*) &input;
     bool tmp_padding = padding_on;
     unsigned int tmp_padsize = padsize;
     DebugNumberBase tmp = number_base;

@@ -1,7 +1,7 @@
  /* Equivalent of cstring (aka string.h), but not a full implementation. Manipulates chunks of RAM,
     and maybe C-style strings and array in the future.
 
-    Copyright (C) 2011  Hadrien Grasland
+    Copyright (C) 2011-2013  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -39,14 +39,14 @@ size_t strlen(const char* str) {
 
 KString::KString(const char* source) {
     len = strlen(source);
-    contents = new(PID_KERNEL, VIRMEM_FLAGS_RW, true) char[len+1];
+    contents = new(PID_KERNEL, PAGE_FLAGS_RW, true) char[len+1];
     memcpy((void*) contents, (const void*) source, len+1);
     current_location = 0;
 }
 
 KString::KString(const KString& source) {
     len = source.len;
-    contents = new(PID_KERNEL, VIRMEM_FLAGS_RW, true) char[len+1];
+    contents = new(PID_KERNEL, PAGE_FLAGS_RW, true) char[len+1];
     memcpy((void*) contents, (const void*) source.contents, len+1);
     current_location = 0;
 }
@@ -88,7 +88,7 @@ void KString::set_length(size_t desired_length, bool keep_contents) {
 
     //Change string length
     len = desired_length;
-    contents = new(PID_KERNEL, VIRMEM_FLAGS_RW, true) char[len+1];
+    contents = new(PID_KERNEL, PAGE_FLAGS_RW, true) char[len+1];
     if(old_contents) {
         memcpy((void*) contents, (const void*) old_contents, min(len, old_len));
     }
@@ -178,7 +178,7 @@ bool KString::read_line(KString& dest) {
 size_t KString::heap_size() {
     start_faking_allocation();
 
-        size_t to_be_allocd = (size_t) new(PID_KERNEL, VIRMEM_FLAGS_RW, true) char[len+1];
+        size_t to_be_allocd = (size_t) new(PID_KERNEL, PAGE_FLAGS_RW, true) char[len+1];
 
     stop_faking_allocation();
 

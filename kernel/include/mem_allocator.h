@@ -1,6 +1,6 @@
- /* A PhyMemManager- and VirMemManager-based memory allocator
+ /* A RAMManager- and PagingManager-based memory allocator
 
-      Copyright (C) 2010-2011  Hadrien Grasland
+      Copyright (C) 2010-2013  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -21,21 +21,21 @@
 
 #include <address.h>
 #include <mallocator_support.h>
-#include <phymem_manager.h>
+#include <ram_manager.h>
 #include <process_manager.h>
 #include <pid.h>
-#include <virmem_manager.h>
+#include <paging_manager.h>
 
 const int MEMALLOCATOR_VERSION = 2; //Increase this when deep changes require a modification of
-                                    //the testing protocol
+                                     //the testing protocol
 
 class ProcessManager;
 class MemAllocator {
     private:
         //Link to other kernel functionality
-        PhyMemManager* phymem_manager;
+        RAMManager* ram_manager;
         ProcessManager* process_manager;
-        VirMemManager* virmem_manager;
+        PagingManager* paging_manager;
 
         //Internal MemAllocator state
         MallocProcess* process_list;
@@ -52,19 +52,19 @@ class MemAllocator {
         //Allocation, liberation and sharing functions -- normal processes
         size_t allocator(MallocProcess* target,
                          const size_t size,
-                         const VirMemFlags flags,
+                         const PageFlags flags,
                          const bool force);
         size_t allocator_shareable(MallocProcess* target,
                                    size_t size,
-                                   const VirMemFlags flags,
+                                   const PageFlags flags,
                                    const bool force);
         bool liberator(MallocProcess* target, const size_t location);
         size_t share(MallocProcess* source,
                      const size_t location,
                      MallocProcess* target,
-                     const VirMemFlags flags,
+                     const PageFlags flags,
                      const bool force);
-        MemoryChunk* shared_already(PhyMemChunk* to_share, MallocProcess* target_owner);
+        MemoryChunk* shared_already(RAMChunk* to_share, MallocProcess* target_owner);
 
         //PID setup
         MallocProcess* find_pid(const PID target); //Find the map list entry associated to this PID,
@@ -80,7 +80,7 @@ class MemAllocator {
         //Auxiliary functions
         void liberate_memory();
     public:
-        MemAllocator(PhyMemManager& physmem, VirMemManager& virtmem);
+        MemAllocator(RAMManager& ram_manager, PagingManager& paging_manager);
 
         //Late feature initialization
         bool init_process(ProcessManager& process_manager); //Run once process management is available
@@ -93,14 +93,14 @@ class MemAllocator {
         //Allocate memory to a process, returns location
         size_t malloc(PID target,
                       const size_t size,
-                      const VirMemFlags flags = VIRMEM_FLAGS_RW,
+                      const PageFlags flags = PAGE_FLAGS_RW,
                       const bool force = false);
 
         //Same as above, but the storage space is alone in its chunk, which allows sharing the data
         //inside with other processes without giving them access to other data
         size_t malloc_shareable(PID target,
                                 const size_t size,
-                                const VirMemFlags flags = VIRMEM_FLAGS_RW,
+                                const PageFlags flags = PAGE_FLAGS_RW,
                                 const bool force = false);
 
         //Free previously allocated memory. Returns false if location or process does not exist,
@@ -114,7 +114,7 @@ class MemAllocator {
         size_t share(PID source,
                      const size_t location,
                      PID target,
-                     const VirMemFlags flags = VIRMEM_FLAGS_SAME,
+                     const PageFlags flags = PAGE_FLAGS_SAME,
                      const bool force = false);
 
         //Pooled memory allocation. The idea is to allocate a large enough block of memory with
@@ -143,17 +143,17 @@ class MemAllocator {
 //Alocation, freeing, sharing
 void* kalloc(PID target,
              const size_t size,
-             const VirMemFlags flags = VIRMEM_FLAGS_RW,
+             const PageFlags flags = PAGE_FLAGS_RW,
              const bool force = false);
 void* kalloc_shareable(PID target,
                        size_t size,
-                       const VirMemFlags flags = VIRMEM_FLAGS_RW,
+                       const PageFlags flags = PAGE_FLAGS_RW,
                        const bool force = false);
 bool kfree(PID target, void* location);
 void* kshare(const PID source,
              const void* location,
              PID target,
-             const VirMemFlags flags = VIRMEM_FLAGS_SAME,
+             const PageFlags flags = PAGE_FLAGS_SAME,
              const bool force = false);
 
 //Pooled allocation

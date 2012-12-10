@@ -1,6 +1,6 @@
 /*  Kernel's main function
 
-      Copyright (C) 2010-2011  Hadrien Grasland
+      Copyright (C) 2010-2013  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -18,9 +18,9 @@
 
 #include <kernel_information.h>
 #include <mem_allocator.h>
-#include <phymem_manager.h>
+#include <ram_manager.h>
 #include <process_manager.h>
-#include <virmem_manager.h>
+#include <paging_manager.h>
 
 #include <dbgstream.h>
 
@@ -34,9 +34,9 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     }
 
     dbgout << "* Setting up memory management..." << endl;
-    PhyMemManager phymem_manager(kinfo);
-    VirMemManager virmem_manager(phymem_manager);
-    MemAllocator mem_allocator(phymem_manager, virmem_manager);
+    RAMManager ram_manager(kinfo);
+    PagingManager paging_manager(ram_manager);
+    MemAllocator mem_allocator(ram_manager, paging_manager);
 
     dbgout << "* Setting up process management..." << endl;
     ProcessManager process_manager(mem_allocator);
