@@ -39,7 +39,7 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << "* Setting up process management..." << endl;
     ProcessManager process_manager(mem_allocator);
 
-    dbgout << txtcolor(TXT_WHITE) << "* Kernel ready !" << txtcolor(TXT_DEFAULT) << endl << bp();
+    dbgout << txtcolor(TXT_WHITE) << "* Kernel ready !" << txtcolor(TXT_DEFAULT) << bp() << endl;
 
     //Now, do something useful with that kernel ! :P
     KString test_file("*** Process properties v1 ***\nTest:\n toto=3< >\"\\\"\\\n \"[ ]{{\n }}");

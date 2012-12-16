@@ -64,9 +64,7 @@ class PagingManager {
         bool chunk_liberator(PagingManagerProcess* target,
                              PageChunk* chunk);
         PagingManagerProcess* find_pid(const PID target); //Find the map list entry associated to this PID,
-                                                //return NULL if it does not exist.
-        PagingManagerProcess* find_or_create_pid(PID target); //Same as above, but try to create the entry
-                                                       //if it does not exist yet
+                                                          //return NULL if it does not exist.
         PageChunk* flag_adjust(PagingManagerProcess* target, //Adjust the paging flags associated with a chunk
                                  PageChunk* chunk,
                                  const PageFlags flags,

@@ -689,6 +689,37 @@ DebugOutput& DebugOutput::operator<<(const RAMChunk& input) {
     return *this;
 }
 
+DebugOutput& DebugOutput::operator<<(const RAMManagerProcess& input) {
+    RAMManagerProcess* list = (RAMManagerProcess*) &input;
+    bool tmp_padding = padding_on;
+    unsigned int tmp_padsize = padsize;
+    DebugNumberBase tmp = number_base;
+
+    *this << pad_status(true);
+    *this << pad_size(18);
+    *this << numberbase(HEXADECIMAL) << endl;
+    *this << "PID        | RAM usage          | Maximum RAM usage  | Mutex" << endl;
+    *this << "-----------+--------------------+--------------------+-------------------------";
+
+    do {
+        *this << endl << pad_size(10) << list->identifier;
+        *this << pad_size(18) << " | " << list->memory_usage << " | ";
+        *this << list->memory_cap << " | ";
+        if(list->mutex.state()) {
+            *this << "available";
+        } else {
+            *this << "BUSY";
+        }
+        list = list->next_item;
+    } while(list);
+
+    if(!tmp_padding) *this << pad_status(false);
+    if(tmp_padsize) *this << pad_size(tmp_padsize);
+    *this << numberbase(tmp) << endl;
+
+    return *this;
+}
+
 DebugOutput& DebugOutput::operator<<(const PageChunk& input) {
     bool tmp_padding = padding_on;
     unsigned int tmp_padsize = padsize;
@@ -766,7 +797,7 @@ DebugOutput& DebugOutput::operator<<(const PagingManagerProcess& input) {
         *this << pad_size(18) << " | " << (uint64_t) list->map_pointer << " | ";
         *this << list->pml4t_location << " | ";
         if(list->mutex.state()) {
-            *this << "Available";
+            *this << "available";
         } else {
             *this << "BUSY";
         }
