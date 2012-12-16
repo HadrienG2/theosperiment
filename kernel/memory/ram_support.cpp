@@ -29,9 +29,9 @@ bool PIDs::has_pid(const PID& the_pid) const {
     return false;
 }
 
-unsigned int PIDs::length() const {
+size_t PIDs::length() const {
     PIDs* parser = (PIDs*) this;
-    unsigned int result;
+    size_t result;
 
     for(result = 0; parser; ++result, parser = parser->next_item);
     return result;
@@ -120,8 +120,8 @@ RAMChunk* RAMChunk::find_thischunk(const size_t location) const {
     return current_item;
 }
 
-unsigned int RAMChunk::buddy_length() const {
-    unsigned int result = 0;
+size_t RAMChunk::buddy_length() const {
+    size_t result = 0;
     RAMChunk* current_item = (RAMChunk*) this;
 
     while(current_item) {
@@ -132,8 +132,8 @@ unsigned int RAMChunk::buddy_length() const {
     return result;
 }
 
-unsigned int RAMChunk::length() const {
-    unsigned int result = 0;
+size_t RAMChunk::length() const {
+    size_t result = 0;
     RAMChunk* current_item = (RAMChunk*) this;
 
     while(current_item) {

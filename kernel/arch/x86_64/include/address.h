@@ -23,6 +23,7 @@
 #include <hack_stdint.h>
 
 #define NULL 0
+#define MAX_RAM_ADDRESS 0xffffffffffffffff
 
 typedef uint64_t size_t; //On x86_64, addresses are unsigned 64-bit integers
 

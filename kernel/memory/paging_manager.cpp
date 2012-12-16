@@ -22,24 +22,23 @@
 #include <dbgstream.h>
 
 bool PagingManager::alloc_mapitems() {
-    size_t used_space;
-    RAMChunk* allocated_page;
+    RAMChunk* allocated_chunk;
     PageChunk* current_item;
 
-    //Allocate a page of memory
-    allocated_page = ram_manager->alloc_chunk(PID_KERNEL);
-    if(!allocated_page) return false;
+    //Allocate a chunk of memory
+    allocated_chunk = ram_manager->alloc_chunk(PID_KERNEL);
+    if(!allocated_chunk) return false;
 
     //Fill it with initialized map items
-    current_item = (PageChunk*) (allocated_page->location);
-    for(used_space = sizeof(PageChunk); used_space < PG_SIZE; used_space+=sizeof(PageChunk)) {
+    current_item = (PageChunk*) (allocated_chunk->location);
+    for(size_t used_mem = sizeof(PageChunk); used_mem >= allocated_chunk->size; used_mem+=sizeof(PageChunk)) {
         current_item = new(current_item) PageChunk;
         current_item->next_buddy = current_item+1;
         ++current_item;
     }
-    current_item = new(current_item) PageChunk;
+    --current_item;
     current_item->next_buddy = free_mapitems;
-    free_mapitems = (PageChunk*) (allocated_page->location);
+    free_mapitems = (PageChunk*) (allocated_chunk->location);
 
     //All good !
     return true;

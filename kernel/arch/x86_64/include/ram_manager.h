@@ -56,8 +56,8 @@ class RAMManager {
 
         //Support methods used by public methods
         bool alloc_mapitems(RAMChunk* free_mem_override = NULL); //Get some memory map storage space
-        bool alloc_pids(RAMChunk* free_mem_override = NULL); //Get some PIDs storage space
-        RAMChunk* chunk_allocator(RAMManagerProcess* initial_owner,
+        bool alloc_pids(); //Get some PIDs storage space
+        RAMChunk* chunk_allocator(RAMManagerProcess* owner,
                                   const size_t size,
                                   RAMChunk*& free_mem_used,
                                   bool contiguous);
@@ -80,7 +80,7 @@ class RAMManager {
 
         //Late feature initialization
         bool init_malloc(); //Run once memory allocation is available
-        bool init_process(ProcessManager& process_manager); //Run once process management is available
+        bool init_process(ProcessManager& process_manager); //Connect the RAM manager with process management facilities
 
         //Process management functions
         //TODO : PID add_process(PID id, ProcessProperties properties); //Adds a new process to RAMManager's database
@@ -115,7 +115,9 @@ class RAMManager {
         void print_mem_usage(const PID target);
 };
 
-//Global shortcuts to RAMManager's process management functions
+extern RAMManager* ram_manager;
+
+//Global shortcuts to RAMManager's process management functions (necessary because C++ does not allow direct linking to a class' method)
 //TODO : PID ram_manager_add_process(PID id, ProcessProperties properties);
 void ram_manager_remove_process(PID target);
 //TODO : PID ram_manager_update_process(PID old_process, PID new_process);

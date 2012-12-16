@@ -28,7 +28,6 @@
 struct PIDs {
     PID current_pid;
     PIDs* next_item;
-    uint32_t padding;
 
     //Constructors and destructors
     PIDs() : current_pid(PID_INVALID),
@@ -38,30 +37,27 @@ struct PIDs {
 
     //Various utility function
     bool has_pid(const PID& the_pid) const;
-    unsigned int length() const;
+    size_t length() const;
     PIDs& operator=(const PID& param); //Set the contents of a blank PIDs to a single PID
 
     //Comparison of PIDs
     bool operator==(const PIDs& param) const;
     bool operator!=(const PIDs& param) const {return !(*this==param);}
-} __attribute__((packed));
+};
 
 
 //Represents an item in a map of RAM, managed as a chained list at the moment.
-//Size should be a divisor of 0x1000 (current size : 0x40) to ease the early allocation process.
 struct RAMChunk {
     size_t location;
     size_t size;
     PIDs owners;
-    uint32_t allocatable; //Boolean. Whether this chunk can be reserved by memory allocation.
-                          //It should NOT be the case with memory-mapped I/O, as an example.
+    bool allocatable; //Whether this chunk can be reserved by memory allocation.
+                       //It should NOT be the case with memory-mapped I/O, as an example.
     RAMChunk* next_buddy;
 
     //WARNING : RAMChunk properties after this point are nonstandard, subject to change without
     //warnings, and should not be read or manipulated by external software.
     RAMChunk* next_mapitem;
-    uint32_t padding;
-    uint64_t padding2;
 
     RAMChunk() : location(0),
                  size(0),
@@ -76,17 +72,16 @@ struct RAMChunk {
                                                           //neighbours, forms a contiguous chunk
                                                           //of free memory at least "size" large.
     RAMChunk* find_thischunk(const size_t location) const;
-    unsigned int buddy_length() const;
-    unsigned int length() const;
+    size_t buddy_length() const;
+    size_t length() const;
     //Comparing map items is fairly straightforward and should be done by default
     //by the C++ compiler, but well...
     bool operator==(const RAMChunk& param) const;
     bool operator!=(const RAMChunk& param) const {return !(*this==param);}
-} __attribute__((packed));
+};
 
-//This structure is used to manage high-level functionality of RAMManager after ProcessManager
-//has been initialized. Contrary to other memory management structures, it is allocated using kalloc()
-//and as such does not need to follow alignment constraints
+//This structure is used to manage higher-level functionality of RAMManager after ProcessManager
+//has been initialized.
 struct RAMManagerProcess {
     OwnerlessMutex mutex;
     PID identifier;
@@ -96,7 +91,7 @@ struct RAMManagerProcess {
 
     RAMManagerProcess() : identifier(PID_INVALID),
                           memory_usage(0),
-                          memory_cap(0xffffffffffffffff),
+                          memory_cap(MAX_RAM_ADDRESS),
                           next_item(NULL) {}
 };
 

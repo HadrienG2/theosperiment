@@ -22,8 +22,10 @@
 #include <dbgstream.h>
 
 
+RAMManager* ram_manager = NULL;
+
 bool RAMManager::alloc_mapitems(RAMChunk* free_mem_override) {
-    size_t remaining_freemem = 0, used_space;
+    size_t remaining_freemem = 0;
     RAMChunk *allocated_chunk, *current_item, *free_chunk = NULL;
 
     //Get some free memory to store mapitems or abort
@@ -39,16 +41,16 @@ bool RAMManager::alloc_mapitems(RAMChunk* free_mem_override) {
 
     //Store our brand new free memory map items in the allocated mem
     current_item = (RAMChunk*) (allocated_chunk->location);
-    for(used_space = sizeof(RAMChunk); used_space < allocated_chunk->size; used_space+= sizeof(RAMChunk)) {
+    for(size_t used_mem = sizeof(RAMChunk); used_mem <= allocated_chunk->size; used_mem+= sizeof(RAMChunk)) {
         current_item = new(current_item) RAMChunk();
         current_item->next_mapitem = current_item+1;
         ++current_item;
     }
-    current_item = new(current_item) RAMChunk();
+    --current_item;
     current_item->next_mapitem = free_mapitems;
     free_mapitems = (RAMChunk*) (allocated_chunk->location);
 
-    //Maybe there is some spare memory after allocating our chunk ?
+    //Maybe there is some spare memory left after allocating our chunk ?
     //If so, don't leak it.
     if(remaining_freemem) {
         free_chunk = free_mapitems;
@@ -67,6 +69,7 @@ bool RAMManager::alloc_mapitems(RAMChunk* free_mem_override) {
         } else {
             free_mem = allocated_chunk->next_buddy;
         }
+        find_process(PID_KERNEL)->memory_usage+= allocated_chunk->size;
     }
     allocated_chunk->next_buddy = NULL;
 
@@ -74,30 +77,26 @@ bool RAMManager::alloc_mapitems(RAMChunk* free_mem_override) {
 }
 
 
-bool RAMManager::alloc_pids(RAMChunk* free_mem_override) {
-    size_t remaining_freemem, used_space;
+bool RAMManager::alloc_pids() {
+    size_t remaining_freemem;
     PIDs *current_item;
     RAMChunk *allocated_chunk, *free_chunk = NULL;
 
     //Get some free memory to store PIDs in or abort
-    if(!free_mem_override) {
-        allocated_chunk = free_mem;
-        if(!allocated_chunk) return false;
-        remaining_freemem = allocated_chunk->size - PG_SIZE;
-        allocated_chunk->size = PG_SIZE;
-    } else {
-        allocated_chunk = free_mem_override;
-    }
+    allocated_chunk = free_mem;
+    if(!allocated_chunk) return false;
+    remaining_freemem = allocated_chunk->size - PG_SIZE;
+    allocated_chunk->size = PG_SIZE;
     allocated_chunk->owners = PID_KERNEL;
 
     //Store our brand new PIDs in the allocated mem
     current_item = (PIDs*) (allocated_chunk->location);
-    for(used_space = sizeof(PIDs); used_space<PG_SIZE; used_space+= sizeof(PIDs)) {
+    for(size_t used_mem = sizeof(PIDs); used_mem <= allocated_chunk->size; used_mem+= sizeof(PIDs)) {
         current_item = new(current_item) PIDs();
         current_item->next_item = current_item+1;
         ++current_item;
     }
-    current_item = new(current_item) PIDs();
+    --current_item;
     current_item->next_item = free_pids;
     free_pids = (PIDs*) (allocated_chunk->location);
 
@@ -114,26 +113,28 @@ bool RAMManager::alloc_pids(RAMChunk* free_mem_override) {
     }
 
     //Update free memory information
-    if(!free_mem_override) {
-        if(free_chunk) {
-            free_mem = free_chunk;
-        } else {
-            free_mem = allocated_chunk->next_buddy;
-        }
+    if(free_chunk) {
+        free_mem = free_chunk;
+    } else {
+        free_mem = allocated_chunk->next_buddy;
     }
+    find_process(PID_KERNEL)->memory_usage+= allocated_chunk->size;
     allocated_chunk->next_buddy = NULL;
 
     return true;
 }
 
 
-RAMChunk* RAMManager::chunk_allocator(RAMManagerProcess* initial_owner,
-                                            const size_t size,
-                                            RAMChunk*& free_mem_used,
-                                            bool contiguous) {
+RAMChunk* RAMManager::chunk_allocator(RAMManagerProcess* owner,
+                                      const size_t size,
+                                      RAMChunk*& free_mem_used,
+                                      bool contiguous) {
     size_t remaining_freemem = 0, to_be_allocd = 0;
     RAMChunk *previous_free_chunk = NULL, *new_free_chunk = NULL;
     RAMChunk *current_chunk, *previous_chunk, *result;
+    
+    //Check if we can allocate the requested memory without busting caps
+    if(owner->memory_usage + size > owner->memory_cap) return NULL;
 
     //Make sure there's enough space for storing a new memory map item
     if(!free_mapitems) {
@@ -160,7 +161,7 @@ RAMChunk* RAMManager::chunk_allocator(RAMManagerProcess* initial_owner,
     // 1-We allocated too much and must split current_chunk in an allocated part and a free part.
     // 2-We allocated exactly the right amount of memory.
     // 3-We allocated too little memory and need to allocate more.
-    current_chunk->owners = initial_owner->identifier;
+    current_chunk->owners = owner->identifier;
     result = current_chunk;
     if(current_chunk->size > size) {
         remaining_freemem = current_chunk->size-size;
@@ -177,7 +178,7 @@ RAMChunk* RAMManager::chunk_allocator(RAMManagerProcess* initial_owner,
             chunk_liberator(result);
             return NULL;
         }
-        current_chunk->owners = initial_owner->identifier;
+        current_chunk->owners = owner->identifier;
 
         //Update to_be_allocd and remaining_freemem
         if(current_chunk->size < to_be_allocd) {
@@ -222,12 +223,18 @@ RAMChunk* RAMManager::chunk_allocator(RAMManagerProcess* initial_owner,
     }
     current_chunk->next_buddy = NULL;
 
+    //Update process memory usage if allocation has been successful
+    owner->memory_usage+= size;
+
     return result;
 }
 
 
 bool RAMManager::chunk_owneradd(RAMManagerProcess* new_owner, RAMChunk* chunk) {
     RAMChunk* current_item = chunk;
+    
+    //Check if we can allocate the requested memory without busting caps
+    if(new_owner->memory_usage + chunk->size > new_owner->memory_cap) return false;
 
     while(current_item) {
         //Check if there are some PIDs left in free_pids, attempt to allocate if needed
@@ -250,7 +257,13 @@ bool RAMManager::chunk_owneradd(RAMManagerProcess* new_owner, RAMChunk* chunk) {
     }
 
     //If the operation fails, reverts changes.
-    if(current_item) chunk_ownerdel(new_owner, chunk);
+    if(current_item) {
+        chunk_ownerdel(new_owner, chunk);
+        return false;
+    }
+    
+    //Update process memory usage if allocation has been successful
+    new_owner->memory_usage+= chunk->size;
 
     return true;
 }
@@ -296,6 +309,9 @@ bool RAMManager::chunk_ownerdel(RAMManagerProcess* former_owner, RAMChunk* chunk
         //Go to next item in the buddy list
         current_chunk = current_chunk->next_buddy;
     }
+    
+    //Update process memory usage
+    former_owner->memory_usage-= chunk->size;
 
     //If chunk has no owners anymore, liberate it
     if(chunk->has_owner(PID_INVALID)) chunk_liberator(chunk);
@@ -406,8 +422,8 @@ RAMManagerProcess* RAMManager::find_process(const PID target) {
 
         return proc_parser;
     } else {
-        //RAMManagerProcesses only make sense once the memory allocator is active. Before that, we can
-        //just return a dummy value.
+        //RAMManagerProcesses only make sense once the memory allocator is active. Before that, this
+        //will just return a dummy value.
         static RAMManagerProcess dummy_process;
         dummy_process = RAMManagerProcess();
         dummy_process.identifier = (PID) target;
@@ -490,6 +506,7 @@ bool RAMManager::generate_process_list() {
     //at this point only includes an entry about the kernel
     RAMChunk* map_parser;
 
+    proclist_mutex.grab_spin();
     process_list = new RAMManagerProcess();
     if(!process_list) {
         proclist_mutex.release();
@@ -503,6 +520,7 @@ bool RAMManager::generate_process_list() {
         map_parser = map_parser->next_mapitem;
     }
 
+    proclist_mutex.release();
     return true;
 }
 
@@ -619,14 +637,14 @@ void RAMManager::remove_process(PID target) {
 }
 
 
-RAMChunk* RAMManager::alloc_chunk(const PID initial_owner, const size_t size, bool contiguous) {
+RAMChunk* RAMManager::alloc_chunk(const PID owner, const size_t size, bool contiguous) {
     RAMChunk* result;
     RAMManagerProcess* process;
 
     proclist_mutex.grab_spin();
 
         //Find the RAMManagerProcess associated to the requested PID
-        process = find_process(initial_owner);
+        process = find_process(owner);
         if(!process) {
             proclist_mutex.release();
             return NULL;
@@ -634,12 +652,6 @@ RAMChunk* RAMManager::alloc_chunk(const PID initial_owner, const size_t size, bo
 
     process->mutex.grab_spin();
     proclist_mutex.release();
-
-        //Check if we can allocate the requested memory without busting caps
-        if(process->memory_usage + align_pgup(size) > process->memory_cap) {
-            process->mutex.release();
-            return NULL;
-        }
 
         mmap_mutex.grab_spin();
 
@@ -651,9 +663,6 @@ RAMChunk* RAMManager::alloc_chunk(const PID initial_owner, const size_t size, bo
 
         mmap_mutex.release();
 
-        //Update process memory usage if allocation has been successful
-        if(result) process->memory_usage+= align_pgup(size);
-
     process->mutex.release();
 
     return result;
@@ -661,7 +670,7 @@ RAMChunk* RAMManager::alloc_chunk(const PID initial_owner, const size_t size, bo
 
 
 bool RAMManager::share_chunk(const PID new_owner,
-                                size_t chunk_beginning) {
+                              size_t chunk_beginning) {
     bool result;
     RAMManagerProcess* process;
 
@@ -686,18 +695,8 @@ bool RAMManager::share_chunk(const PID new_owner,
                 return false;
             }
 
-            //Check if we can allocate the requested memory without busting caps
-            if(process->memory_usage + align_pgup(chunk->size) > process->memory_cap) {
-                mmap_mutex.release();
-                process->mutex.release();
-                return false;
-            }
-
             //Share the chunk with its new owner
             result = chunk_owneradd(process, chunk);
-
-            //Update process memory usage if allocation has been successful
-            if(result) process->memory_usage+= align_pgup(chunk->size);
 
         mmap_mutex.release();
 
@@ -734,9 +733,6 @@ bool RAMManager::free_chunk(const PID former_owner,
 
             //Free the chunk
             result = chunk_ownerdel(process, chunk);
-
-            //Update process memory usage if allocation has been successful
-            if(result) process->memory_usage-= align_pgup(chunk->size);
 
         mmap_mutex.release();
 
@@ -780,3 +776,27 @@ void RAMManager::print_mem_usage(const PID target) {
 
     process->mutex.release();
 }
+
+/* PID ram_manager_add_process(PID id, ProcessProperties properties) {
+    if(!ram_manager) {
+        return PID_INVALID;
+    } else {
+        return ram_manager->add_process(id, properties);
+    }
+} */
+
+void ram_manager_remove_process(PID target) {
+    if(!ram_manager) {
+        return;
+    } else {
+        ram_manager->remove_process(target);
+    }
+}
+
+/*PID ram_manager_update_process(PID old_process, PID new_process) {
+    if(!ram_manager) {
+        return PID_INVALID;
+    } else {
+        return ram_manager->update_process(old_process, new_process);
+    }
+}*/

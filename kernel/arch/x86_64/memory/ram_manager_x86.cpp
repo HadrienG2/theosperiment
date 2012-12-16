@@ -22,8 +22,6 @@
 #include <dbgstream.h>
 
 
-RAMManager* ram_manager = NULL;
-
 bool RAMManager::chunk_liberator(RAMChunk* chunk) {
     RAMChunk *current_chunk, *next_chunk = chunk;
 
@@ -92,7 +90,7 @@ RAMManager::RAMManager(const KernelInformation& kinfo) : process_manager(NULL),
     //Find out how much map items we will need, at most, to store our memory map items
     mapitems_size = align_pgup((kinfo.kmmap_size+2)*sizeof(RAMChunk));
 
-    //Find an empty chunk of high memory large enough to store our mess... We suppose there's one.
+    //Find an empty chunk of high memory large enough to store our mess... We assume there's one.
     for(storage_index=0; storage_index<kinfo.kmmap_size; ++storage_index) {
         if(kmmap[storage_index].location < 0x100000) continue;
         if(kmmap[storage_index].nature != NATURE_FRE) continue;
@@ -185,12 +183,6 @@ RAMChunk* RAMManager::alloc_lowchunk(const PID initial_owner,
     process->mutex.grab_spin();
     proclist_mutex.release();
 
-        //Check if we can allocate the requested memory without busting caps
-        if(process->memory_usage + align_pgup(size) > process->memory_cap) {
-            process->mutex.release();
-            return NULL;
-        }
-
         mmap_mutex.grab_spin();
 
             //Find the end of low memory
@@ -209,9 +201,6 @@ RAMChunk* RAMManager::alloc_lowchunk(const PID initial_owner,
             lowmem_end->next_mapitem = highmem_map;
 
         mmap_mutex.release();
-
-        //Update process memory usage if allocation has been successful
-        if(result) process->memory_usage+= align_pgup(size);
 
     process->mutex.release();
 
@@ -242,27 +231,3 @@ void RAMManager::print_lowmmap() {
 
     mmap_mutex.release();
 }
-
-/* PID ram_manager_add_process(PID id, ProcessProperties properties) {
-    if(!ram_manager) {
-        return PID_INVALID;
-    } else {
-        return ram_manager->add_process(id, properties);
-    }
-} */
-
-void ram_manager_remove_process(PID target) {
-    if(!ram_manager) {
-        return;
-    } else {
-        ram_manager->remove_process(target);
-    }
-}
-
-/*PID ram_manager_update_process(PID old_process, PID new_process) {
-    if(!ram_manager) {
-        return PID_INVALID;
-    } else {
-        return ram_manager->update_process(old_process, new_process);
-    }
-}*/
