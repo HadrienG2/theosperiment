@@ -625,10 +625,10 @@ bool RAMManager::init_process(ProcessManager& procman) {
     //Setup an insulator associated to RAMManager
     InsulatorDescriptor ram_manager_insulator_desc;
     ram_manager_insulator_desc.insulator_name = "RAMManager";
-    //TODO : ram_manager_insulator_desc.add_process = (void*) ram_manager_add_process;
+    //TODO: ram_manager_insulator_desc.add_process = (void*) ram_manager_add_process;
     ram_manager_insulator_desc.remove_process = (void*) ram_manager_remove_process;
-    //TODO : ram_manager_insulator_desc.update_process = (void*) ram_manager_update_process;
-    //TODO : process_manager->add_insulator(PID_KERNEL, ram_manager_insulator_desc);
+    //TODO: ram_manager_insulator_desc.update_process = (void*) ram_manager_update_process;
+    //TODO: process_manager->add_insulator(PID_KERNEL, ram_manager_insulator_desc);
 
     return true;
 }
@@ -773,40 +773,21 @@ void RAMManager::print_mmap() {
     mmap_mutex.release();
 }
 
-void RAMManager::print_mem_usage(const PID target) {
-    RAMManagerProcess* process;
-    unsigned int MB_used, KB_used, miliMB_used;
-
+void RAMManager::print_proclist() {
     proclist_mutex.grab_spin();
-
-        process = find_process(target);
-        if(!process) {
-            proclist_mutex.release();
-            dbgout << txtcolor(TXT_LIGHTRED) << "Error : Unknown PID" << txtcolor(TXT_DEFAULT) << endl;
-            return;
-        }
-
-    process->mutex.grab_spin();
+ 
+        dbgout << *process_list;   
+       
     proclist_mutex.release();
-
-        MB_used = (process->memory_usage)/(1024*1024);
-        KB_used = (process->memory_usage)/1024 - MB_used*1024;
-        if((process->memory_usage)%1024) ++KB_used;
-        miliMB_used = KB_used*1000;
-        miliMB_used/= 1024;
-        dbgout << "Process " << (unsigned int) target << " uses " << MB_used << "." << miliMB_used;
-        dbgout << "MB of RAM." << endl;
-
-    process->mutex.release();
 }
 
-/* PID ram_manager_add_process(PID id, ProcessProperties properties) {
+/*PID ram_manager_add_process(PID id, ProcessProperties properties) {
     if(!ram_manager) {
         return PID_INVALID;
     } else {
         return ram_manager->add_process(id, properties);
     }
-} */
+}*/
 
 void ram_manager_remove_process(PID target) {
     if(!ram_manager) {

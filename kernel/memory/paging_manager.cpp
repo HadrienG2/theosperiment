@@ -172,24 +172,6 @@ PageChunk* PagingManager::alloc_virtual_address_space(PagingManagerProcess* targ
     return result;
 }
 
-PagingManagerProcess* PagingManager::find_or_create_pid(PID target) {
-    PagingManagerProcess* list_item;
-
-    list_item = process_list;
-    while(list_item->next_item) {
-        if(list_item->identifier == target) {
-            break;
-        }
-        list_item = list_item->next_item;
-    }
-    if(list_item->identifier != target) {
-        list_item->next_item = setup_pid(target);
-        list_item = list_item->next_item;
-    }
-
-    return list_item;
-}
-
 PagingManagerProcess* PagingManager::find_pid(const PID target) {
     PagingManagerProcess* list_item;
 
@@ -239,37 +221,27 @@ bool PagingManager::init_process(ProcessManager& procman) {
 PageChunk* PagingManager::map_chunk(const PID target,
                                     const RAMChunk* ram_chunk,
                                     const PageFlags flags) {
-    PagingManagerProcess* list_item;
+    PagingManagerProcess* process;
     PageChunk* result;
     size_t location = NULL;
     if(target == PID_KERNEL) location = ram_chunk->location; //Kernel chunks are identity-mapped
 
     proclist_mutex.grab_spin();
 
-        list_item = find_or_create_pid(target);
-        if(!list_item) {
+        process = find_pid(target);
+        if(!process) {
             proclist_mutex.release();
             return NULL;
         }
 
-        list_item->mutex.grab_spin();
-
-            //Map that chunk
-            result = chunk_mapper(list_item, ram_chunk, flags, location);
-
-            if(!result) {
-                //If mapping has failed, we might have created a PID without an address space, which is
-                //a waste of precious memory space. Liberate it.
-                if(list_item->map_pointer == NULL) {
-                    proclist_mutex.grab_spin();
-                    remove_pid(target);
-                }
-            }
-
-        list_item->mutex.release();
-
+    process->mutex.grab_spin();
     proclist_mutex.release();
 
+            //Map that chunk
+            result = chunk_mapper(process, ram_chunk, flags, location);
+
+    process->mutex.release();
+    
     return result;
 }
 

@@ -210,6 +210,7 @@ class DebugOutput {
     DebugOutput& operator<<(const KernelInformation& input); //Displays only the memory map atm
     DebugOutput& operator<<(const KernelMemoryMap& input);
     DebugOutput& operator<<(const RAMChunk& input);
+    DebugOutput& operator<<(const RAMManagerProcess& input);
     DebugOutput& operator<<(const PageChunk& input);
     DebugOutput& operator<<(const PagingManagerProcess& input);
     DebugOutput& operator<<(const MemoryChunk& input);

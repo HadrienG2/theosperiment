@@ -81,12 +81,12 @@ class RAMManager {
         RAMManager(const KernelInformation& kinfo);
 
         //Late feature initialization
-        bool init_process(ProcessManager& process_manager); //Connect the RAM manager with process management facilities
+        bool init_process(ProcessManager& process_manager); //TODO: Connect the RAM manager with process management facilities
 
         //Process management functions
-        //TODO : PID add_process(PID id, ProcessProperties properties); //Adds a new process to RAMManager's database
+        //TODO: PID add_process(PID id, ProcessProperties properties); //Adds a new process to RAMManager's database
         void remove_process(PID target); //Removes all traces of a PID in RAMManager
-        //TODO : PID update_process(PID old_process, PID new_process); //Swaps two PIDs for live updating purposes
+        //TODO: PID update_process(PID old_process, PID new_process); //Swaps two PIDs for live updating purposes
 
         //Page/chunk allocation, sharing and freeing functions
         RAMChunk* alloc_chunk(const PID initial_owner,     //Allocates a chunk of memory which is
@@ -110,17 +110,17 @@ class RAMManager {
         RAMChunk* dump_mmap() {return ram_map;}
 
         //Debug methods
+        void print_mmap(); //Print a map of memory
         void print_highmmap(); //Print a map of high memory (>=1MB)
         void print_lowmmap(); //Print a map of low memory (<1MB)
-        void print_mmap(); //Print the full memory map
-        void print_mem_usage(const PID target);
+        void print_proclist(); //Print a list of processes along with their properties
 };
 
 extern RAMManager* ram_manager;
 
 //Global shortcuts to RAMManager's process management functions (necessary because C++ does not allow direct linking to a class' method)
-//TODO : PID ram_manager_add_process(PID id, ProcessProperties properties);
+//TODO: PID ram_manager_add_process(PID id, ProcessProperties properties);
 void ram_manager_remove_process(PID target);
-//TODO : PID ram_manager_update_process(PID old_process, PID new_process);
+//TODO: PID ram_manager_update_process(PID old_process, PID new_process);
 
 #endif
