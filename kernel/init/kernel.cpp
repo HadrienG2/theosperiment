@@ -33,10 +33,13 @@ extern "C" int kmain(const KernelInformation& kinfo) {
         if(kinfo.kmmap[i].nature == NATURE_MOD) dbgout << kinfo.kmmap[i] << endl;
     }
 
-    dbgout << "* Setting up memory management..." << endl;
+    dbgout << "* Setting up memory management... ";
     RAMManager ram_manager(kinfo);
+    dbgout << "RAM ";
     PagingManager paging_manager(ram_manager);
+    dbgout << "PAGE ";
     MemAllocator mem_allocator(ram_manager, paging_manager);
+    dbgout << "MALLOC" << endl;
 
     dbgout << "* Setting up process management..." << endl;
     ProcessManager process_manager(mem_allocator);

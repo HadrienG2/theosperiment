@@ -43,8 +43,7 @@ const PageFlags PAGE_FLAGS_RX = PAGE_FLAG_R + PAGE_FLAG_X;
 const PageFlags PAGE_FLAGS_RW = PAGE_FLAG_R + PAGE_FLAG_W;
 
 
-//Represents an item in a map of page translations, managed as a chained list at the moment.
-//Size should be a divisor of 0x1000 (current size : 0x40) to ease the early allocation process.
+//Represents an item in a map of page translations, managed as a linked list at the moment.
 struct PageChunk {
     size_t location;
     size_t size;
@@ -55,9 +54,6 @@ struct PageChunk {
     //WARNING : PageChunk properties after this point are nonstandard, subject to change without
     //warnings, and should not be read or manipulated by external software.
     PageChunk* next_mapitem;
-    uint32_t padding;
-    uint64_t padding2;
-    uint64_t padding3;
     PageChunk() : location(0),
                   size(0),
                   flags(PAGE_FLAGS_RW),
@@ -71,13 +67,12 @@ struct PageChunk {
     //by the C++ compiler, but well...
     bool operator==(const PageChunk& param) const;
     bool operator!=(const PageChunk& param) const {return !(*this==param);}
-} __attribute__((packed));
+};
 
 
 //There is one map of page translations per process. Since there probably won't ever be more than
 //1000 processes running and paging-related requests don't occur that often, a linked
-//list sounds like the most sensible option because of its flexibility. We can still change it later.
-//As usual, size should be a divisor of 0x1000 (current size : 0x20)
+//list sounds like the most sensible option because of its flexibility.
 struct PagingManagerProcess {
     PageChunk* map_pointer;
     size_t pml4t_location;
