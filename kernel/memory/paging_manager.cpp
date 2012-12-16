@@ -172,6 +172,26 @@ PageChunk* PagingManager::alloc_virtual_address_space(PagingManagerProcess* targ
     return result;
 }
 
+PageChunk* PagingManager::chunk_mapper(PagingManagerProcess* target,
+                                         const RAMChunk* ram_chunk,
+                                         const PageFlags flags,
+                                         size_t location) {
+    //The location parameter is optional. By default, it is NULL, meaning that the chunk may be
+    //mapped at any location and that non-contiguous RAM chunks will be mapped as a
+    //contiguous page chunk.
+    //If location is nonzero, the RAM chunk will be mapped at the specified location in a fashion
+    //that strictly follows its physical layout with only an address offset
+
+    //First, prevent non-kernel processes from handling K pages
+    if((target->identifier != PID_KERNEL) && (flags & PAGE_FLAG_K)) return NULL;
+
+    if(location == NULL) {
+        return chunk_mapper_contig(target, ram_chunk, flags);
+    } else {
+        return chunk_mapper_identity(target, ram_chunk, flags, location-ram_chunk->location);
+    }
+}
+
 PagingManagerProcess* PagingManager::find_pid(const PID target) {
     PagingManagerProcess* list_item;
 

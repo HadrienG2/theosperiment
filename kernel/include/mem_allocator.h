@@ -53,24 +53,22 @@ class MemAllocator {
         size_t allocator(MallocProcess* target,
                          const size_t size,
                          const PageFlags flags,
-                         const bool force);
+                         const bool force = false);
         size_t allocator_shareable(MallocProcess* target,
                                    size_t size,
                                    const PageFlags flags,
-                                   const bool force);
+                                   const bool force = false);
         bool liberator(MallocProcess* target, const size_t location);
         size_t share(MallocProcess* source,
                      const size_t location,
                      MallocProcess* target,
                      const PageFlags flags,
-                     const bool force);
+                     const bool force = false);
         MemoryChunk* shared_already(RAMChunk* to_share, MallocProcess* target_owner);
 
         //PID setup
-        MallocProcess* find_pid(const PID target); //Find the map list entry associated to this PID,
-                                                   //return NULL if it does not exist.
-        MallocProcess* find_or_create_pid(PID target,  //Same as above, but try to create the entry
-                                          bool force); //if it does not exist yet
+        MallocProcess* find_pid(const PID target, bool force = false); //Find the map list entry associated to this PID,
+                                                                         //return NULL if it does not exist
         MallocProcess* setup_pid(PID target); //Create management structures for a new PID
         bool remove_pid(PID target); //Discards management structures for this PID
 

@@ -29,26 +29,6 @@
 
 PagingManager* paging_manager = NULL;
 
-PageChunk* PagingManager::chunk_mapper(PagingManagerProcess* target,
-                                         const RAMChunk* ram_chunk,
-                                         const PageFlags flags,
-                                         size_t location) {
-    //The location parameter is optional. By default, it is NULL, meaning that the chunk may be
-    //mapped at any location and that non-contiguous RAM chunks will be mapped as a
-    //contiguous page chunk.
-    //If location is nonzero, the RAM chunk will be mapped at the specified location in a fashion
-    //that strictly follows its physical layout with only an address offset
-
-    //First, prevent non-kernel processes from handling K pages
-    if((target->identifier != PID_KERNEL) && (flags & PAGE_FLAG_K)) return NULL;
-
-    if(location == NULL) {
-        return chunk_mapper_contig(target, ram_chunk, flags);
-    } else {
-        return chunk_mapper_identity(target, ram_chunk, flags, location-ram_chunk->location);
-    }
-}
-
 PageChunk* PagingManager::chunk_mapper_contig(PagingManagerProcess* target,
                                                 const RAMChunk* ram_chunk,
                                                 const PageFlags flags) {
@@ -189,9 +169,6 @@ bool PagingManager::chunk_liberator(PagingManagerProcess* target,
         free_mapitems = current_item;
         current_item = next_item;
     }
-
-    //Check if this PID's address space is empty, if so delete it.
-    if(target->map_pointer == NULL) remove_pid(target->identifier);
 
     return true;
 }

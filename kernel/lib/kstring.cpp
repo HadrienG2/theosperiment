@@ -75,6 +75,8 @@ void KString::clear() {
     current_location = 0;
 }
 
+#include <dbgstream.h>
+
 void KString::set_length(size_t desired_length, bool keep_contents) {
     if(len == desired_length) return;
 
