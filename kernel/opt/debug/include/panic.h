@@ -19,8 +19,7 @@
 #ifndef _PANIC_H_
 #define _PANIC_H_
 
-extern const char* PANIC_IMPOSSIBLE_KERNEL_FLAGS; //Someone attempted to force allocating memory
-                                                  //to kernel with anything but RW-- flags
+extern const char* PANIC_NONEXISTENT_PID; //Someone attempted to force something upon a nonexistent PID
 extern const char* PANIC_IMPOSSIBLE_SHARING; //Someone attempted to force an impossible sharing
                                              //operation
 extern const char* PANIC_MAXIMAL_SHARING_REACHED; //Someone has attempted to share a single page of

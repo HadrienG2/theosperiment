@@ -21,8 +21,7 @@
 
 const char* PANIC_TITLE = "Oh my god, it sounds like the kernel just died !";
 
-const char* PANIC_IMPOSSIBLE_KERNEL_FLAGS = "MemAllocator : Allocation of memory to the kernel with\
- anything but RW- flags has been forced";
+const char* PANIC_NONEXISTENT_PID = "MemAllocator : An operation has been forced on a nonexistent PID";
 const char* PANIC_IMPOSSIBLE_SHARING = "MemAllocator : An impossible sharing operation (nonexistent\
  shared object, nonexistent source PID, object has not been allocated as shareable, impossible to\
  create recipient) has been forced";

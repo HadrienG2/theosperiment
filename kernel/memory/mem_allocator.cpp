@@ -321,8 +321,6 @@ bool MemAllocator::liberator(MallocProcess* target, const size_t location) {
         }
         if(target->free_map == NULL) {
             //Nothing left in the target's free map, so our job is done.
-            //If this PID's busy_map is now empty, its free_map is empty too : remove it
-            if(target->busy_map == NULL) remove_pid(target->identifier);
             return true;
         }
         previous_item = target->free_map;
@@ -336,9 +334,6 @@ bool MemAllocator::liberator(MallocProcess* target, const size_t location) {
             }
             if(previous_item->next_item) previous_item = previous_item->next_item;
         }
-
-        //If this PID's busy_map is now empty, its free_map is empty too : remove it
-        if(target->busy_map == NULL) remove_pid(target->identifier);
         return true;
     }
 
@@ -524,7 +519,7 @@ MemoryChunk* MemAllocator::shared_already(RAMChunk* to_share, MallocProcess* tar
     return map_parser;
 }
 
-MallocProcess* MemAllocator::find_pid(const PID target) {
+MallocProcess* MemAllocator::find_pid(const PID target, bool force) {
     MallocProcess* process;
 
     process = process_list;
@@ -532,30 +527,8 @@ MallocProcess* MemAllocator::find_pid(const PID target) {
         if(process->identifier == target) break;
         process = process->next_item;
     }
-
-    return process;
-}
-
-MallocProcess* MemAllocator::find_or_create_pid(PID target, const bool force) {
-    MallocProcess* process;
-
-    if(!process_list) {
-        process_list = setup_pid(target);
-        return process_list;
-    }
-    process = process_list;
-    while(process->next_item) {
-        if(process->identifier == target) break;
-        process = process->next_item;
-    }
-    if(process->identifier != target) {
-        process->next_item = setup_pid(target);
-        process = process->next_item;
-    }
-    if((force) && (process == NULL)) {
-        liberate_memory();
-        return find_or_create_pid(target, force);
-    }
+    
+    if((!process) && force) panic(PANIC_NONEXISTENT_PID);
 
     return process;
 }
@@ -638,6 +611,7 @@ MemAllocator::MemAllocator(RAMManager& ram_man, PagingManager& page_man) : ram_m
     //Allocate support structures
     alloc_mapitems();
     alloc_process_descs();
+    process_list = setup_pid(PID_KERNEL);
 
     //Activate global memory allocation service
     mem_allocator = this;
@@ -669,7 +643,7 @@ size_t MemAllocator::malloc(PID target, const size_t size, const PageFlags flags
     
     proclist_mutex.grab_spin();
 
-        process = find_or_create_pid(target, force);
+        process = find_pid(target, force);
         if(!process) {
             proclist_mutex.release();
             return NULL;
@@ -705,7 +679,7 @@ size_t MemAllocator::malloc_shareable(PID target,
 
     proclist_mutex.grab_spin();
 
-        process = find_or_create_pid(target, force);
+        process = find_pid(target, force);
         if(!process) {
             proclist_mutex.release();
             return NULL;
@@ -716,7 +690,7 @@ size_t MemAllocator::malloc_shareable(PID target,
             if(process->pool_location) {
                 if(process->pool_size < size) {
                     result = NULL;
-                    if(force) panic(PANIC_OUT_OF_MEMORY); //TODO : Make this less brutal
+                    if(force) panic(PANIC_OUT_OF_MEMORY);
                 } else {
                     result = process->pool_location;
                     process->pool_location+= size;
@@ -724,11 +698,6 @@ size_t MemAllocator::malloc_shareable(PID target,
                 }
             } else {
                 result = allocator_shareable(process, size, flags, force);
-                if(!result) {
-                    //If mapping has failed, we might have created a PID without an address space,
-                    //which is a waste of precious memory space. Liberate it.
-                    if(!(process->free_map) && !(process->busy_map)) remove_pid(target);
-                }
             }
 
         process->mutex.release();
@@ -773,13 +742,12 @@ size_t MemAllocator::share(PID source,
     //PID source shares something with PID target
     proclist_mutex.grab_spin();
 
-        source_process = find_pid(source);
+        source_process = find_pid(source, force);
         if(!source_process) {
             proclist_mutex.release();
-            if(force) panic(PANIC_IMPOSSIBLE_SHARING); //Stub !
             return NULL;
         }
-        target_process = find_or_create_pid(target, force);
+        target_process = find_pid(target, force);
         if(!target_process) {
             proclist_mutex.release();
             return NULL;
@@ -789,12 +757,6 @@ size_t MemAllocator::share(PID source,
         target_process->mutex.grab_spin(); //the same order.
 
             result = share(source_process, location, target_process, flags, force);
-
-            if(!result) {
-                //If mapping has failed, we might have created a PID without an address space,
-                //which is a waste of precious memory space. Liberate it.
-                if(!(target_process->free_map) && !(target_process->busy_map)) remove_pid(target);
-            }
 
         target_process->mutex.release();
         source_process->mutex.release();
@@ -926,7 +888,6 @@ void MemAllocator::print_freemap(const PID identifier) {
 void* kalloc(PID target, const size_t size, const PageFlags flags, const bool force) {
     if(!mem_allocator) {
         if(!force) return NULL;
-        //TODO : Something cleaner
         panic(PANIC_MM_UNINITIALIZED);
     }
     return (void*) mem_allocator->malloc(target, size, flags, force);
@@ -935,7 +896,6 @@ void* kalloc(PID target, const size_t size, const PageFlags flags, const bool fo
 void* kalloc_shareable(PID target, size_t size, const PageFlags flags, const bool force) {
     if(!mem_allocator) {
         if(!force) return NULL;
-        //TODO : Something cleaner
         panic(PANIC_MM_UNINITIALIZED);
     }
     return (void*) mem_allocator->malloc_shareable(target, size, flags, force);
@@ -953,7 +913,6 @@ void* kshare(const PID source,
              const bool force) {
     if(!mem_allocator) {
         if(!force) return NULL;
-        //TODO : Clean this up
         panic(PANIC_MM_UNINITIALIZED);
     }
     return (void*) mem_allocator->share(source, (size_t) location, target, flags, force);
