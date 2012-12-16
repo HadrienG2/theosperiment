@@ -31,7 +31,7 @@ bool PagingManager::alloc_mapitems() {
 
     //Fill it with initialized map items
     current_item = (PageChunk*) (allocated_chunk->location);
-    for(size_t used_mem = sizeof(PageChunk); used_mem >= allocated_chunk->size; used_mem+=sizeof(PageChunk)) {
+    for(size_t used_mem = sizeof(PageChunk); used_mem <= allocated_chunk->size; used_mem+= sizeof(PageChunk)) {
         current_item = new(current_item) PageChunk;
         current_item->next_buddy = current_item+1;
         ++current_item;
@@ -45,24 +45,23 @@ bool PagingManager::alloc_mapitems() {
 }
 
 bool PagingManager::alloc_process_descs() {
-    size_t used_space;
-    RAMChunk* allocated_page;
+    RAMChunk* allocated_chunk;
     PagingManagerProcess* current_item;
 
     //Allocate a page of memory
-    allocated_page = ram_manager->alloc_chunk(PID_KERNEL);
-    if(!allocated_page) return false;
+    allocated_chunk = ram_manager->alloc_chunk(PID_KERNEL);
+    if(!allocated_chunk) return false;
 
     //Fill it with initialized list items
-    current_item = (PagingManagerProcess*) (allocated_page->location);
-    for(used_space = sizeof(PagingManagerProcess); used_space < PG_SIZE; used_space+=sizeof(PagingManagerProcess)) {
+    current_item = (PagingManagerProcess*) (allocated_chunk->location);
+    for(size_t used_mem = sizeof(PagingManagerProcess); used_mem <= allocated_chunk->size; used_mem+= sizeof(PagingManagerProcess)) {
         current_item = new(current_item) PagingManagerProcess();
         current_item->next_item = current_item+1;
         ++current_item;
     }
-    current_item = new(current_item) PagingManagerProcess();
+    --current_item;
     current_item->next_item = free_process_descs;
-    free_process_descs = (PagingManagerProcess*) (allocated_page->location);
+    free_process_descs = (PagingManagerProcess*) (allocated_chunk->location);
 
     //All good !
     return true;

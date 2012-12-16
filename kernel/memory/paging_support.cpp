@@ -30,8 +30,8 @@ PageChunk* PageChunk::find_thischunk(const size_t location) const {
     return current_item;
 }
 
-unsigned int PageChunk::length() const {
-    unsigned int result;
+size_t PageChunk::length() const {
+    size_t result;
     PageChunk* current_item = (PageChunk*) this;
 
     while(current_item) {
