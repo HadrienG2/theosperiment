@@ -368,8 +368,7 @@ uint64_t PagingManager::x86flags(PageFlags flags) {
 PagingManager::PagingManager(RAMManager& ram_man) : ram_manager(&ram_man),
                                                     process_manager(NULL),
                                                     free_mapitems(NULL),
-                                                    free_process_descs(NULL),
-                                                    malloc_active(false) {
+                                                    free_process_descs(NULL) {
     //Allocate some data storage space.
     alloc_process_descs();
     alloc_mapitems();

@@ -28,7 +28,7 @@
 extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << txtcolor(TXT_WHITE) << "* Kernel loaded, " << kinfo.cpu_info.core_amount << " CPU core(s) detected" << txtcolor(TXT_DEFAULT) << endl;
 
-    dbgout << "* Setting up memory management: ram page malloc..." << move_rel(-18,0);
+    dbgout << "* Setting up memory management components: ram page malloc..." << move_rel(-18,0);
     RAMManager ram_manager(kinfo);
     dbgout << "RAM ";
     PagingManager paging_manager(ram_manager);
@@ -39,7 +39,7 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << "* Setting up process management..." << endl;
     ProcessManager process_manager(mem_allocator);
 
-    dbgout << txtcolor(TXT_WHITE) << "* Kernel ready !" << txtcolor(TXT_DEFAULT) << endl;
+    dbgout << txtcolor(TXT_WHITE) << "* Kernel ready !" << txtcolor(TXT_DEFAULT) << endl << bp();
 
     //Now, do something useful with that kernel ! :P
     KString test_file("*** Process properties v1 ***\nTest:\n toto=3< >\"\\\"\\\n \"[ ]{{\n }}");

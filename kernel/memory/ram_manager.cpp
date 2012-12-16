@@ -124,6 +124,52 @@ bool RAMManager::alloc_pids() {
     return true;
 }
 
+bool RAMManager::alloc_procitems() {
+    size_t remaining_freemem;
+    RAMManagerProcess* current_item;
+    RAMChunk *allocated_chunk, *free_chunk = NULL;
+
+    //Get some free memory to store process descriptors in or abort
+    allocated_chunk = free_mem;
+    if(!allocated_chunk) return false;
+    remaining_freemem = allocated_chunk->size - PG_SIZE;
+    allocated_chunk->size = PG_SIZE;
+    allocated_chunk->owners = PID_KERNEL;
+
+    //Store our brand new process descritors in the allocated mem
+    current_item = (RAMManagerProcess*) (allocated_chunk->location);
+    for(size_t used_mem = sizeof(RAMManagerProcess); used_mem <= allocated_chunk->size; used_mem+= sizeof(RAMManagerProcess)) {
+        current_item = new(current_item) RAMManagerProcess();
+        current_item->next_item = current_item+1;
+        ++current_item;
+    }
+    --current_item;
+    current_item->next_item = free_procitems;
+    free_procitems = (RAMManagerProcess*) (allocated_chunk->location);
+
+    //Maybe there is some spare memory after allocating our chunk ?
+    //If so, don't forget it.
+    if(remaining_freemem) {
+        free_chunk = free_mapitems;
+        free_mapitems = free_mapitems->next_mapitem;
+        free_chunk->location = allocated_chunk->location+PG_SIZE;
+        free_chunk->size = remaining_freemem;
+        free_chunk->next_mapitem = allocated_chunk->next_mapitem;
+        free_chunk->next_buddy = allocated_chunk->next_buddy;
+        allocated_chunk->next_mapitem = free_chunk;
+    }
+
+    //Update free memory information
+    if(free_chunk) {
+        free_mem = free_chunk;
+    } else {
+        free_mem = allocated_chunk->next_buddy;
+    }
+    find_process(PID_KERNEL)->memory_usage+= allocated_chunk->size;
+    allocated_chunk->next_buddy = NULL;
+
+    return true;
+}
 
 RAMChunk* RAMManager::chunk_allocator(RAMManagerProcess* owner,
                                       const size_t size,
@@ -411,24 +457,13 @@ void RAMManager::fill_mmap(const KernelInformation& kinfo) {
 
 
 RAMManagerProcess* RAMManager::find_process(const PID target) {
-    if(malloc_active) {
-        RAMManagerProcess* proc_parser;
-
-        proc_parser = process_list;
-        while(proc_parser) {
-            if(proc_parser->identifier == target) break;
-            proc_parser = proc_parser->next_item;
-        }
-
-        return proc_parser;
-    } else {
-        //RAMManagerProcesses only make sense once the memory allocator is active. Before that, this
-        //will just return a dummy value.
-        static RAMManagerProcess dummy_process;
-        dummy_process = RAMManagerProcess();
-        dummy_process.identifier = (PID) target;
-        return &dummy_process;
+    RAMManagerProcess* proc_parser = process_list;
+    while(proc_parser) {
+        if(proc_parser->identifier == target) break;
+        proc_parser = proc_parser->next_item;
     }
+
+    return proc_parser;
 }
 
 
@@ -501,13 +536,12 @@ RAMChunk* RAMManager::generate_chunk(const KernelInformation& kinfo, size_t& ind
 }
 
 
-bool RAMManager::generate_process_list() {
-    //Called once memory allocation is available, this function generates the "process list", which
-    //at this point only includes an entry about the kernel
+bool RAMManager::initialize_process_list() {
+    //This function generates the "process list", which at this point only includes a kernel entry
+    static RAMManagerProcess kernel_process;    
     RAMChunk* map_parser;
     
-    process_list = new RAMManagerProcess();
-    if(!process_list) return false;
+    process_list = &kernel_process;
 
     process_list->identifier = PID_KERNEL;
     map_parser = ram_map;
@@ -583,12 +617,6 @@ bool RAMManager::split_chunk(RAMChunk* chunk, const size_t position) {
     return true;
 }
 
-
-bool RAMManager::init_malloc() {
-    //Enable malloc-based features of RAMManager here
-    if(generate_process_list()) malloc_active = true;
-    return malloc_active;
-}
 
 bool RAMManager::init_process(ProcessManager& procman) {
     //Initialize process management-related functionality here

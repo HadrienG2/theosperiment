@@ -43,8 +43,7 @@ class RAMManager {
         RAMChunk* free_lowmem; //A noncontiguous chunk representing free low memory
         RAMChunk* free_mem; //A noncontiguous chunk representing free high memory
 
-        //Higher-level functionality
-        bool malloc_active; //Tells if kernel-wide allocation through kalloc is available
+        //Process management
         OwnerlessMutex proclist_mutex;
         RAMManagerProcess* process_list;
 
@@ -53,10 +52,13 @@ class RAMManager {
                                  //ready for use in a memory map
         PIDs* free_pids; //A collection of spare PIDs objects forming a dummy PIDs, ready for use
                          //in a memory map
+        RAMManagerProcess* free_procitems; //A collection of space process descriptors forming a
+                                           //dummy list, ready for use in the process list
 
         //Support methods used by public methods
-        bool alloc_mapitems(RAMChunk* free_mem_override = NULL); //Get some memory map storage space
-        bool alloc_pids(); //Get some PIDs storage space
+        bool alloc_mapitems(RAMChunk* free_mem_override = NULL);
+        bool alloc_pids();
+        bool alloc_procitems();
         RAMChunk* chunk_allocator(RAMManagerProcess* owner,
                                   const size_t size,
                                   RAMChunk*& free_mem_used,
@@ -69,7 +71,7 @@ class RAMManager {
         RAMManagerProcess* find_process(const PID target);
         void fix_overlap(RAMChunk* first_chunk, RAMChunk* second_chunk);
         RAMChunk* generate_chunk(const KernelInformation& kinfo, size_t& index);
-        bool generate_process_list();
+        bool initialize_process_list();
         void killer(RAMManagerProcess* target);
         void merge_with_next(RAMChunk* first_item); //Merge two consecutive elements of
                                                        //the memory map (in order to save space)
@@ -79,7 +81,6 @@ class RAMManager {
         RAMManager(const KernelInformation& kinfo);
 
         //Late feature initialization
-        bool init_malloc(); //Run once memory allocation is available
         bool init_process(ProcessManager& process_manager); //Connect the RAM manager with process management facilities
 
         //Process management functions

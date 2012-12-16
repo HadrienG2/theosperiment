@@ -71,10 +71,10 @@ RAMManager::RAMManager(const KernelInformation& kinfo) : process_manager(NULL),
                                                           highmem_map(NULL),
                                                           free_lowmem(NULL),
                                                           free_mem(NULL),
-                                                          malloc_active(false),
                                                           process_list(NULL),
                                                           free_mapitems(NULL),
-                                                          free_pids(NULL) {
+                                                          free_pids(NULL),
+                                                          free_procitems(NULL) {
     //This function...
     //  1/Determines the amount of memory necessary to store the management structures
     //  2/Find this amount of free space in the memory map
@@ -155,10 +155,14 @@ RAMManager::RAMManager(const KernelInformation& kinfo) : process_manager(NULL),
     }
     current_item->owners = PID_KERNEL;
     current_item->next_buddy = NULL;
+    
+    //Startup process management services
+    initialize_process_list();
 
     //Allocate extra map items and PIDs right away
     alloc_mapitems();
     alloc_pids();
+    alloc_procitems();
 
     //Activate global RAM memory management service
     ram_manager = this;
