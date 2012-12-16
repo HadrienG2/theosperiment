@@ -505,13 +505,9 @@ bool RAMManager::generate_process_list() {
     //Called once memory allocation is available, this function generates the "process list", which
     //at this point only includes an entry about the kernel
     RAMChunk* map_parser;
-
-    proclist_mutex.grab_spin();
+    
     process_list = new RAMManagerProcess();
-    if(!process_list) {
-        proclist_mutex.release();
-        return false;
-    }
+    if(!process_list) return false;
 
     process_list->identifier = PID_KERNEL;
     map_parser = ram_map;
@@ -519,8 +515,7 @@ bool RAMManager::generate_process_list() {
         if(map_parser->has_owner(PID_KERNEL)) process_list->memory_usage+= map_parser->size;
         map_parser = map_parser->next_mapitem;
     }
-
-    proclist_mutex.release();
+    
     return true;
 }
 

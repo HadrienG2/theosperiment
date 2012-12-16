@@ -26,14 +26,9 @@
 
 
 extern "C" int kmain(const KernelInformation& kinfo) {
-    dbgout << set_window(screen_win);
     dbgout << txtcolor(TXT_WHITE) << "* Kernel loaded, " << kinfo.cpu_info.core_amount << " CPU core(s) detected" << txtcolor(TXT_DEFAULT) << endl;
-    dbgout << "* Probing kernel modules..." << endl;
-    for(unsigned int i=0; i<kinfo.kmmap_size; ++i) {
-        if(kinfo.kmmap[i].nature == NATURE_MOD) dbgout << kinfo.kmmap[i] << endl;
-    }
 
-    dbgout << "* Setting up memory management... ";
+    dbgout << "* Setting up memory management: ram page malloc..." << move_rel(-18,0);
     RAMManager ram_manager(kinfo);
     dbgout << "RAM ";
     PagingManager paging_manager(ram_manager);
