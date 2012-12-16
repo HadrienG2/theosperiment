@@ -27,23 +27,22 @@
 MemAllocator* mem_allocator = NULL;
 
 bool MemAllocator::alloc_mapitems() {
-    size_t used_space;
-    RAMChunk* allocated_page;
+    RAMChunk* allocated_chunk;
     MemoryChunk* current_item;
 
     //Allocate a page of memory
-    allocated_page = ram_manager->alloc_chunk(PID_KERNEL);
-    if(!allocated_page) return false;
+    allocated_chunk = ram_manager->alloc_chunk(PID_KERNEL);
+    if(!allocated_chunk) return false;
 
     //Fill it with initialized map items
-    free_mapitems = (MemoryChunk*) (allocated_page->location);
+    free_mapitems = (MemoryChunk*) (allocated_chunk->location);
     current_item = free_mapitems;
-    for(used_space = sizeof(MemoryChunk); used_space < PG_SIZE; used_space+=sizeof(MemoryChunk)) {
+    for(size_t used_mem = sizeof(MemoryChunk); used_mem <= allocated_chunk->size; used_mem+= sizeof(MemoryChunk)) {
         current_item = new(current_item) MemoryChunk();
         current_item->next_item = current_item+1;
         ++current_item;
     }
-    current_item = new(current_item) MemoryChunk();
+    --current_item;
     current_item->next_item = NULL;
 
     //All good !
@@ -51,23 +50,22 @@ bool MemAllocator::alloc_mapitems() {
 }
 
 bool MemAllocator::alloc_process_descs() {
-    size_t used_space;
-    RAMChunk* allocated_page;
+    RAMChunk* allocated_chunk;
     MallocProcess* current_item;
 
     //Allocate a page of memory
-    allocated_page = ram_manager->alloc_chunk(PID_KERNEL);
-    if(!allocated_page) return false;
+    allocated_chunk = ram_manager->alloc_chunk(PID_KERNEL);
+    if(!allocated_chunk) return false;
 
     //Fill it with initialized list items
-    free_process_descs = (MallocProcess*) (allocated_page->location);
+    free_process_descs = (MallocProcess*) (allocated_chunk->location);
     current_item = free_process_descs;
-    for(used_space = sizeof(MallocProcess); used_space < PG_SIZE; used_space+=sizeof(MallocProcess)) {
+    for(size_t used_mem = sizeof(MallocProcess); used_mem <= allocated_chunk->size; used_mem+= sizeof(MallocProcess)) {
         current_item = new(current_item) MallocProcess();
         current_item->next_item = current_item+1;
         ++current_item;
     }
-    current_item = new(current_item) MallocProcess();
+    --current_item;
     current_item->next_item = NULL;
 
     //All good !

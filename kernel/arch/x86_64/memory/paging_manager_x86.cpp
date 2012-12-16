@@ -371,10 +371,8 @@ PagingManager::PagingManager(RAMManager& ram_man) : ram_manager(&ram_man),
                                                     free_process_descs(NULL),
                                                     malloc_active(false) {
     //Allocate some data storage space.
-    dbgout << "Allocating support structures... ";
     alloc_process_descs();
     alloc_mapitems();
-    dbgout << "OK. ";
 
     //Create management structures for the kernel.
     process_list = free_process_descs;
