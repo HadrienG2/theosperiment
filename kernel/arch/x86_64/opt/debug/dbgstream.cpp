@@ -86,10 +86,18 @@ DebugBreakpoint bp_streg(const uint64_t rax, const uint64_t rbx, const uint64_t 
   return bp_buff;
 }
 
-DebugCursorMover movxy(const unsigned int x, const unsigned int y) {
+DebugCursorMover move_to(const int x, const int y) {
   cursmov_buff.type = ABSOLUTE;
-  cursmov_buff.col_off = (unsigned int) x;
-  cursmov_buff.row_off = (unsigned int) y;
+  cursmov_buff.col_off = (int) x;
+  cursmov_buff.row_off = (int) y;
+
+  return cursmov_buff;
+}
+
+DebugCursorMover move_rel(const int x, const int y) {
+  cursmov_buff.type = RELATIVE;
+  cursmov_buff.col_off = (int) x;
+  cursmov_buff.row_off = (int) y;
 
   return cursmov_buff;
 }

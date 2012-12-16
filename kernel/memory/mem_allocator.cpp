@@ -635,6 +635,7 @@ MemAllocator::MemAllocator(RAMManager& ram_man, PagingManager& page_man) : ram_m
                                                                            process_list(NULL),
                                                                            free_mapitems(NULL),
                                                                            free_process_descs(NULL) {
+    //Allocate support structures
     alloc_mapitems();
     alloc_process_descs();
 
@@ -667,7 +668,7 @@ size_t MemAllocator::malloc(PID target, const size_t size, const PageFlags flags
     if(!size) return NULL;
     MallocProcess* process;
     size_t result;
-
+    
     proclist_mutex.grab_spin();
 
         process = find_or_create_pid(target, force);

@@ -100,7 +100,8 @@ class DebugCursorMover : DebugManipulator {
         int col_off;
         int row_off;
 };
-DebugCursorMover movxy(const unsigned int x, const unsigned int y);
+DebugCursorMover move_to(const int x, const int y);
+DebugCursorMover move_rel(const int x, const int y);
 
 //This manipulator is used to trigger a breakpoint from Bochs, while maybe leaving some interesting
 //information in the registers
