@@ -641,8 +641,6 @@ MemAllocator::MemAllocator(RAMManager& ram_man, PagingManager& page_man) : ram_m
 
     //Activate global memory allocation service
     mem_allocator = this;
-    ram_manager->init_malloc();
-    paging_manager->init_malloc();
 }
 
 bool MemAllocator::init_process(ProcessManager& procman) {

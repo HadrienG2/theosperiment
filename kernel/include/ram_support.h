@@ -80,8 +80,7 @@ struct RAMChunk {
     bool operator!=(const RAMChunk& param) const {return !(*this==param);}
 };
 
-//This structure is used to manage higher-level functionality of RAMManager after ProcessManager
-//has been initialized.
+//This structure is used for the process management functionality of RAMManager.
 struct RAMManagerProcess {
     OwnerlessMutex mutex;
     PID identifier;

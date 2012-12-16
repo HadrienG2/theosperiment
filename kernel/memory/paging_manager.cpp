@@ -221,13 +221,6 @@ bool PagingManager::map_k_chunks(PagingManagerProcess* target) {
     return true;
 }
 
-bool PagingManager::init_malloc() {
-    //For now, there are no malloc-based features in PagingManager, so we just set a flag on.
-    malloc_active = true;
-
-    return true;
-}
-
 bool PagingManager::init_process(ProcessManager& procman) {
     //Initialize process management-related functionality
     process_manager = &procman;

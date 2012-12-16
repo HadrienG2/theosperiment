@@ -43,7 +43,6 @@ class PagingManager {
         PageChunk* free_mapitems; //A collection of ready to use paging memory map items
                                   //(chained using next_buddy)
         PagingManagerProcess* free_process_descs; //A collection of ready to use process descriptors
-        bool malloc_active; //Tells if kernel-wide allocation through kalloc is available
 
         //Support methods
         bool alloc_mapitems(); //Get some memory map storage space
@@ -83,7 +82,6 @@ class PagingManager {
         PagingManager(RAMManager& ram_manager);
 
         //Late feature initialization
-        bool init_malloc(); //Run once memory allocation is available
         bool init_process(ProcessManager& process_manager); //Run once process management is available
 
         //Process management functions
