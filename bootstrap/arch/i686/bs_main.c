@@ -39,37 +39,14 @@ int bootstrap_longmode(const multiboot_info_t* mbd, const uint32_t magic) {
         die(MULTIBOOT_MISSING);
     }
     
-    //Silly birthday text (cake from http://chris.com/ascii/index.php?art=events/birthday, with adjustments)
-    movecur_abs(0, 2);
-    set_attr(TXT_WHITE);
-    print_str("                                      )\n");
-    print_str("                                     (*)\n");
-    print_str("                        )             |               )\n");
-    print_str("                       (*)           |~|             (*)\n");
-    print_str("                        |            | |              |\n");
-    print_str("                      ,|~|a@@@@@@@@@@| |@@@@@@@@@@@@a|~|.\n");
-    print_str("                 .,a@@@| |@@@@@@@@@@@@@@@@@@@@@@@@@@@| |@@@@a,.\n");
-    print_str("               ,a@@@@@@| |@@@@@@@@@@@@.@@@@@@@@@@@@@@| |@@@@@@@a,\n");
-    print_str("              a@@@@@@@@@@@@@@@@@@@@@' . `@@@@@@@@@@@@@@@@@@@@@@@@a\n");
-    print_str("              ;`@@@@@@@@@@@@@@@@@@'   .   `@@@@@@@@@@@@@@@@@@@@@';\n");
-    print_str("              ;@@@`@@@@@@@@@@@@@'     .     `@@@@@@@@@@@@@@@@'@@@;\n");
-    print_str("              ;@@@;,.aaaaaaaaaa      @.@      aaaaa,,aaaaaaa,;@@@;\n");
-    print_str("              ;;@;;@@@@@@@@;;;@    @@ . @@    ;@@@;;;@@@@@@;;;;@@;\n");
-    print_str("              ;;;;;@@@@;@@;;;;@  @@   .   @@  ;;@;;;;@@;@@@;;;;;;;\n");
-    print_str("              ;;;;;;@@;;;;;;;;;@@     .     @@;;;;;;;;;;;@@;;;;@;;\n");
-    print_str("              ;;;;;;;;;;@;;;;;;     ,/ \\,     ;;;;;;;;;;;;;;;;@@@;\n");
-    print_str("              ;;;;;;;;;@@;;;;;;   ,       ,   ;;;;;;;;;;;;;;;;@@;;\n");
-    print_str("              `;;;;;;;;@@;;;;;;  :         :  ;;;;;;;;;;;;;;;;;;;'\n");
-    print_str("                  `;;;;;;;;;;;;,/           \\,;;;;;;;;;;;;;;;'\n");
-    
-    /*//Some silly text
+    //Some silly text
     movecur_abs(26, 11);
     set_attr(TXT_WHITE);
     print_str("Greetings, OS|perimenter !");
     movecur_rel(-20, +1);
     set_attr(TXT_LIGHTPURPLE);
     print_str("Please wait...\n\n");
-    set_attr(TXT_LIGHTRED);*/
+    set_attr(TXT_LIGHTRED);
 
     //Generate kernel information and check CPU features (we need long mode, SSE2 and NX to be available)
     kinfo = kinfo_gen(mbd);
