@@ -39,14 +39,7 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << "* Setting up process management..." << endl;
     ProcessManager process_manager(mem_allocator);
     
-    //Silly birthday text :P
-    dbgout << txtcolor(TXT_WHITE) << "* " << txtcolor(TXT_LIGHTRED) << "Ha" << txtcolor(TXT_YELLOW) << "pp" << txtcolor(TXT_LIGHTGREEN) << "y ";
-    dbgout << txtcolor(TXT_LIGHTCOBALT) << "bi" << txtcolor(TXT_LIGHTBLUE) << "rt" << txtcolor(TXT_LIGHTRED) << "hd" << txtcolor(TXT_YELLOW) << "ay";
-    dbgout << txtcolor(TXT_LIGHTGREEN) << ", " << txtcolor(TXT_LIGHTCOBALT) << "OS" << txtcolor(TXT_LIGHTBLUE) << "|p" << txtcolor(TXT_LIGHTPURPLE) <<"er";
-    dbgout << txtcolor(TXT_LIGHTRED) << "im" << txtcolor (TXT_YELLOW) << "en" << txtcolor(TXT_LIGHTGREEN) << "t " << txtcolor(TXT_LIGHTBLUE) << "!";
-    dbgout << txtcolor(TXT_DEFAULT) << bp() << endl;
-    
-    //dbgout << txtcolor(TXT_WHITE) << "* Kernel ready !" << txtcolor(TXT_DEFAULT) << bp() << endl;
+    dbgout << txtcolor(TXT_WHITE) << "* Kernel ready !" << txtcolor(TXT_DEFAULT) << bp() << endl;
 
     //Now, do something useful with that kernel ! :P
     KString test_file("*** Process properties v1 ***\nTest:\n toto=3< >\"\\\"\\\n \"[ ]{{\n }}");
