@@ -39,7 +39,7 @@ namespace Tests {
     };
     
     struct ServerCallDescriptor {
-        void* function_ptr;
+        size_t function_ptr;
         KString call_name;
         uint32_t params_amount;
         ServerParamDescriptor* params;
@@ -169,7 +169,7 @@ namespace Tests {
     void run_call_from_queue(AsyncQueue& queue, void* stack);
     
     // * Fake server-side stub for both approaches
-    void remote_call_server_stub(void* function_ptr, void* stack);
+    void remote_call_server_stub(size_t function_ptr, void* stack);
     
     // * Dummy call which checks its parameters
     void dummy_remote_call(uint64_t param1,

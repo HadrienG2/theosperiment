@@ -51,13 +51,13 @@ struct InsulatorDescriptor {
     KString insulator_name; //Allows an insulator to get a fancy name when described in a process
                             //descriptor. If this string is left blank, the filename of the host
                             //process is used instead.
-    void* add_process; //Pointer to the add_process(PID, ProcessProperties) function of the insulator.
+    void (*add_process)(PID,ProcessProperties); //Pointer to the add_process(PID, ProcessProperties) function of the insulator.
                        //Is either a casted function pointer for in-kernel insulators or a casted SID
                        //for out-of-kernel insulators.
-    void* remove_process; //Pointer to the remove_process(PID) function of the insulator. Is either
+    void (*remove_process)(PID); //Pointer to the remove_process(PID) function of the insulator. Is either
                           //a casted function pointer for in-kernel insulators or a casted SID for
                           //out-of-kernel insulators.
-    void* update_process; //Pointer to the update_process(PID, PID) function of the insulator. Is
+    void (*update_process)(PID, PID); //Pointer to the update_process(PID, PID) function of the insulator. Is
                           //either a casted function pointer for in-kernel insulators or a casted
                           //SID for out-of-kernel insulators.
 

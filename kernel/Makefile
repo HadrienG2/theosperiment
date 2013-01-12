@@ -26,7 +26,7 @@ KNL_LD:= $(ARCH)-elf-ld
 KNL_CXX_WARNINGS:= -Wall -Wextra
 KNL_CXX_LIBS:= -nostdlib -ffreestanding
 KNL_CXX_FEATURES:= -fno-exceptions -fno-rtti -fno-stack-protector -fno-threadsafe-statics
-KNL_CXX_STD:= -std=c++0x
+KNL_CXX_STD:= -std=c++11 -pedantic
 KNL_CXXFLAGS:= $(KNL_CXX_WARNINGS) $(KNL_CXX_LIBS) $(KNL_CXX_FEATURES) $(KNL_CXX_STD)
 ifeq ($(Fdebug),1)
     KNL_CXXFLAGS+= -O0 -DDEBUG
