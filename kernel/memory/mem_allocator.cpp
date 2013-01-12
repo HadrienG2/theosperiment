@@ -628,9 +628,9 @@ bool MemAllocator::init_process(ProcessManager& procman) {
     //Setup an insulator associated to MemAllocator
     InsulatorDescriptor mallocator_insulator_desc;
     mallocator_insulator_desc.insulator_name = "MemAllocator";
-    //mallocator_insulator_desc.add_process = (void*) mem_allocator_add_process;
-    mallocator_insulator_desc.remove_process = (void*) mem_allocator_remove_process;
-    //mallocator_insulator_desc.update_process = (void*) mem_allocator_update_process;
+    //mallocator_insulator_desc.add_process = mem_allocator_add_process;
+    mallocator_insulator_desc.remove_process = mem_allocator_remove_process;
+    //mallocator_insulator_desc.update_process = mem_allocator_update_process;
     //process_manager->add_insulator(PID_KERNEL, mallocator_insulator_desc);
 
     return true;

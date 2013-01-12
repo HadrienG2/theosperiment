@@ -22,7 +22,7 @@ BS_CC:= $(BS_ARCH)-elf-gcc
 BS_LD:= $(BS_ARCH)-elf-ld
 BS_C_WARNINGS:= -Wall -Wextra -Werror
 BS_C_LIBS:= -nostdlib -ffreestanding
-BS_C_STD:= -std=c99
+BS_C_STD:= -std=c11
 BS_CFLAGS:= $(BS_C_WARNINGS) $(BS_C_LIBS) $(BS_C_STD)
 ifeq ($(Fdebug),1)
     BS_CFLAGS+= -O0 -DDEBUG

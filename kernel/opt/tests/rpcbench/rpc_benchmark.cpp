@@ -460,7 +460,7 @@ namespace Tests {
         static uint32_t value_size_ptr = sizeof(size_t);
         static size_t default_value_ptr = 0x10000000;
 
-        static void* function_ptr = (void*) dummy_remote_call;
+        static size_t function_ptr = (size_t) dummy_remote_call;
         static KString call_name("mega_super_long_function_name_with_speedling_wings");
         static uint32_t params_amount = 10;
 
@@ -498,7 +498,7 @@ namespace Tests {
         static uint32_t value_size_ptr = sizeof(size_t);
         static size_t default_value_ptr = 0x10000000;
 
-        static void* function_ptr_wanted = NULL;
+        static size_t function_ptr_wanted = NULL;
         static KString call_name_wanted("the_super_mega_long_function_which_even_girls_want");
         static uint32_t params_amount_wanted = 10;
 
@@ -654,7 +654,7 @@ namespace Tests {
         if(queue.find_space(space_required) == false) return false;
 
         //Copy pointer to the remote call on the stack
-        void** buff = (void**) queue.write_pos;
+        size_t* buff = (size_t*) queue.write_pos;
         *buff = connec.server_desc->function_ptr;
 
         //Copy integer remote call parameters on the stack
@@ -697,8 +697,8 @@ namespace Tests {
 
         //Extract function pointer from the queue
         if(queue.find_valid_descriptor() == false) return;
-        void** buff = (void**) queue.read_pos;
-        void* function_ptr = *buff;
+        size_t* buff = (size_t*) queue.read_pos;
+        size_t function_ptr = *buff;
 
         //Copy parameters from the queue to the stack
         uint64_t* params_a_in = (uint64_t*) (((size_t) buff) + sizeof(void*));
@@ -718,7 +718,7 @@ namespace Tests {
         remote_call_server_stub(function_ptr, stack);
     }
 
-    void remote_call_server_stub(void* function_ptr, void* stack) {
+    void remote_call_server_stub(size_t function_ptr, void* stack) {
         void (*remote_call)(uint64_t,
                             uint64_t,
                             uint64_t,

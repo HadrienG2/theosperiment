@@ -625,9 +625,9 @@ bool RAMManager::init_process(ProcessManager& procman) {
     //Setup an insulator associated to RAMManager
     InsulatorDescriptor ram_manager_insulator_desc;
     ram_manager_insulator_desc.insulator_name = "RAMManager";
-    //TODO: ram_manager_insulator_desc.add_process = (void*) ram_manager_add_process;
-    ram_manager_insulator_desc.remove_process = (void*) ram_manager_remove_process;
-    //TODO: ram_manager_insulator_desc.update_process = (void*) ram_manager_update_process;
+    //TODO: ram_manager_insulator_desc.add_process = ram_manager_add_process;
+    ram_manager_insulator_desc.remove_process = ram_manager_remove_process;
+    //TODO: ram_manager_insulator_desc.update_process = ram_manager_update_process;
     //TODO: process_manager->add_insulator(PID_KERNEL, ram_manager_insulator_desc);
 
     return true;

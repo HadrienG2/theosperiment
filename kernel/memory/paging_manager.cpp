@@ -230,9 +230,9 @@ bool PagingManager::init_process(ProcessManager& procman) {
     //Setup an insulator associated to PagingManager
     InsulatorDescriptor paging_manager_insulator_desc;
     paging_manager_insulator_desc.insulator_name = "PagingManager";
-    //paging_manager_insulator_desc.add_process = (void*) paging_manager_add_process;
-    paging_manager_insulator_desc.remove_process = (void*) paging_manager_remove_process;
-    //paging_manager_insulator_desc.update_process = (void*) paging_manager_update_process;
+    //paging_manager_insulator_desc.add_process = paging_manager_add_process;
+    paging_manager_insulator_desc.remove_process = paging_manager_remove_process;
+    //paging_manager_insulator_desc.update_process = paging_manager_update_process;
     //process_manager->add_insulator(PID_KERNEL, paging_manager_insulator_desc);
 
     return true;
