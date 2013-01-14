@@ -37,21 +37,21 @@ size_t strlen(const char* str) {
     return len;
 }
 
-KString::KString(const char* source) {
+KAsciiString::KAsciiString(const char* source) {
     len = strlen(source);
     contents = new(PID_KERNEL, PAGE_FLAGS_RW, true) char[len+1];
     memcpy((void*) contents, (const void*) source, len+1);
     current_location = 0;
 }
 
-KString::KString(const KString& source) {
+KAsciiString::KAsciiString(const KAsciiString& source) {
     len = source.len;
     contents = new(PID_KERNEL, PAGE_FLAGS_RW, true) char[len+1];
     memcpy((void*) contents, (const void*) source.contents, len+1);
     current_location = 0;
 }
 
-KString& KString::operator=(const char* source) {
+KAsciiString& KAsciiString::operator=(const char* source) {
     set_length(strlen(source), false);
     memcpy((void*) contents, (const void*) source, len);
     current_location = 0;
@@ -59,7 +59,7 @@ KString& KString::operator=(const char* source) {
     return *this;
 }
 
-KString& KString::operator=(const KString& source) {
+KAsciiString& KAsciiString::operator=(const KAsciiString& source) {
     if(&source == this) return *this;
 
     set_length(source.len, false);
@@ -69,15 +69,13 @@ KString& KString::operator=(const KString& source) {
     return *this;
 }
 
-void KString::clear() {
+void KAsciiString::clear() {
     len = 0;
     if(contents) delete[] contents;
     current_location = 0;
 }
 
-#include <dbgstream.h>
-
-void KString::set_length(size_t desired_length, bool keep_contents) {
+void KAsciiString::set_length(size_t desired_length, bool keep_contents) {
     if(len == desired_length) return;
 
     //Keep track of old string contents, if asked to
@@ -101,7 +99,7 @@ void KString::set_length(size_t desired_length, bool keep_contents) {
     if(old_contents) delete[] old_contents;
 }
 
-bool KString::operator==(const char* param) const {
+bool KAsciiString::operator==(const char* param) const {
     for(uint32_t i = 0; i < len; ++i) {
         if(contents[i]!=param[i]) return false;
     }
@@ -109,7 +107,7 @@ bool KString::operator==(const char* param) const {
     return true;
 }
 
-bool KString::operator==(const KString& param) const {
+bool KAsciiString::operator==(const KAsciiString& param) const {
     if(param.len != len) return false;
     for(uint32_t i = 0; i < len; ++i) {
         if(contents[i]!=param[i]) return false;
@@ -118,7 +116,7 @@ bool KString::operator==(const KString& param) const {
     return true;
 }
 
-KString& KString::operator+=(const char* source) {
+KAsciiString& KAsciiString::operator+=(const char* source) {
     if(!contents) {
         return operator=(source);
     }
@@ -131,7 +129,7 @@ KString& KString::operator+=(const char* source) {
     return *this;
 }
 
-KString& KString::operator+=(const KString& source) {
+KAsciiString& KAsciiString::operator+=(const KAsciiString& source) {
     if(!contents) {
         return operator=(source);
     }
@@ -143,7 +141,7 @@ KString& KString::operator+=(const KString& source) {
     return *this;
 }
 
-bool KString::extract_from(KString& source, size_t first_char, size_t length) {
+bool KAsciiString::extract_from(KAsciiString& source, size_t first_char, size_t length) {
     if(length > source.length()-first_char) return false;
     if(&source == this) return false;
 
@@ -154,7 +152,7 @@ bool KString::extract_from(KString& source, size_t first_char, size_t length) {
     return true;
 }
 
-bool KString::paste(KString& source, size_t first_char, size_t length, size_t dest_index) {
+bool KAsciiString::paste(KAsciiString& source, size_t first_char, size_t length, size_t dest_index) {
     if(len < length + dest_index) return false;
 
     memcpy((void*) (dest_index + (size_t) contents),
@@ -164,7 +162,7 @@ bool KString::paste(KString& source, size_t first_char, size_t length, size_t de
     return true;
 }
 
-bool KString::read_line(KString& dest) {
+bool KAsciiString::read_line(KAsciiString& dest) {
     //Check if we are at end of file
     if(current_location == len) return false;
 
@@ -177,7 +175,7 @@ bool KString::read_line(KString& dest) {
     return true;
 }
 
-size_t KString::heap_size() {
+size_t KAsciiString::heap_size() {
     start_faking_allocation();
 
         size_t to_be_allocd = (size_t) new(PID_KERNEL, PAGE_FLAGS_RW, true) char[len+1];
