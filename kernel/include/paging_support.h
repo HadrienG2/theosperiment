@@ -38,7 +38,7 @@ const PageFlags PAGE_FLAG_K = (1<<4); //...Global kernel memory (present in all 
                         //space cannot be guaranteed)
 const PageFlags PAGE_FLAGS_SAME = (1<<31); //This special paging flag overrides all others,
                         //and is used for sharing. It means that the shared memory region is set up
-                        //using the same flags than its "mother" region.
+                        //using the same flags as its "mother" region.
 const PageFlags PAGE_FLAGS_RX = PAGE_FLAG_R + PAGE_FLAG_X;
 const PageFlags PAGE_FLAGS_RW = PAGE_FLAG_R + PAGE_FLAG_W;
 

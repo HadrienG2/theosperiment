@@ -1,5 +1,6 @@
- /* Equivalent of cstring (aka string.h), but not a full implementation. Manipulates chunks of RAM,
-    and maybe C-style strings and array in the future.
+ /* Equivalent of cstring (aka string.h), but not a full implementation. Features basic
+    C string and RAM manipulation, along with an implementation of UTF-32 and UTF-8 strings
+    complying with Unicode version 6.2.0
 
     Copyright (C) 2011-2013  Hadrien Grasland
 
@@ -22,9 +23,13 @@
 #include <kstring.h>
 #include <new.h>
 
+//These private types are defined as permanent storage location for binary Unicode data
+CombiningClassDB* combining_class_db = NULL;
+CanonicalDecompositionDB* canonical_decomposition_db = NULL;
+
 void* memcpy(void* destination, const void* source, size_t num) {
-    const char* new_source = (const char*) source;
-    char* new_dest = (char*) destination;
+    const uint8_t* new_source = (const uint8_t*) source;
+    uint8_t* new_dest = (uint8_t*) destination;
 
     for(size_t i=0; i<num; ++i) new_dest[i] = new_source[i];
 
@@ -32,10 +37,143 @@ void* memcpy(void* destination, const void* source, size_t num) {
 }
 
 size_t strlen(const char* str) {
-    uint32_t len;
+    size_t len;
     for(len = 0; str[len]!='\0'; ++len);
     return len;
 }
+
+//KUTF32String member functions
+
+KUTF32String::KUTF32String(const KUTF32String& source) {
+    //Initialization from a KUTF32String is the easiest case, because we can assume
+    //that these strings are well-formed Unicode and in NFD normalization form.
+    len = source.len;
+    contents = new(PID_KERNEL, PAGE_FLAGS_RW, true) uint32_t[len+1];
+    memcpy((void*) contents, (const void*) source.contents, (len+1)*sizeof(uint32_t));
+    file_index = 0;
+}
+
+KUTF32String::KUTF32String(KUTF8String& source) {
+    size_t source_index = 0;
+    KUTF8CodePoint source_codepoint;
+
+    //UTF-8 strings can be assumed to be well-formed, but are not NFD-normalized.
+    len = source.codepoint_length();
+    contents = new(PID_KERNEL, PAGE_FLAGS_RW, true) uint32_t[len+1];
+    for(size_t dest_index = 0; dest_index < len; ++dest_index) {
+        source_codepoint = source.peek_codepoint(source_index);
+        source_index+= source_codepoint.byte_length;
+        contents[dest_index] = source_codepoint;
+    }
+    //normalize_to_nfd();
+}
+
+//KUTF8String member functions
+
+size_t KUTF8String::codepoint_length() const {
+    size_t index = 0, result = 0;
+    
+    while(index < len) {
+        index+= peek_codepoint(index).byte_length;
+        ++result;
+    }
+    
+    return result;
+}
+
+KUTF8CodePoint KUTF8String::peek_codepoint(const size_t index) const {
+    KUTF8CodePoint result;
+    size_t codepoint_index = index, remaining_bytes;
+    uint32_t buffer;
+    uint8_t min_second_byte = 0x80, max_second_byte = 0xBF;
+    
+    //Check if there still is at least one byte left in the string, otherwise return null code point
+    if(codepoint_index >= len) {
+        result = 0;
+        result.byte_length = 0;
+        return result;
+    }
+    
+    //Extract all the information stored in the first byte of the string
+    if(contents[codepoint_index] < 0x80) {
+        remaining_bytes = 0;
+        result = contents[codepoint_index];
+    } else if(contents[codepoint_index] < 0xC2) {
+        remaining_bytes = 0;
+        result = 0xFFFD;
+    } else if(contents[codepoint_index] < 0xE0) {
+        remaining_bytes = 1;
+        result = contents[codepoint_index] - 0xC0;
+        result*= 0x40;
+    } else if(contents[codepoint_index] < 0xF0) {
+        remaining_bytes = 2;
+        result = contents[codepoint_index] - 0xE0;
+        result*= 0x1000;
+        if(contents[codepoint_index] == 0xE0) {
+            min_second_byte = 0xA0;
+        } else if(contents[codepoint_index] == 0xED) {
+            max_second_byte = 0x9F;
+        }
+    } else if(contents[codepoint_index] < 0xF5) {
+        remaining_bytes = 3;
+        result = contents[codepoint_index] - 0xF0;
+        result*= 0x40000;
+        if(contents[codepoint_index] == 0xF0) {
+            min_second_byte = 0x90;
+        } else if(contents[codepoint_index] == 0xF4) {
+            max_second_byte = 0x8F;
+        }
+    } else {
+        remaining_bytes = 0;
+        result = 0xFFFD;
+    }
+    result.byte_length = remaining_bytes+1;
+    
+    //Move to the next byte of the string, if any
+    ++codepoint_index;
+    if(remaining_bytes == 0) return result;
+    --remaining_bytes;
+    
+    //Check if the remaining bytes of the string do exist
+    if(codepoint_index+remaining_bytes < len) {
+        result = 0xFFFD;
+        result.byte_length = len-codepoint_index;
+        return result;
+    }
+    
+    //Check if the second byte of the string is well-formed
+    if((contents[codepoint_index] < min_second_byte) || (contents[codepoint_index] > max_second_byte)) {
+        result = 0xFFFD;
+        result.byte_length = codepoint_index-index;
+        return result;
+    }
+    
+    //If so extract its contents and add them to the result
+    buffer = contents[codepoint_index] - 0x80;
+    for(unsigned int i = 0; i < remaining_bytes; ++i) {
+        buffer*= 0x40;
+    }
+    result+= buffer;
+    ++codepoint_index;
+    
+    //Manage remaining bytes
+    while(remaining_bytes > 0) {
+        --remaining_bytes;
+        if((contents[codepoint_index] < 0x80) || (contents[codepoint_index] > 0xBF)) {
+            result = 0xFFFD;
+            result.byte_length = codepoint_index-index;
+            return result;
+        }
+        buffer = contents[codepoint_index] - 0x80;
+        if(remaining_bytes) buffer*= 0x40;
+        result+= buffer;
+        ++codepoint_index;
+    }
+      
+    return result;
+}
+
+// (!) The following code is deprecated and to be replaced or removed (!)
 
 KAsciiString::KAsciiString(const char* source) {
     len = strlen(source);

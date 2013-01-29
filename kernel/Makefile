@@ -1,3 +1,6 @@
+#Boot time-required datafiles go here
+KERNEL_DATAFILES:= $(shell ls kernel/support/Unicode/*)
+
 #Source files go here
 KNL_ASM_SRC:= $(shell find kernel/ -path '*/opt/*' -prune -o -name '*.s' -print)
 KNL_CPP_SRC:= $(shell find kernel/ -path '*/opt/*' -prune -o -name '*.cpp' -print)
