@@ -25,15 +25,15 @@ const DebugRect screen_rect(0, 0, NUMBER_OF_COLS-1, NUMBER_OF_ROWS-1);
 //Various windows
 const DebugWindow bottom_oneline_win(0,NUMBER_OF_ROWS-1,NUMBER_OF_COLS-1,NUMBER_OF_ROWS-1,SINGLE);
 const DebugWindow bottom_fivelines_win(0,NUMBER_OF_ROWS-5,NUMBER_OF_COLS-1,NUMBER_OF_ROWS-1,SINGLE);
-const DebugWindow bottom_fifteenlines_win(0,NUMBER_OF_ROWS-15,NUMBER_OF_COLS-1,NUMBER_OF_ROWS-1,SINGLE);
+const DebugWindow bottom_tenlines_win(0,NUMBER_OF_ROWS-11,NUMBER_OF_COLS-1,NUMBER_OF_ROWS-1,SINGLE);
 const DebugWindow top_oneline_win(0,0,NUMBER_OF_COLS-1,0,SINGLE);
 const DebugWindow top_fivelines_win(0,0,NUMBER_OF_COLS-1,4,SINGLE);
-const DebugWindow top_fifteenlines_win(0,0,NUMBER_OF_COLS-1,14,SINGLE);
+const DebugWindow top_tenlines_win(0,0,NUMBER_OF_COLS-1,10,SINGLE);
 static const DebugWindow topleftcorner_win(0,0,0,0,NONE); //The smallest possible window ;)
 const DebugWindow screen_win(screen_rect, NONE);
 
 //"Standard" debugging output
-DebugOutput dbgout(bottom_fivelines_win);
+DebugOutput dbgout(bottom_tenlines_win);
 
 //Buffers
 static DebugAttributeChanger attrchg_buff;

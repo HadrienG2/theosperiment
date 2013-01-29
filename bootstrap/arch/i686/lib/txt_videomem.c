@@ -295,6 +295,16 @@ void print_str(const char* str) {
     for(str_index = 0; str_index < strlen(str); ++str_index) {
         videoram_index = 2*(cursor_row*number_of_cols + cursor_col);
 
+        //Check screen boundaries
+        if(cursor_col>=number_of_cols) {
+            cursor_col=0;
+            ++cursor_row;
+        }
+        //Scroll if needed
+        if(cursor_row>=number_of_rows) {
+            scroll(cursor_row-number_of_rows+1);
+        }
+
         if(str[str_index] == '\n') {
             //Jump to a new line
             videoram[videoram_index] = ' ';
@@ -315,16 +325,6 @@ void print_str(const char* str) {
             videoram[videoram_index] = str[str_index];
             videoram[videoram_index+1] = attr;
             ++cursor_col;
-        }
-
-        //Go to next character, check boundaries
-        if(cursor_col>=number_of_cols) {
-            cursor_col=0;
-            ++cursor_row;
-        }
-        //Scroll if needed
-        if(cursor_row>=number_of_rows) {
-            scroll(cursor_row-number_of_rows+1);
         }
     }
 }
