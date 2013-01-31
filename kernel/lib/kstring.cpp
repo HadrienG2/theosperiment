@@ -23,9 +23,7 @@
 #include <kstring.h>
 #include <new.h>
 
-//These private types are defined as permanent storage location for binary Unicode data
-CombiningClassDB* combining_class_db = NULL;
-CanonicalDecompositionDB* canonical_decomposition_db = NULL;
+#include <dbgstream.h>
 
 void* memcpy(void* destination, const void* source, size_t num) {
     const uint8_t* new_source = (const uint8_t*) source;
@@ -44,16 +42,15 @@ size_t strlen(const char* str) {
 
 //KUTF32String member functions
 
-KUTF32String::KUTF32String(const KUTF32String& source) {
+KUTF32String::KUTF32String(const KUTF32String& source) : file_index(0) {
     //Initialization from a KUTF32String is the easiest case, because we can assume
     //that these strings are well-formed Unicode and in NFD normalization form.
     len = source.len;
     contents = new(PID_KERNEL, PAGE_FLAGS_RW, true) uint32_t[len+1];
     memcpy((void*) contents, (const void*) source.contents, (len+1)*sizeof(uint32_t));
-    file_index = 0;
 }
 
-KUTF32String::KUTF32String(KUTF8String& source) {
+KUTF32String::KUTF32String(KUTF8String& source) : file_index(0) {
     size_t source_index = 0;
     KUTF8CodePoint source_codepoint;
 
@@ -65,7 +62,33 @@ KUTF32String::KUTF32String(KUTF8String& source) {
         source_index+= source_codepoint.byte_length;
         contents[dest_index] = source_codepoint;
     }
-    //normalize_to_nfd();
+    normalize_to_nfd();
+}
+
+KUTF32String::KUTF32String(const char* source) : file_index(0) {
+    //ASCII strings can be assumed to be well-formed, but are not NFD-normalized
+    len = strlen(source);
+    contents = new(PID_KERNEL, PAGE_FLAGS_RW, true) uint32_t[len];
+    for(size_t index = 0; index < len; ++index) {
+        contents[index] = source[index];
+    }
+    normalize_to_nfd();
+}
+
+void KUTF32String::clear() {
+    len = 0;
+    delete[] contents;  contents = NULL;
+    file_index = 0;
+}
+
+void KUTF32String::normalize_to_nfd() {
+    //Load the Unicode database if it hasn't been done yet (as probed by combining_class_db's value)
+    if(combining_class_db == NULL) {
+        InitializeKString();
+    }
+    
+    //Display a warning 
+    dbgout << "Error: normalize_to_nfd() is not implemented yet !" << endl;
 }
 
 //KUTF8String member functions
@@ -171,6 +194,15 @@ KUTF8CodePoint KUTF8String::peek_codepoint(const size_t index) const {
     }
       
     return result;
+}
+
+//These private types are defined as permanent storage location for binary Unicode data
+CombiningClassDB* combining_class_db = NULL;
+CanonicalDecompositionDB* canonical_decomposition_db = NULL;
+
+void InitializeKString() {
+    dbgout << "Probing kernel modules..." << endl;
+    dbgout << "Error: InitializeKString() is not implemented yet !" << endl;
 }
 
 // (!) The following code is deprecated and to be replaced or removed (!)
