@@ -36,17 +36,17 @@ class KUTF32String { //An NFD-normalized UTF-32 string
     size_t file_index;
   public:
     //Initialization and destruction
-    KUTF32String(); //TO BE IMPLEMENTED
+    KUTF32String() : len(0), contents(NULL), file_index(0) {}
     KUTF32String(const KUTF32String& source);
     KUTF32String(KUTF8String& source);
     KUTF32String(const char32_t* source); //TO BE IMPLEMENTED
-    KUTF32String(const char* source); //For use with ASCII strings only //TO BE IMPLEMENTED
+    KUTF32String(const char* source); //For use with Latin-x ASCII strings only
     KUTF32String& operator=(const KUTF32String& source); //TO BE IMPLEMENTED
     KUTF32String& operator=(const KUTF8String& source); //TO BE IMPLEMENTED
     KUTF32String& operator=(const char32_t* source); //TO BE IMPLEMENTED
-    KUTF32String& operator=(const char* source); //For use with ASCII strings only //TO BE IMPLEMENTED
+    KUTF32String& operator=(const char* source); //For use with Latin-x ASCII strings only //TO BE IMPLEMENTED
     ~KUTF32String() {clear();}
-    void clear(); //Resets a KUTF32String to a blank state //TO BE IMPLEMENTED
+    void clear(); //Resets a KUTF32String to a blank state
 
     //Length of the string in Unicode code points
     size_t length() const {return len;}
@@ -158,6 +158,8 @@ struct CanonicalDecompositionDB {
 };
 
 extern CanonicalDecompositionDB* canonical_decomposition_db;
+
+void InitializeKString();
 
 // (!) The following code is deprecated and to be replaced or removed (!)
 typedef class KAsciiString KString;

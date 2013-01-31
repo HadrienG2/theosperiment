@@ -23,8 +23,8 @@
 
 class OwnerlessSemaphore8 { //A 8-bit semaphore
   protected:
-    uint8_t availability;
-    uint8_t max_avl;
+    volatile uint8_t availability;
+    volatile uint8_t max_avl;
   public:
     OwnerlessSemaphore8(const uint8_t max_users) : availability(max_users), max_avl(max_users) {}
     bool grab_attempt(); //Attempt to grab the semaphore. Return true if successful.
@@ -39,8 +39,8 @@ class OwnerlessSemaphore8 { //A 8-bit semaphore
 
 class OwnerlessSemaphore32 {
   protected:
-    uint32_t availability;
-    uint32_t max_avl;
+    volatile uint32_t availability;
+    volatile uint32_t max_avl;
   public:
     OwnerlessSemaphore32(const uint32_t max_users) : availability(max_users), max_avl(max_users) {}
     bool grab_attempt(); //Attempt to grab the semaphore. Return true if successful.
@@ -55,8 +55,8 @@ class OwnerlessSemaphore32 {
 
 class OwnerlessSemaphore64 {
   protected:
-    uint64_t availability;
-    uint64_t max_avl;
+    volatile uint64_t availability;
+    volatile uint64_t max_avl;
   public:
     OwnerlessSemaphore64(const uint64_t max_users) : availability(max_users), max_avl(max_users) {}
     bool grab_attempt(); //Attempt to grab the semaphore. Return true if successful.
