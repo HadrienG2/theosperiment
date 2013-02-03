@@ -61,8 +61,8 @@ int find_map_region_privileges(const KernelMMapItem* map_region) {
 }
 
 uint32_t generate_paging(KernelInformation* kinfo) {
-    uint64_t pt_location, pd_location, pdpt_location, pml4t_location;
-    uint64_t memory_amount, pt_length, pd_length, pdpt_length, pml4t_length;
+    knl_size_t pt_location, pd_location, pdpt_location, pml4t_location;
+    knl_size_t memory_amount, pt_length, pd_length, pdpt_length, pml4t_length;
     uint32_t cr3_value;
 
     /* We'll do the following :
@@ -102,12 +102,12 @@ uint32_t generate_paging(KernelInformation* kinfo) {
     return cr3_value;
 }
 
-unsigned int make_identity_page_directory(const unsigned int location,
-                                                                                    const unsigned int pt_location,
-                                                                                    const unsigned int pt_length) {
+bs_size_t make_identity_page_directory(const bs_size_t location,
+                                                                                    const bs_size_t pt_location,
+                                                                                    const bs_size_t pt_length) {
     pde* page_directory = (pde*) location;
     pde pde_entry_buffer = PBIT_PRESENT+PBIT_WRITABLE+pt_location;
-    uint64_t current_directory;
+    knl_size_t current_directory;
 
     for(current_directory = 0; current_directory<pt_length/(PENTRY_SIZE*PT_SIZE);
         ++current_directory, pde_entry_buffer += PT_SIZE*PENTRY_SIZE)
@@ -120,11 +120,11 @@ unsigned int make_identity_page_directory(const unsigned int location,
     return PENTRY_SIZE*current_directory;
 }
 
-unsigned int make_identity_page_table(const unsigned int location, const KernelInformation* kinfo) {
-    unsigned int current_mmap_index = 0;
-    const KernelMMapItem* kmmap = (const KernelMMapItem*) (uint32_t) kinfo->kmmap;
-    uint64_t current_page, current_region_end = kmmap[0].location + kmmap[0].size;
-    uint64_t memory_amount = kmmap_mem_amount(kinfo);
+bs_size_t make_identity_page_table(const bs_size_t location, const KernelInformation* kinfo) {
+    bs_size_t current_mmap_index = 0;
+    const KernelMMapItem* kmmap = FROM_KNL_PTR(KernelMMapItem*, kinfo->kmmap);
+    knl_size_t current_page, current_region_end = kmmap[0].location + kmmap[0].size;
+    knl_size_t memory_amount = kmmap_mem_amount(kinfo);
 
     pte pte_mask = PBIT_PRESENT+PBIT_NOEXECUTE+PBIT_WRITABLE; //"mask" being added to page table entries.
     pte pte_entry_buffer = pte_mask;
@@ -207,10 +207,10 @@ unsigned int make_identity_page_table(const unsigned int location, const KernelI
     return current_page*PENTRY_SIZE;
 }
 
-unsigned int make_identity_pdpt(const unsigned int location, const unsigned int pd_location, const unsigned int pd_length) {
+bs_size_t make_identity_pdpt(const bs_size_t location, const bs_size_t pd_location, const bs_size_t pd_length) {
     pdpe* pdpt = (pdpe*) location;
     pdpe pdpe_entry_buffer = PBIT_PRESENT+PBIT_WRITABLE+pd_location;
-    uint64_t current_dp;
+    knl_size_t current_dp;
 
     for(current_dp = 0; current_dp<pd_length/(PENTRY_SIZE*PD_SIZE); ++current_dp, pdpe_entry_buffer += PD_SIZE*PENTRY_SIZE) {
         pdpt[current_dp] = pdpe_entry_buffer;
@@ -221,10 +221,10 @@ unsigned int make_identity_pdpt(const unsigned int location, const unsigned int 
     return PENTRY_SIZE*current_dp;
 }
 
-unsigned int make_identity_pml4t(const unsigned int location, const unsigned int pdpt_location, const unsigned int pdpt_length) {
+bs_size_t make_identity_pml4t(const bs_size_t location, const bs_size_t pdpt_location, const bs_size_t pdpt_length) {
     pml4e* pml4t = (pml4e*) location;
     pml4e pml4e_entry_buffer = PBIT_PRESENT+PBIT_WRITABLE+pdpt_location;
-    uint64_t current_ml4e;
+    knl_size_t current_ml4e;
 
     for(current_ml4e = 0; current_ml4e<pdpt_length/(PENTRY_SIZE*PDPT_SIZE); ++current_ml4e, pml4e_entry_buffer += PDPT_SIZE*PENTRY_SIZE) {
         pml4t[current_ml4e] = pml4e_entry_buffer;
@@ -235,7 +235,7 @@ unsigned int make_identity_pml4t(const unsigned int location, const unsigned int
     return PENTRY_SIZE*current_ml4e;
 }
 
-void protect_stack(const uint32_t pt_location) {
+void protect_stack(const bs_size_t pt_location) {
     pte* page_table = (pte*) pt_location;
     extern char begin_stack;
     extern char end_stack;
@@ -248,16 +248,16 @@ void protect_stack(const uint32_t pt_location) {
 
 void setup_pagetranslation(KernelInformation* kinfo,
                            const uint32_t cr3_value,
-                           const uint64_t virt_addr,
-                           const uint64_t phys_addr,
+                           const knl_size_t virt_addr,
+                           const knl_size_t phys_addr,
                            const uint64_t flags) {
     pml4e* pml4t;
     pdpe* pdpt;
     pde* page_dir;
     pte* page_table;
-    unsigned int i;
-    uint64_t pml4t_index, pdpt_index, pd_index, pt_index, virt_address = virt_addr;
-    uint64_t pdpt_location, pdpt_length, pd_location, pd_length, pt_location, pt_length;
+    bs_size_t i;
+    knl_size_t pml4t_index, pdpt_index, pd_index, pt_index, virt_address = virt_addr;
+    knl_size_t pdpt_location, pdpt_length, pd_location, pd_length, pt_location, pt_length;
 
     // What does this function do ?
     //     1. Find related PML4T element
