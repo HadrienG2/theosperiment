@@ -505,7 +505,7 @@ RAMChunk* RAMManager::generate_chunk(const KernelInformation& kinfo, size_t& ind
     //  -Bootstrap and kernel pages are marked as owned by the kernel
     //  -Most restrictive attribute prevails over least restrictive one
 
-    KernelMemoryMap* kmmap = kinfo.kmmap;
+    KernelMMapItem* kmmap = kinfo.kmmap;
 
     //Allocate chunk
     RAMChunk* result = free_mapitems;

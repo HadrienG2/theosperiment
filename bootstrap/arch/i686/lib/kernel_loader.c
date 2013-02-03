@@ -27,15 +27,17 @@
 const char* KERNEL_NAME="/System/boot/kernel.bin";
 
 void load_kernel(KernelInformation* kinfo,
-                                 const KernelMemoryMap* kernel,
-                                 const Elf64_Ehdr* main_header,
-                                 const uint32_t cr3_value) {
+                 const bs_size_t kernel_item,
+                 const Elf64_Ehdr* main_header,
+                 const bs_size_t cr3_value) {
     unsigned int i, size;
     uint64_t load_addr, current_offset, flags;
     void *source, *dest;
     char* mmap_name;
+    KernelMMapItem* kmmap = FROM_KNL_PTR(KernelMMapItem*, kinfo->kmmap);
+    
     //The program header table
-    const Elf64_Phdr* phdr_table = (const Elf64_Phdr*) (uint32_t) (kernel->location + main_header->e_phoff);
+    const Elf64_Phdr* phdr_table = (const Elf64_Phdr*) (bs_size_t) (kmmap[kernel_item].location + main_header->e_phoff);
 
     /* Locate program segments and load them in memory */
     for(i=0; i<main_header->e_phnum; ++i) {
@@ -74,13 +76,13 @@ void load_kernel(KernelInformation* kinfo,
         load_addr = kmmap_alloc_pgalign(kinfo, phdr_table[i].p_memsz, NATURE_KNL, mmap_name);
 
         //Then we can load the part located in the ELF file
-        source = (void*) (uint32_t) (kernel->location + phdr_table[i].p_offset);
-        dest = (void*) (uint32_t) (load_addr);
+        source = (void*) (bs_size_t) (kmmap[kernel_item].location + phdr_table[i].p_offset);
+        dest = (void*) (bs_size_t) (load_addr);
         size = phdr_table[i].p_filesz;
         memcpy(dest, source, size);
         //And then zero out the part which is *not* in the file (That's probably some kind of .bss)
-        dest = (void*) (uint32_t) (load_addr + phdr_table[i].p_filesz);
-        size = align_up((uint32_t) phdr_table[i].p_memsz, (uint32_t) phdr_table[i].p_align);
+        dest = (void*) (bs_size_t) (load_addr + phdr_table[i].p_filesz);
+        size = align_up((bs_size_t) phdr_table[i].p_memsz, (bs_size_t) phdr_table[i].p_align);
         size -= phdr_table[i].p_filesz;
         memset(dest, 0, size);
 
@@ -95,8 +97,7 @@ void load_kernel(KernelInformation* kinfo,
 
         //These are the sole page translations we'll ever use in the kernel. If we could do otherwise,
         //we would just ignore them, but making a relocatable kernel binary seems too complex.
-        //As the kernel is small, we can afford losing some memory by mapping the virtual memory region
-        //where the kernel is located as reserved.
+        //Thus, we shall map the virtual memory region where the kernel is located as reserved.
         kmmap_add(kinfo,
                   phdr_table[i].p_vaddr,
                   align_pgup(phdr_table[i].p_memsz),
@@ -106,12 +107,12 @@ void load_kernel(KernelInformation* kinfo,
     }
 }
 
-const KernelMemoryMap* locate_kernel(const KernelInformation* kinfo) {
+bs_size_t locate_kernel(const KernelInformation* kinfo) {
     unsigned int i;
-    const KernelMemoryMap* kmmap = (const KernelMemoryMap*) (uint32_t) kinfo->kmmap;
+    const KernelMMapItem* kmmap = FROM_KNL_PTR(KernelMMapItem*, kinfo->kmmap);
     for(i=0; i<kinfo->kmmap_size; ++i) {
-        if(!strcmp((char*) (uint32_t) kmmap[i].name, KERNEL_NAME)) {
-            return &(kmmap[i]);
+        if(!strcmp(FROM_KNL_PTR(char*, kmmap[i].name), KERNEL_NAME)) {
+            return i;
         }
     }
 
@@ -119,8 +120,8 @@ const KernelMemoryMap* locate_kernel(const KernelInformation* kinfo) {
     return 0; //This is totally useless, but GCC will issue a warning if it's not present
 }
 
-const Elf64_Ehdr* read_kernel_headers(const KernelMemoryMap* kernel) {
-    const Elf64_Ehdr *header = (const Elf64_Ehdr*) ((uint32_t) kernel->location);
+const Elf64_Ehdr* read_kernel_headers(const KernelMMapItem* kernel) {
+    const Elf64_Ehdr *header = (const Elf64_Ehdr*) (bs_size_t) kernel->location;
 
     /* e_ident fields checks : Kernel must
         -Be a valid elf64 file compliant to the current standard

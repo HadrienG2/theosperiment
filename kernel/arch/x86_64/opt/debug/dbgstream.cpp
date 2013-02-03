@@ -618,7 +618,7 @@ DebugOutput& DebugOutput::operator<<(const KernelInformation& input) {
     return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(const KernelMemoryMap& input) {
+DebugOutput& DebugOutput::operator<<(const KernelMMapItem& input) {
     bool tmp_padding = padding_on;
     unsigned int tmp_padsize = padsize;
 

@@ -19,6 +19,7 @@
 #ifndef _BS_KERNEL_INFO_H_
 #define _BS_KERNEL_INFO_H_
 
+#include <address.h>
 #include <bs_arch_specific_kinfo.h>
 #include <stdint.h>
 
@@ -37,7 +38,7 @@ typedef uint8_t KItemNature;
 #define MAX_KMMAP_SIZE 512
 
 typedef struct KernelCPUInfo KernelCPUInfo;
-typedef struct KernelMemoryMap KernelMemoryMap;
+typedef struct KernelMMapItem KernelMMapItem;
 typedef struct KernelInformation KernelInformation;
 
 struct KernelCPUInfo {
@@ -45,19 +46,19 @@ struct KernelCPUInfo {
     uint32_t cache_line_size; //Size of a cache line in bytes. 0 means that caching is not supported
 } __attribute__ ((packed));
 
-struct KernelMemoryMap {
-    size_t location;
-    size_t size;
+struct KernelMMapItem {
+    knl_size_t location;
+    knl_size_t size;
     KItemNature nature;
-    size_t name; //char* to a string naming the area. For free and reserved memory it's either "Low Mem" or "High Mem".
-                 //Bootstrap kernel is called "Bootstrap", its separate parts have a precise naming
-                 //Kernel and modules are called by their GRUB modules names
+    knl_size_t name; //char* to a string naming the area. For free and reserved memory it's either "Low Mem" or "High Mem".
+                     //Bootstrap kernel is called "Bootstrap", its separate parts have a precise naming
+                     //Kernel and modules are called by their GRUB modules names
 } __attribute__ ((packed));
 
 struct KernelInformation {
-    size_t command_line; //char* to the kernel command line
-    uint32_t kmmap_size; //Number of entries in kernel memory map
-    size_t kmmap; //Pointer to the kernel memory map
+    knl_size_t command_line; //char* to the kernel command line
+    knl_size_t kmmap_size; //Number of entries in kernel memory map
+    knl_size_t kmmap; //KernelMMapItem* to the kernel memory map
     KernelCPUInfo cpu_info; //Information about the processor we run on
     ArchSpecificKInfo arch_info; //Other arch-specific information
 } __attribute__ ((packed));

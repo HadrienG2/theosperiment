@@ -208,7 +208,7 @@ class DebugOutput {
                                               //to output a pointer, instead of casting it to bool
     //Functions displaying memory management's custom types
     DebugOutput& operator<<(const KernelInformation& input); //Displays only the memory map atm
-    DebugOutput& operator<<(const KernelMemoryMap& input);
+    DebugOutput& operator<<(const KernelMMapItem& input);
     DebugOutput& operator<<(const RAMChunk& input);
     DebugOutput& operator<<(const RAMManagerProcess& input);
     DebugOutput& operator<<(const PageChunk& input);

@@ -36,7 +36,7 @@ struct StartupDriveInfo {
 } __attribute__ ((packed));
 
 struct ArchSpecificKInfo {
-    size_t startup_drive; /* 64-bit pointer to a StartupDriveInfo structure */
+    knl_size_t startup_drive; /* 64-bit pointer to a StartupDriveInfo structure */
 } __attribute__ ((packed));
 
 #endif
