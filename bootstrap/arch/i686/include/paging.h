@@ -19,6 +19,7 @@
 #ifndef _PAGING_H_
 #define _PAGING_H_
 
+#include <address.h>
 #include <align.h>
 #include <bs_kernel_information.h>
 #include <stdint.h>
@@ -62,21 +63,21 @@ int find_map_region_privileges(const KernelMMapItem* map_region);
 uint32_t generate_paging(KernelInformation* kinfo);
 // Make a identity-mapped page directory knowing the page table's position and length.
 // Return its length in bytes
-unsigned int make_identity_page_directory(const unsigned int location,
-                                          const unsigned int pt_location,
-                                          const unsigned int pt_length);
+bs_size_t make_identity_page_directory(const bs_size_t location,
+                                       const bs_size_t pt_location,
+                                       const bs_size_t pt_length);
 // Make an identity-mapped page table from a KernelInformation structure and return its length in bytes
-unsigned int make_identity_page_table(const unsigned int location, const KernelInformation* kinfo);
+bs_size_t make_identity_page_table(const bs_size_t location, const KernelInformation* kinfo);
 // Same for PDPT and PML4T
-unsigned int make_identity_pdpt(const unsigned int location, const unsigned int pd_location, const unsigned int pd_length);
-unsigned int make_identity_pml4t(const unsigned int location, const unsigned int pdpt_location, const unsigned int pdpt_length);
+bs_size_t make_identity_pdpt(const bs_size_t location, const bs_size_t pd_location, const bs_size_t pd_length);
+bs_size_t make_identity_pml4t(const bs_size_t location, const bs_size_t pdpt_location, const bs_size_t pdpt_length);
 // Set up stack protection
-void protect_stack(const uint32_t cr3_value);
+void protect_stack(const bs_size_t pt_location);
 // Set up a page translation (allocating required structures if needed)
 void setup_pagetranslation(KernelInformation* kinfo,
                            const uint32_t cr3_value,
-                           const uint64_t virt_addr,
-                           const uint64_t phys_addr,
+                           const knl_size_t virt_addr,
+                           const knl_size_t phys_addr,
                            const uint64_t flags);
 
 #endif

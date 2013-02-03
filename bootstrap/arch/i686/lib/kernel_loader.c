@@ -31,7 +31,8 @@ void load_kernel(KernelInformation* kinfo,
                  const Elf64_Ehdr* main_header,
                  const bs_size_t cr3_value) {
     unsigned int i, size;
-    uint64_t load_addr, current_offset, flags;
+    uint64_t flags;
+    knl_size_t load_addr, current_offset;
     void *source, *dest;
     char* mmap_name;
     KernelMMapItem* kmmap = FROM_KNL_PTR(KernelMMapItem*, kinfo->kmmap);
