@@ -40,7 +40,7 @@ struct KernelCPUInfo {
   uint32_t cache_line_size; //Size of a cache line in bytes. 0 means that this information is not available
 } __attribute__ ((packed));
 
-struct KernelMemoryMap {
+struct KernelMMapItem {
   size_t location;
   size_t size;
   KItemNature nature;
@@ -52,7 +52,7 @@ struct KernelMemoryMap {
 struct KernelInformation {
   char* command_line; //char* to the kernel command line
   uint32_t kmmap_size; //Number of entries in kernel memory map
-  KernelMemoryMap* kmmap; //Pointer to the kernel memory map
+  KernelMMapItem* kmmap; //Pointer to the kernel memory map
   KernelCPUInfo cpu_info; //Information about the processor we run on
   ArchSpecificKInfo arch_info; //Other arch-specific information
 } __attribute__ ((packed));

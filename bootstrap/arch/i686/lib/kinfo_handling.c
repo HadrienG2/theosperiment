@@ -25,19 +25,19 @@
 #include <x86multiproc.h>
 
 //This variable is use as a buffer for the merge and sort memory map transformations
-static KernelMemoryMap kmmap_transform_buffer[MAX_KMMAP_SIZE];
+static KernelMMapItem kmmap_transform_buffer[MAX_KMMAP_SIZE];
 
-KernelMemoryMap* add_bios_mmap(KernelMemoryMap* kmmap_buffer, unsigned int *index_ptr, const multiboot_info_t* mbd) {
+KernelMMapItem* add_bios_mmap(KernelMMapItem* kmmap_buffer, bs_size_t *index_ptr, const multiboot_info_t* mbd) {
     if((index_ptr == 0) || (mbd == 0) || (kmmap_buffer == 0)) return 0; //Parameter checking
     if(*index_ptr>=MAX_KMMAP_SIZE) return 0; //Parameter checking, round 2
 
-    unsigned int index = *index_ptr;
+    bs_size_t index = *index_ptr;
     if(!(mbd->flags & 64)) return 0; //No memory map without multiboot's help
     //Variables for hacking through the memory map
     int remaining_mmap;
     memory_map_t* current_mmap;
-    uint32_t hack_current_mmap;
-    uint64_t addr64 = 0, size64 = 0, new_addr64;
+    bs_size_t hack_current_mmap;
+    knl_size_t addr64 = 0, size64 = 0, new_addr64;
 
     //BIOS memory map scanning
     remaining_mmap = mbd->mmap_length;
@@ -51,7 +51,7 @@ KernelMemoryMap* add_bios_mmap(KernelMemoryMap* kmmap_buffer, unsigned int *inde
             kmmap_buffer[index].location = addr64 + size64;
             kmmap_buffer[index].size = new_addr64 - kmmap_buffer[index].location;
             kmmap_buffer[index].nature = NATURE_RES;
-            kmmap_buffer[index].name = (uint32_t) "Memory-mapped ROM";
+            kmmap_buffer[index].name = TO_KNL_PTR("Memory-mapped ROM");
             ++index;
             if(index>=MAX_KMMAP_SIZE) {
                 //Not enough room for memory map, quitting...
@@ -70,13 +70,13 @@ KernelMemoryMap* add_bios_mmap(KernelMemoryMap* kmmap_buffer, unsigned int *inde
             kmmap_buffer[index].nature = NATURE_RES; //Memory is reserved
         }
         if(addr64>=0x100000) {
-            kmmap_buffer[index].name = (uint32_t) "High mem";
+            kmmap_buffer[index].name = TO_KNL_PTR("High mem");
         } else {
-            kmmap_buffer[index].name = (uint32_t) "Low mem";
+            kmmap_buffer[index].name = TO_KNL_PTR("Low mem");
         }
 
         //Move to next mmap item
-        hack_current_mmap = (uint32_t) current_mmap;
+        hack_current_mmap = (bs_size_t) current_mmap;
         hack_current_mmap += current_mmap->size+4;
         remaining_mmap -= current_mmap->size+4;
         current_mmap = (memory_map_t*) hack_current_mmap;
@@ -91,19 +91,19 @@ KernelMemoryMap* add_bios_mmap(KernelMemoryMap* kmmap_buffer, unsigned int *inde
     return kmmap_buffer;
 }
 
-KernelMemoryMap* add_bskernel(KernelMemoryMap* kmmap_buffer, unsigned int *index_ptr, const multiboot_info_t* mbd) {
+KernelMMapItem* add_bskernel(KernelMMapItem* kmmap_buffer, bs_size_t *index_ptr, const multiboot_info_t* mbd) {
     if((index_ptr == 0) || (mbd == 0) || (kmmap_buffer == 0)) return 0; //Parameter checking
     if(*index_ptr>=MAX_KMMAP_SIZE) return 0; //Parameter checking, round 2
 
-    unsigned int index = *index_ptr;
+    bs_size_t index = *index_ptr;
     extern char sbs_kernel;
     extern char ebs_kernel;
 
     //Add bootstrap kernel location
-    kmmap_buffer[index].location = (uint32_t) &sbs_kernel;
-    kmmap_buffer[index].size = (uint32_t) &ebs_kernel - (uint32_t) &sbs_kernel;
+    kmmap_buffer[index].location = (bs_size_t) &sbs_kernel;
+    kmmap_buffer[index].size = (bs_size_t) &ebs_kernel - (bs_size_t) &sbs_kernel;
     kmmap_buffer[index].nature = NATURE_BSK;
-    kmmap_buffer[index].name = (uint32_t) "Bootstrap kernel";
+    kmmap_buffer[index].name = TO_KNL_PTR("Bootstrap kernel");
     ++index;
     if(index>=MAX_KMMAP_SIZE) {
         //Not enough room for memory map, quitting...
@@ -114,21 +114,21 @@ KernelMemoryMap* add_bskernel(KernelMemoryMap* kmmap_buffer, unsigned int *index
     return kmmap_buffer;
 }
 
-KernelMemoryMap* add_mbdata(KernelMemoryMap* kmmap_buffer, unsigned int *index_ptr, const multiboot_info_t* mbd) {
+KernelMMapItem* add_mbdata(KernelMMapItem* kmmap_buffer, bs_size_t *index_ptr, const multiboot_info_t* mbd) {
     if((index_ptr == 0) || (mbd == 0) || (kmmap_buffer == 0)) return 0; //Parameter checking
     if(*index_ptr>=MAX_KMMAP_SIZE) return 0; //Parameter checking, round 2
 
-    unsigned int index = *index_ptr;
+    bs_size_t index = *index_ptr;
 
     //We only save string data from GRUB. All useful information in the rest has been converted to
     //kernel information when necessary.
 
     //Command line
     if(mbd->flags & 4) {
-        kmmap_buffer[index].location = (uint32_t) mbd->cmdline;
+        kmmap_buffer[index].location = (bs_size_t) mbd->cmdline;
         kmmap_buffer[index].size = strlen(mbd->cmdline)+1;
         kmmap_buffer[index].nature = NATURE_BSK;
-        kmmap_buffer[index].name = (uint32_t) "Kernel command line";
+        kmmap_buffer[index].name = TO_KNL_PTR("Kernel command line");
         ++index;
         if(index>=MAX_KMMAP_SIZE) {
             //Not enough room for memory map, quitting...
@@ -138,13 +138,13 @@ KernelMemoryMap* add_mbdata(KernelMemoryMap* kmmap_buffer, unsigned int *index_p
 
     //Save module strings
     if(mbd->flags & 8) {
-        unsigned int current_mod;
+        bs_size_t current_mod;
 
         for(current_mod = 0; current_mod < mbd->mods_count; ++current_mod) {
-            kmmap_buffer[index].location = (uint32_t) mbd->mods_addr[current_mod].string;
+            kmmap_buffer[index].location = (bs_size_t) (mbd->mods_addr[current_mod].string);
             kmmap_buffer[index].size = strlen(mbd->mods_addr[current_mod].string)+1;
             kmmap_buffer[index].nature = NATURE_BSK;
-            kmmap_buffer[index].name = (uint32_t) "Multiboot modules string";
+            kmmap_buffer[index].name = TO_KNL_PTR("Multiboot modules string");
             ++index;
             if(index>=MAX_KMMAP_SIZE) {
                 //Not enough room for memory map, quitting...
@@ -158,7 +158,7 @@ KernelMemoryMap* add_mbdata(KernelMemoryMap* kmmap_buffer, unsigned int *index_p
 }
 
 void add_modules(KernelInformation* kinfo, const multiboot_info_t* mbd) {
-    unsigned int current_mod = 0;
+    bs_size_t current_mod = 0;
 
     //Add module information only if it is present (it should be)
     if(mbd->flags & 8) {
@@ -176,24 +176,24 @@ void add_modules(KernelInformation* kinfo, const multiboot_info_t* mbd) {
     kmmap_update(kinfo);
 }
 
-KernelMemoryMap* copy_memory_map_chunk(const KernelMemoryMap* source,
-                                                                             KernelMemoryMap* dest,
-                                                                             const unsigned int start,
-                                                                             const unsigned int length) {
+KernelMMapItem* copy_memory_map_chunk(const KernelMMapItem* source,
+                                       KernelMMapItem* dest,
+                                       const bs_size_t start,
+                                       const bs_size_t length) {
     if((!source) || (!dest) || (length+start > MAX_KMMAP_SIZE)) {
         return 0;
     }
 
-    unsigned int i;
+    bs_size_t i;
     for(i=start; i<start+length; ++i) copy_memory_map_elt(source, dest, i, i);
 
     return dest;
 }
 
-KernelMemoryMap* copy_memory_map_elt(const KernelMemoryMap* source,
-                                                                         KernelMemoryMap* dest,
-                                                                         const unsigned int source_index,
-                                                                         const unsigned int dest_index) {
+KernelMMapItem* copy_memory_map_elt(const KernelMMapItem* source,
+                                     KernelMMapItem* dest,
+                                     const bs_size_t source_index,
+                                     const bs_size_t dest_index) {
     if((!source) || (!dest) || (source_index >= MAX_KMMAP_SIZE) || (dest_index >= MAX_KMMAP_SIZE)) {
         return 0;
     }
@@ -206,21 +206,21 @@ KernelMemoryMap* copy_memory_map_elt(const KernelMemoryMap* source,
     return dest;
 }
 
-KernelMemoryMap* find_freemem(const KernelInformation* kinfo, const uint64_t minimal_size) {
-    unsigned int index;
-    const KernelMemoryMap* kmmap = (const KernelMemoryMap*) (uint32_t) kinfo->kmmap;
+KernelMMapItem* find_freemem(const KernelInformation* kinfo, const knl_size_t minimal_size) {
+    bs_size_t index;
+    KernelMMapItem* kmmap = FROM_KNL_PTR(KernelMMapItem*, kinfo->kmmap);
 
     //Find the beginning of high memory (>1MB)
     for(index=0; kmmap[index].location<0x100000; ++index);
     //Find a suitable free chunk of high memory
     for(; (kmmap[index].size < minimal_size) || (kmmap[index].nature!=NATURE_FRE); ++index);
 
-    return (KernelMemoryMap*) &(kmmap[index]);
+    return (KernelMMapItem*) &(kmmap[index]);
 }
 
-KernelMemoryMap* find_freemem_pgalign(const KernelInformation* kinfo, const uint64_t minimal_size) {
-    unsigned int index;
-    const KernelMemoryMap* kmmap = (const KernelMemoryMap*) (uint32_t) kinfo->kmmap;
+KernelMMapItem* find_freemem_pgalign(const KernelInformation* kinfo, const knl_size_t minimal_size) {
+    bs_size_t index;
+    KernelMMapItem* kmmap = FROM_KNL_PTR(KernelMMapItem*, kinfo->kmmap);
 
     //Find the beginning of high memory (>1MB)
     for(index=0; kmmap[index].location<0x100000; ++index);
@@ -228,7 +228,7 @@ KernelMemoryMap* find_freemem_pgalign(const KernelInformation* kinfo, const uint
     for(; (kmmap[index].size < minimal_size + (align_pgup(kmmap[index].location)-kmmap[index].location))
                      || (kmmap[index].nature!=NATURE_FRE); ++index);
 
-    return (KernelMemoryMap*) &(kmmap[index]);
+    return (KernelMMapItem*) &(kmmap[index]);
 }
 
 KernelCPUInfo* generate_cpu_info(KernelInformation* kinfo) {
@@ -274,10 +274,10 @@ KernelCPUInfo* generate_cpu_info(KernelInformation* kinfo) {
     return generate_multiprocessing_info(kinfo);
 }
 
-KernelMemoryMap* generate_memory_map(const multiboot_info_t* mbd, KernelInformation* kinfo) {
+KernelMMapItem* generate_memory_map(const multiboot_info_t* mbd, KernelInformation* kinfo) {
     //A buffer for memory map.
-    static KernelMemoryMap kmmap_buffer[MAX_KMMAP_SIZE];
-    unsigned int index = 0;
+    static KernelMMapItem kmmap_buffer[MAX_KMMAP_SIZE];
+    bs_size_t index = 0;
 
     /*This function
         1/Packs all memory-related data in a memory map
@@ -295,7 +295,7 @@ KernelMemoryMap* generate_memory_map(const multiboot_info_t* mbd, KernelInformat
     if(add_bios_mmap(kmmap_buffer, &index, mbd) == 0) die(NO_MEMORYMAP);
     if(add_mbdata(kmmap_buffer, &index, mbd) == 0) die(NO_MEMORYMAP);
     if(add_bskernel(kmmap_buffer, &index, mbd) == 0) die(NO_MEMORYMAP);
-    kinfo->kmmap = (uint32_t) kmmap_buffer;
+    kinfo->kmmap = TO_KNL_PTR(kmmap_buffer);
     kinfo->kmmap_size = index;
 
     //Here's part 2
@@ -363,7 +363,7 @@ KernelInformation* kinfo_gen(const multiboot_info_t* mbd) {
     result.arch_info.startup_drive = 0;
 
     //Get command line from bootloader (if available)
-    if(mbd->flags & 4) result.command_line = (uint32_t) mbd->cmdline;
+    if(mbd->flags & 4) result.command_line = TO_KNL_PTR(mbd->cmdline);
     //Same for startup drive
     if(mbd->flags & 2) {
         sd_buff.drive_number = mbd->boot_device/(256*256*256);
@@ -371,7 +371,7 @@ KernelInformation* kinfo_gen(const multiboot_info_t* mbd) {
         sd_buff.sub_partition_number = (mbd->boot_device/256)%256;
         sd_buff.subsub_partition_number = mbd->boot_device%256;
     }
-    result.arch_info.startup_drive = (uint32_t) &sd_buff;
+    result.arch_info.startup_drive = TO_KNL_PTR(&sd_buff);
     //Generate a memory map
     generate_memory_map(mbd, &result);
     //Generate module-related information
@@ -383,21 +383,21 @@ KernelInformation* kinfo_gen(const multiboot_info_t* mbd) {
 }
 
 void kmmap_add(KernelInformation* kinfo,
-                             const uint64_t location,
-                             const uint64_t size,
+                             const knl_size_t location,
+                             const knl_size_t size,
                              const uint8_t nature,
                              const char* name) {
-    KernelMemoryMap* kmmap = (KernelMemoryMap*) (uint32_t) kinfo->kmmap;
+    KernelMMapItem* kmmap = FROM_KNL_PTR(KernelMMapItem*, kinfo->kmmap);
 
     if(++(kinfo->kmmap_size) == MAX_KMMAP_SIZE) die(MMAP_TOO_SMALL);
     kmmap[kinfo->kmmap_size-1].location = location;
     kmmap[kinfo->kmmap_size-1].size = size;
     kmmap[kinfo->kmmap_size-1].nature = nature;
-    kmmap[kinfo->kmmap_size-1].name = (uint32_t) name;
+    kmmap[kinfo->kmmap_size-1].name = TO_KNL_PTR(name);
 }
 
-uint64_t kmmap_alloc(KernelInformation* kinfo, const uint64_t size, const uint8_t nature, const char* name) {
-    KernelMemoryMap* kmmap_free;
+knl_size_t kmmap_alloc(KernelInformation* kinfo, const knl_size_t size, const uint8_t nature, const char* name) {
+    KernelMMapItem* kmmap_free;
 
     kmmap_free = find_freemem(kinfo, size);
     kmmap_add(kinfo, kmmap_free->location, size, nature, name);
@@ -405,9 +405,9 @@ uint64_t kmmap_alloc(KernelInformation* kinfo, const uint64_t size, const uint8_
     return kmmap_free->location;
 }
 
-uint64_t kmmap_alloc_pgalign(KernelInformation* kinfo, const uint64_t size, const uint8_t nature, const char* name) {
-    KernelMemoryMap* kmmap_free;
-    uint64_t location;
+knl_size_t kmmap_alloc_pgalign(KernelInformation* kinfo, const knl_size_t size, const uint8_t nature, const char* name) {
+    KernelMMapItem* kmmap_free;
+    knl_size_t location;
 
     kmmap_free = find_freemem_pgalign(kinfo, align_pgup(size));
     location = align_pgup(kmmap_free->location);
@@ -416,10 +416,16 @@ uint64_t kmmap_alloc_pgalign(KernelInformation* kinfo, const uint64_t size, cons
     return location;
 }
 
-uint64_t kmmap_mem_amount(const KernelInformation* kinfo) {
-    const KernelMemoryMap* kmmap = (const KernelMemoryMap*) (uint32_t) kinfo->kmmap;
+//void kmmap_free_pgalign(KernelInformation* kinfo, const bs_size_t index) {
+    //KernelMMapItem* kmmap = FROM_KNL_PTR(KernelMMapItem*, kinfo->kmmap);
+    
+    //TODO : COMPLETE THIS JOB !
+//}
 
-    uint64_t memory_amount = kmmap[kinfo->kmmap_size-1].location+kmmap[kinfo->kmmap_size-1].size;
+knl_size_t kmmap_mem_amount(const KernelInformation* kinfo) {
+    const KernelMMapItem* kmmap = FROM_KNL_PTR(KernelMMapItem*, kinfo->kmmap);
+
+    knl_size_t memory_amount = kmmap[kinfo->kmmap_size-1].location+kmmap[kinfo->kmmap_size-1].size;
     #ifdef DEBUG
         //x86 reserves a small amount of memory around the end of the adressable space.
         //I don't use it at the moment, and it slows Bochs down a lot. Therefore, it should not be
@@ -434,7 +440,7 @@ void kmmap_update(KernelInformation* kinfo) {
     merge_memory_map(kinfo);
 }
 
-KernelMemoryMap* merge_memory_map(KernelInformation* kinfo) {
+KernelMMapItem* merge_memory_map(KernelInformation* kinfo) {
     /* Goal of this function : parts of the memory map (segments) are overlapping, due to the fact that
        memory map provided by GRUB does not take account of used memory, only knowing the difference
        between reserved ram and "free" ram (which, in fact, isn't necessarily free).
@@ -450,9 +456,9 @@ KernelMemoryMap* merge_memory_map(KernelInformation* kinfo) {
            and the other being some kind of used memory region.
         -> Free memory segments always begin before and end after the overlapping segments. */
 
-    KernelMemoryMap tmp = {0,0,0,0};
-    KernelMemoryMap* kmmap = (KernelMemoryMap*) (uint32_t) kinfo->kmmap;
-    unsigned int dest_index = 0, source_index, free_index;
+    KernelMMapItem tmp = {0,0,0,0};
+    KernelMMapItem* kmmap = FROM_KNL_PTR(KernelMMapItem*, kinfo->kmmap);
+    bs_size_t dest_index = 0, source_index, free_index;
 
     /*  It's simpler if the free memory segments are listed before their used counterpart in
         main memory. The only case where this may not happen is when a used segment begins at the same
@@ -551,7 +557,7 @@ KernelMemoryMap* merge_memory_map(KernelInformation* kinfo) {
     return kmmap;
 }
 
-KernelMemoryMap* sort_memory_map(KernelInformation* kinfo) {
+KernelMMapItem* sort_memory_map(KernelInformation* kinfo) {
     //Implemented algorithm : fusion sort
     /* Idea : A E F B D C
              -> Make couples
@@ -566,12 +572,12 @@ KernelMemoryMap* sort_memory_map(KernelInformation* kinfo) {
     if(!kinfo) return 0;
     else if((!kinfo->kmmap) || (kinfo->kmmap_size == 0)) return 0;
 
-    unsigned int granularity, left_pointer, right_pointer, dest_pointer = 0, current_pair;
+    bs_size_t granularity, left_pointer, right_pointer, dest_pointer = 0, current_pair;
 
-    KernelMemoryMap* kmmap = (KernelMemoryMap*) (uint32_t) kinfo->kmmap;
-    KernelMemoryMap* source = kmmap;
-    KernelMemoryMap* dest = kmmap_transform_buffer;
-    KernelMemoryMap* tmp;
+    KernelMMapItem* kmmap = FROM_KNL_PTR(KernelMMapItem*, kinfo->kmmap);
+    KernelMMapItem* source = kmmap;
+    KernelMMapItem* dest = kmmap_transform_buffer;
+    KernelMMapItem* tmp;
 
     /* We use a cyclic behavior : at the beginning of each cycle, we have some amount of
          sorted 2^N-elements lists that we want to merge together */

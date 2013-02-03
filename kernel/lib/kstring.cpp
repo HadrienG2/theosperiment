@@ -201,7 +201,7 @@ CombiningClassDB* combining_class_db = NULL;
 CanonicalDecompositionDB* canonical_decomposition_db = NULL;
 
 void InitializeKString() {
-    dbgout << "Probing kernel modules..." << endl;
+    //TODO : Brainstorm ways to probe kernel modules without global variables, is possible
     dbgout << "Error: InitializeKString() is not implemented yet !" << endl;
 }
 

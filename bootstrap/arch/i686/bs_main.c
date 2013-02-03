@@ -95,12 +95,13 @@ int bootstrap_longmode(const multiboot_info_t* mbd, const uint32_t magic) {
     //Switch to the 32-bit subset of long mode, enable SSE2
     enable_longmode(cr3_value);
 
-    //Locate the kernel in memory
-    const KernelMemoryMap* kernel_location = locate_kernel(kinfo);
+    //Locate the kernel in the memory map
+    const bs_size_t kernel_item = locate_kernel(kinfo);
     //Get kernel headers
-    const Elf64_Ehdr* main_header = read_kernel_headers(kernel_location);
+    KernelMMapItem* kmmap = FROM_KNL_PTR(KernelMMapItem*, kinfo->kmmap);
+    const Elf64_Ehdr* main_header = read_kernel_headers(&(kmmap[kernel_item]));
     //Load the kernel's ELF binary in memory
-    load_kernel(kinfo, kernel_location, main_header, cr3_value);
+    load_kernel(kinfo, kernel_item, main_header, cr3_value);
 
     //Switch to long mode, run the kernel
     run_kernel(main_header->e_entry, kinfo);

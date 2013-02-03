@@ -24,6 +24,11 @@
 
 #define NULL 0
 
-typedef uint64_t size_t; //On x86_64, addresses are unsigned 64-bit integers
+//Cast 64-bit kernel pointers into 32-bit bootstrap pointers and vice versa
+#define FROM_KNL_PTR(pointer_type, pointer) (pointer_type) (bs_size_t) (pointer)
+#define TO_KNL_PTR(pointer) (knl_size_t) (bs_size_t) (pointer)
+
+typedef uint32_t bs_size_t; //At bootstrap time, addresses are unsigned 32-bit integers
+typedef uint64_t knl_size_t; //On x86_64, kernel addresses are unsigned 64-bit integers
 
 #endif

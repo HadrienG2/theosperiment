@@ -51,7 +51,7 @@ void dbg_print_kinfo(const KernelInformation* kinfo) {
 
 void dbg_print_kmmap(const KernelInformation* kinfo) {
     unsigned int i = 0;
-    KernelMemoryMap* kmmap = (KernelMemoryMap*) (uint32_t) kinfo->kmmap;
+    KernelMMapItem* kmmap = (KernelMMapItem*) (uint32_t) kinfo->kmmap;
     print_str("Address            | Size               | Type | Name\n");
     print_str("-------------------------------------------------------------------------------\n");
     for(; i<kinfo->kmmap_size; ++i) {

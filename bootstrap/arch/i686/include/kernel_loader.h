@@ -19,17 +19,18 @@
 #ifndef _ELF64_PARSER_H_
 #define _ELF64_PARSER_H_
 
+#include <address.h>
 #include <elf.h>
 #include <bs_kernel_information.h>
 
 //This function reads program headers and loads all loadable program segments in memory
 void load_kernel(KernelInformation* kinfo,
-                 const KernelMemoryMap* kernel,
+                 const bs_size_t kernel_item,
                  const Elf64_Ehdr* main_header,
-                 const uint32_t cr3_value);
+                 const bs_size_t cr3_value);
 //Locate the kernel in the memory map
-const KernelMemoryMap* locate_kernel(const KernelInformation* kinfo);
+bs_size_t locate_kernel(const KernelInformation* kinfo);
 //This function returns the ELF64 headers of the kernel after performing some checks on them
-const Elf64_Ehdr* read_kernel_headers(const KernelMemoryMap* kernel);
+const Elf64_Ehdr* read_kernel_headers(const KernelMMapItem* kernel);
 
 #endif

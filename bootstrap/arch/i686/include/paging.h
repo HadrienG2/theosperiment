@@ -57,7 +57,7 @@ typedef uint64_t pte;   /* Page-Table Entry */
 //    0 = R-X
 //    1 = R--
 //    2 = RW-
-int find_map_region_privileges(const KernelMemoryMap* map_region);
+int find_map_region_privileges(const KernelMMapItem* map_region);
 // Set up paging structures and return CR3 value
 uint32_t generate_paging(KernelInformation* kinfo);
 // Make a identity-mapped page directory knowing the page table's position and length.

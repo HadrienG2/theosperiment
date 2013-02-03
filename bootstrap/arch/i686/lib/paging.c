@@ -43,7 +43,7 @@ const char* PAGE_DIR_NAME = "Kernel page directories";
 const char* PDPT_NAME = "Kernel page directory pointers";
 const char* PML4T_NAME = "Kernel PML4T";
 
-int find_map_region_privileges(const KernelMemoryMap* map_region) {
+int find_map_region_privileges(const KernelMMapItem* map_region) {
     //Free and reserved segments are considered as RW-
     if(map_region->nature <= NATURE_RES) return 2;
     //Bootstrap segments are considered as R-X
@@ -122,7 +122,7 @@ unsigned int make_identity_page_directory(const unsigned int location,
 
 unsigned int make_identity_page_table(const unsigned int location, const KernelInformation* kinfo) {
     unsigned int current_mmap_index = 0;
-    const KernelMemoryMap* kmmap = (const KernelMemoryMap*) (uint32_t) kinfo->kmmap;
+    const KernelMMapItem* kmmap = (const KernelMMapItem*) (uint32_t) kinfo->kmmap;
     uint64_t current_page, current_region_end = kmmap[0].location + kmmap[0].size;
     uint64_t memory_amount = kmmap_mem_amount(kinfo);
 

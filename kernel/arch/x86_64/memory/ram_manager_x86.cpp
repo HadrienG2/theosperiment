@@ -84,7 +84,7 @@ RAMManager::RAMManager(const KernelInformation& kinfo) : process_manager(NULL),
     //      -Pages of nature Free and Reserved belong to nobody (PID_INVALID)
 
     size_t mapitems_location, mapitems_size, storage_index;
-    const KernelMemoryMap* kmmap = kinfo.kmmap;
+    const KernelMMapItem* kmmap = kinfo.kmmap;
     RAMChunk *current_item, *last_free = NULL;
 
     //Find out how much map items we will need, at most, to store our memory map items
