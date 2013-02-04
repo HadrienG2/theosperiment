@@ -1,4 +1,6 @@
- /* <Some C++ unit>
+ /* Kernel module management facilities, used to handle those files which
+    are loaded to RAM by the bootloader before we can actually load stuff
+    from disk
 
     Copyright (C) 2013  Hadrien Grasland
 
@@ -16,4 +18,4 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include <itself.h>
+#include <module_manager.h>

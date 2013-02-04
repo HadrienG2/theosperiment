@@ -1,6 +1,8 @@
- /* <Some C++ unit>
+ /* Kernel module management facilities, used to handle those files which
+    are loaded to RAM by the bootloader before we can actually load stuff
+    from disk
 
-    Copyright (C) 2013  Hadrien Grasland
+      Copyright (C) 2013  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -16,4 +18,7 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include <itself.h>
+#ifndef _MODULE_MANAGER_H_
+#define _MODULE_MANAGER_H_
+
+#endif
