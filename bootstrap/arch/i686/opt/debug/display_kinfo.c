@@ -29,7 +29,7 @@ void dbg_print_kinfo(const KernelInformation* kinfo) {
 
         //Memory map size
         print_str("Memory map size : ");
-        print_int32(kinfo->kmmap_size);
+        print_int32(kinfo->kmmap_length);
         print_chr('\n');
 
         //Startup drive information
@@ -54,7 +54,7 @@ void dbg_print_kmmap(const KernelInformation* kinfo) {
     KernelMMapItem* kmmap = (KernelMMapItem*) (uint32_t) kinfo->kmmap;
     print_str("Address            | Size               | Type | Name\n");
     print_str("-------------------------------------------------------------------------------\n");
-    for(; i<kinfo->kmmap_size; ++i) {
+    for(; i<kinfo->kmmap_length; ++i) {
         print_hex64(kmmap[i].location);
         print_str(" | ");
         print_hex64(kmmap[i].size);

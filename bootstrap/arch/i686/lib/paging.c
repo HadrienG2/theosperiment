@@ -149,9 +149,9 @@ bs_size_t make_identity_page_table(const bs_size_t location, const KernelInforma
             //No. Check what's happening then.
             if((((current_page+2)*PG_SIZE > kmmap[current_mmap_index+1].location) &&
                     ((current_page+1)*PG_SIZE < kmmap[current_mmap_index].location+kmmap[current_mmap_index].size) &&
-                    (current_mmap_index<kinfo->kmmap_size-1))
+                    (current_mmap_index<kinfo->kmmap_length-1))
                 || (((current_page+2)*PG_SIZE > kmmap[current_mmap_index+2].location) &&
-                    (current_mmap_index<kinfo->kmmap_size-2)))
+                    (current_mmap_index<kinfo->kmmap_length-2)))
             {
                 //Our page overlaps with two distinct memory map entries.
                 //This means that we're in the region where GRUB puts its stuff and requires specific care

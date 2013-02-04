@@ -23,13 +23,20 @@
 #include <address.h>
 #include <stdint.h>
 
+//These are functions for the manipulation of legacy ASCII strings and other kinds of
+//low-level memory manipulation
 void* memcpy(void* destination, const void* source, size_t num);
 size_t strlen(const char* str);
 
+
+//These typedef declarations are necessary because C++ is a brain-dead programming language
+//which cannot look for class declarations ahead in the code.
 typedef class KUTF32String KUTF32String;
 typedef class KUTF8String KUTF8String;
 
-class KUTF32String { //An NFD-normalized UTF-32 string
+
+//This is an NFD-normalized UTF-32 string, to be used for internal processing purposes
+class KUTF32String {
   private:
     size_t len;
     uint32_t* contents;
@@ -89,6 +96,9 @@ class KUTF32String { //An NFD-normalized UTF-32 string
     size_t heap_size(); //TO BE IMPLEMENTED
 };
 
+
+//This is a way to express an UTF-8 encoded Unicode code point, featuring both its code point value
+//and its length in bytes when encoded in UTF-8
 struct KUTF8CodePoint {
     uint32_t code_point;
     size_t byte_length;
@@ -96,6 +106,8 @@ struct KUTF8CodePoint {
     KUTF8CodePoint& operator=(uint32_t value) {code_point = value; return *this;}
 };
 
+
+//This is an UTF-8 string, to be used for internal storage and interchange purpose. It is not normalized.
 class KUTF8String {
   private:
     size_t len;
@@ -131,6 +143,7 @@ class KUTF8String {
     size_t heap_size();  //TO BE IMPLEMENTED
 };
 
+
 //These support structures are used internally by Unicode manipulation strings
 //They store enough information to compute a characters' NFD decomposition
 //They are filled by the InitializeKString() function from information extracted
@@ -160,6 +173,7 @@ struct CanonicalDecompositionDB {
 extern CanonicalDecompositionDB* canonical_decomposition_db;
 
 void InitializeKString();
+
 
 // (!) The following code is deprecated and to be replaced or removed (!)
 typedef class KAsciiString KString;

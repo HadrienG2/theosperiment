@@ -88,10 +88,10 @@ RAMManager::RAMManager(const KernelInformation& kinfo) : process_manager(NULL),
     RAMChunk *current_item, *last_free = NULL;
 
     //Find out how much map items we will need, at most, to store our memory map items
-    mapitems_size = align_pgup((kinfo.kmmap_size+2)*sizeof(RAMChunk));
+    mapitems_size = align_pgup((kinfo.kmmap_length+2)*sizeof(RAMChunk));
 
     //Find an empty chunk of high memory large enough to store our mess... We assume there's one.
-    for(storage_index=0; storage_index<kinfo.kmmap_size; ++storage_index) {
+    for(storage_index=0; storage_index<kinfo.kmmap_length; ++storage_index) {
         if(kmmap[storage_index].location < 0x100000) continue;
         if(kmmap[storage_index].nature != NATURE_FRE) continue;
         if(kmmap[storage_index].location+kmmap[storage_index].size-align_pgup(kmmap[storage_index].location) >= mapitems_size) {

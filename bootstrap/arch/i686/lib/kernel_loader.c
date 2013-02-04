@@ -106,12 +106,15 @@ void load_kernel(KernelInformation* kinfo,
                   "Kernel mapping region");
         kmmap_update(kinfo);
     }
+    
+    //Free the kernel image, we won't need it from now on
+    kmmap_free(kinfo, kernel_item);
 }
 
 bs_size_t locate_kernel(const KernelInformation* kinfo) {
     unsigned int i;
     const KernelMMapItem* kmmap = FROM_KNL_PTR(KernelMMapItem*, kinfo->kmmap);
-    for(i=0; i<kinfo->kmmap_size; ++i) {
+    for(i=0; i<kinfo->kmmap_length; ++i) {
         if(!strcmp(FROM_KNL_PTR(char*, kmmap[i].name), KERNEL_NAME)) {
             return i;
         }

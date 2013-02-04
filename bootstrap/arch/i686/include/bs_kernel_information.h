@@ -35,7 +35,7 @@ typedef uint8_t KItemNature;
 #define NATURE_MOD 4 //Kernel module
 
 //Reserved entries of kernel memory map.
-#define MAX_KMMAP_SIZE 512
+#define MAX_KMMAP_LENGTH 512
 
 typedef struct KernelCPUInfo KernelCPUInfo;
 typedef struct KernelMMapItem KernelMMapItem;
@@ -57,7 +57,7 @@ struct KernelMMapItem {
 
 struct KernelInformation {
     knl_size_t command_line; //char* to the kernel command line
-    knl_size_t kmmap_size; //Number of entries in kernel memory map
+    knl_size_t kmmap_length; //Number of entries in kernel memory map
     knl_size_t kmmap; //KernelMMapItem* to the kernel memory map
     KernelCPUInfo cpu_info; //Information about the processor we run on
     ArchSpecificKInfo arch_info; //Other arch-specific information

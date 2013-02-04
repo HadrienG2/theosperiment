@@ -207,7 +207,7 @@ bool PagingManager::map_kernel() {
     size_t vir_knl_rx_loc, vir_knl_r_loc, vir_knl_rw_loc, kernel_pml4t;
     RAMChunk* ram_map;
 
-    //Find out about the kernel's memory location, because it is not identity-mapped.
+    //Find out about the kernel's physical memory location, as it is not identity-mapped.
     extern char knl_rx_start, knl_r_start, knl_rw_start;
     vir_knl_rx_loc = (size_t) &knl_rx_start;
     vir_knl_r_loc = (size_t) &knl_r_start;

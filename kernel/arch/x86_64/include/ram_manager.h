@@ -90,8 +90,8 @@ class RAMManager {
 
         //Page/chunk allocation, sharing and freeing functions
         RAMChunk* alloc_chunk(const PID initial_owner,     //Allocates a chunk of memory which is
-                                 const size_t size = PG_SIZE, //at least "size" large. The
-                                 bool contiguous = false);    //"contiguous" flag forces it to be
+                              const size_t size = PG_SIZE, //at least "size" large. The
+                               bool contiguous = false);    //"contiguous" flag forces it to be
                                                               //physically contiguous
         bool share_chunk(const PID new_owner,  //Add owners to a chunk
                          size_t chunk_beginning);

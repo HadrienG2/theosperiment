@@ -54,7 +54,8 @@ KUTF32String::KUTF32String(KUTF8String& source) : file_index(0) {
     size_t source_index = 0;
     KUTF8CodePoint source_codepoint;
 
-    //UTF-8 strings can be assumed to be well-formed, but are not NFD-normalized.
+    //UTF-8 strings can be assumed to be well-formed, since peek_codepoint() takes care
+    //of ill-formed sequences, but they are not NFD-normalized.
     len = source.codepoint_length();
     contents = new(PID_KERNEL, PAGE_FLAGS_RW, true) uint32_t[len+1];
     for(size_t dest_index = 0; dest_index < len; ++dest_index) {

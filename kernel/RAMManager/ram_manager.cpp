@@ -436,7 +436,7 @@ void RAMManager::fill_mmap(const KernelInformation& kinfo) {
     }
 
     //Continue to fill the memory map
-    while(index < kinfo.kmmap_size) {
+    while(index < kinfo.kmmap_length) {
         //Create and append a chunk associated to the next kmmap item(s)
         current_item = generate_chunk(kinfo, index);
         fix_overlap(previous_item, current_item);
@@ -519,7 +519,7 @@ RAMChunk* RAMManager::generate_chunk(const KernelInformation& kinfo, size_t& ind
     result->size = chunk_end-chunk_start;
 
     //Examine all kmmap items comprised in the allocated chunk to set chunk attributes
-    while((kmmap[index].location < chunk_end) && (index < kinfo.kmmap_size)) {
+    while((kmmap[index].location < chunk_end) && (index < kinfo.kmmap_length)) {
         if(kmmap[index].nature>=NATURE_BSK) {
             result->owners = PID_KERNEL;
         }
