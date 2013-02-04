@@ -50,9 +50,9 @@ struct KernelMMapItem {
 } __attribute__ ((packed));
 
 struct KernelInformation {
-  char* command_line; //char* to the kernel command line
-  uint32_t kmmap_size; //Number of entries in kernel memory map
-  KernelMMapItem* kmmap; //Pointer to the kernel memory map
+  char* command_line;
+  size_t kmmap_length;
+  KernelMMapItem* kmmap; //A bootstrap-provided map of memory, featuring kernel module locations
   KernelCPUInfo cpu_info; //Information about the processor we run on
   ArchSpecificKInfo arch_info; //Other arch-specific information
 } __attribute__ ((packed));

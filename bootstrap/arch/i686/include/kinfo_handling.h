@@ -66,14 +66,15 @@ void kmmap_add(KernelInformation* kinfo,
 knl_size_t kmmap_alloc(KernelInformation* kinfo, const knl_size_t size, const uint8_t nature, const char* name);
 //Same as above, but with page aligment taken into account
 knl_size_t kmmap_alloc_pgalign(KernelInformation* kinfo, const knl_size_t size, const uint8_t nature, const char* name);
-//TODO : Free page-aligned memory (unaligned memory cannot be reclaimed)
-//void kmmap_free_pgalign(KernelInformation* kinfo, const bs_size_t index);
+//Free a busy chunk of memory
+void kmmap_free(KernelInformation* kinfo, const bs_size_t index);
 //Return the amount of physical memory
 knl_size_t kmmap_mem_amount(const KernelInformation* kinfo);
 //Update the memory map so that it follows latest changes
 void kmmap_update(KernelInformation* kinfo);
 
-
+//Merge consecutive free items after items have been freed from the mmap
+KernelMMapItem* merge_free_items(KernelInformation* kinfo, bs_size_t first_free_index);
 //Merges overlapping entries of a sorted memory map
 KernelMMapItem* merge_memory_map(KernelInformation* kinfo);
 //Sorts out a map

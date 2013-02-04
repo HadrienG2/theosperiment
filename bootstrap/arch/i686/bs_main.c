@@ -81,7 +81,7 @@ int bootstrap_longmode(const multiboot_info_t* mbd, const uint32_t magic) {
     print_str(" Booting kernel, please wait... ");
     set_attr(TXT_LIGHTGRAY);
     for(i = 0; i<24; ++i) print_chr(-60);
-    set_attr(TXT_LIGHTRED);
+    set_attr(TXT_LIGHTGRAY);
 
     //Generate kernel information and check CPU features (we need long mode, SSE2 and NX to be available)
     kinfo = kinfo_gen(mbd);

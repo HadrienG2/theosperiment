@@ -25,11 +25,11 @@
 #include <x86multiproc.h>
 
 //This variable is use as a buffer for the merge and sort memory map transformations
-static KernelMMapItem kmmap_transform_buffer[MAX_KMMAP_SIZE];
+static KernelMMapItem kmmap_transform_buffer[MAX_KMMAP_LENGTH];
 
 KernelMMapItem* add_bios_mmap(KernelMMapItem* kmmap_buffer, bs_size_t *index_ptr, const multiboot_info_t* mbd) {
     if((index_ptr == 0) || (mbd == 0) || (kmmap_buffer == 0)) return 0; //Parameter checking
-    if(*index_ptr>=MAX_KMMAP_SIZE) return 0; //Parameter checking, round 2
+    if(*index_ptr>=MAX_KMMAP_LENGTH) return 0; //Parameter checking, round 2
 
     bs_size_t index = *index_ptr;
     if(!(mbd->flags & 64)) return 0; //No memory map without multiboot's help
@@ -53,7 +53,7 @@ KernelMMapItem* add_bios_mmap(KernelMMapItem* kmmap_buffer, bs_size_t *index_ptr
             kmmap_buffer[index].nature = NATURE_RES;
             kmmap_buffer[index].name = TO_KNL_PTR("Memory-mapped ROM");
             ++index;
-            if(index>=MAX_KMMAP_SIZE) {
+            if(index>=MAX_KMMAP_LENGTH) {
                 //Not enough room for memory map, quitting...
                 die(MMAP_TOO_SMALL);
             }
@@ -81,7 +81,7 @@ KernelMMapItem* add_bios_mmap(KernelMMapItem* kmmap_buffer, bs_size_t *index_ptr
         remaining_mmap -= current_mmap->size+4;
         current_mmap = (memory_map_t*) hack_current_mmap;
         ++index;
-        if(index>=MAX_KMMAP_SIZE) {
+        if(index>=MAX_KMMAP_LENGTH) {
             //Not enough room for memory map, quitting...
             die(MMAP_TOO_SMALL);
         }
@@ -93,7 +93,7 @@ KernelMMapItem* add_bios_mmap(KernelMMapItem* kmmap_buffer, bs_size_t *index_ptr
 
 KernelMMapItem* add_bskernel(KernelMMapItem* kmmap_buffer, bs_size_t *index_ptr, const multiboot_info_t* mbd) {
     if((index_ptr == 0) || (mbd == 0) || (kmmap_buffer == 0)) return 0; //Parameter checking
-    if(*index_ptr>=MAX_KMMAP_SIZE) return 0; //Parameter checking, round 2
+    if(*index_ptr>=MAX_KMMAP_LENGTH) return 0; //Parameter checking, round 2
 
     bs_size_t index = *index_ptr;
     extern char sbs_kernel;
@@ -105,7 +105,7 @@ KernelMMapItem* add_bskernel(KernelMMapItem* kmmap_buffer, bs_size_t *index_ptr,
     kmmap_buffer[index].nature = NATURE_BSK;
     kmmap_buffer[index].name = TO_KNL_PTR("Bootstrap kernel");
     ++index;
-    if(index>=MAX_KMMAP_SIZE) {
+    if(index>=MAX_KMMAP_LENGTH) {
         //Not enough room for memory map, quitting...
         die(MMAP_TOO_SMALL);
     }
@@ -116,7 +116,7 @@ KernelMMapItem* add_bskernel(KernelMMapItem* kmmap_buffer, bs_size_t *index_ptr,
 
 KernelMMapItem* add_mbdata(KernelMMapItem* kmmap_buffer, bs_size_t *index_ptr, const multiboot_info_t* mbd) {
     if((index_ptr == 0) || (mbd == 0) || (kmmap_buffer == 0)) return 0; //Parameter checking
-    if(*index_ptr>=MAX_KMMAP_SIZE) return 0; //Parameter checking, round 2
+    if(*index_ptr>=MAX_KMMAP_LENGTH) return 0; //Parameter checking, round 2
 
     bs_size_t index = *index_ptr;
 
@@ -130,7 +130,7 @@ KernelMMapItem* add_mbdata(KernelMMapItem* kmmap_buffer, bs_size_t *index_ptr, c
         kmmap_buffer[index].nature = NATURE_BSK;
         kmmap_buffer[index].name = TO_KNL_PTR("Kernel command line");
         ++index;
-        if(index>=MAX_KMMAP_SIZE) {
+        if(index>=MAX_KMMAP_LENGTH) {
             //Not enough room for memory map, quitting...
             die(MMAP_TOO_SMALL);
         }
@@ -146,7 +146,7 @@ KernelMMapItem* add_mbdata(KernelMMapItem* kmmap_buffer, bs_size_t *index_ptr, c
             kmmap_buffer[index].nature = NATURE_BSK;
             kmmap_buffer[index].name = TO_KNL_PTR("Multiboot modules string");
             ++index;
-            if(index>=MAX_KMMAP_SIZE) {
+            if(index>=MAX_KMMAP_LENGTH) {
                 //Not enough room for memory map, quitting...
                 die(MMAP_TOO_SMALL);
             }
@@ -180,7 +180,7 @@ KernelMMapItem* copy_memory_map_chunk(const KernelMMapItem* source,
                                        KernelMMapItem* dest,
                                        const bs_size_t start,
                                        const bs_size_t length) {
-    if((!source) || (!dest) || (length+start > MAX_KMMAP_SIZE)) {
+    if((!source) || (!dest) || (length+start > MAX_KMMAP_LENGTH)) {
         return 0;
     }
 
@@ -194,7 +194,7 @@ KernelMMapItem* copy_memory_map_elt(const KernelMMapItem* source,
                                      KernelMMapItem* dest,
                                      const bs_size_t source_index,
                                      const bs_size_t dest_index) {
-    if((!source) || (!dest) || (source_index >= MAX_KMMAP_SIZE) || (dest_index >= MAX_KMMAP_SIZE)) {
+    if((!source) || (!dest) || (source_index >= MAX_KMMAP_LENGTH) || (dest_index >= MAX_KMMAP_LENGTH)) {
         return 0;
     }
 
@@ -276,7 +276,7 @@ KernelCPUInfo* generate_cpu_info(KernelInformation* kinfo) {
 
 KernelMMapItem* generate_memory_map(const multiboot_info_t* mbd, KernelInformation* kinfo) {
     //A buffer for memory map.
-    static KernelMMapItem kmmap_buffer[MAX_KMMAP_SIZE];
+    static KernelMMapItem kmmap_buffer[MAX_KMMAP_LENGTH];
     bs_size_t index = 0;
 
     /*This function
@@ -296,7 +296,7 @@ KernelMMapItem* generate_memory_map(const multiboot_info_t* mbd, KernelInformati
     if(add_mbdata(kmmap_buffer, &index, mbd) == 0) die(NO_MEMORYMAP);
     if(add_bskernel(kmmap_buffer, &index, mbd) == 0) die(NO_MEMORYMAP);
     kinfo->kmmap = TO_KNL_PTR(kmmap_buffer);
-    kinfo->kmmap_size = index;
+    kinfo->kmmap_length = index;
 
     //Here's part 2
     if(sort_memory_map(kinfo) == 0) die(NO_MEMORYMAP);
@@ -359,7 +359,7 @@ KernelInformation* kinfo_gen(const multiboot_info_t* mbd) {
     //Let's say we've nothing available in the beginning
     result.command_line = 0;
     result.kmmap = 0;
-    result.kmmap_size = 0;
+    result.kmmap_length = 0;
     result.arch_info.startup_drive = 0;
 
     //Get command line from bootloader (if available)
@@ -389,11 +389,11 @@ void kmmap_add(KernelInformation* kinfo,
                              const char* name) {
     KernelMMapItem* kmmap = FROM_KNL_PTR(KernelMMapItem*, kinfo->kmmap);
 
-    if(++(kinfo->kmmap_size) == MAX_KMMAP_SIZE) die(MMAP_TOO_SMALL);
-    kmmap[kinfo->kmmap_size-1].location = location;
-    kmmap[kinfo->kmmap_size-1].size = size;
-    kmmap[kinfo->kmmap_size-1].nature = nature;
-    kmmap[kinfo->kmmap_size-1].name = TO_KNL_PTR(name);
+    if(++(kinfo->kmmap_length) == MAX_KMMAP_LENGTH) die(MMAP_TOO_SMALL);
+    kmmap[kinfo->kmmap_length-1].location = location;
+    kmmap[kinfo->kmmap_length-1].size = size;
+    kmmap[kinfo->kmmap_length-1].nature = nature;
+    kmmap[kinfo->kmmap_length-1].name = TO_KNL_PTR(name);
 }
 
 knl_size_t kmmap_alloc(KernelInformation* kinfo, const knl_size_t size, const uint8_t nature, const char* name) {
@@ -416,21 +416,27 @@ knl_size_t kmmap_alloc_pgalign(KernelInformation* kinfo, const knl_size_t size, 
     return location;
 }
 
-//void kmmap_free_pgalign(KernelInformation* kinfo, const bs_size_t index) {
-    //KernelMMapItem* kmmap = FROM_KNL_PTR(KernelMMapItem*, kinfo->kmmap);
+void kmmap_free(KernelInformation* kinfo, const bs_size_t index) {
+    KernelMMapItem* kmmap = FROM_KNL_PTR(KernelMMapItem*, kinfo->kmmap);
     
-    //TODO : COMPLETE THIS JOB !
-//}
+    kmmap[index].nature = NATURE_FRE;
+    if(kmmap[index].location>=0x100000) {
+        kmmap[index].name = TO_KNL_PTR("High mem");
+    } else {
+        kmmap[index].name = TO_KNL_PTR("Low mem");
+    }
+    merge_free_items(kinfo, index);
+}
 
 knl_size_t kmmap_mem_amount(const KernelInformation* kinfo) {
     const KernelMMapItem* kmmap = FROM_KNL_PTR(KernelMMapItem*, kinfo->kmmap);
 
-    knl_size_t memory_amount = kmmap[kinfo->kmmap_size-1].location+kmmap[kinfo->kmmap_size-1].size;
+    knl_size_t memory_amount = kmmap[kinfo->kmmap_length-1].location+kmmap[kinfo->kmmap_length-1].size;
     #ifdef DEBUG
         //x86 reserves a small amount of memory around the end of the adressable space.
         //I don't use it at the moment, and it slows Bochs down a lot. Therefore, it should not be
         //mapped during the testing period.
-        if(memory_amount==0x100000000) memory_amount = kmmap[kinfo->kmmap_size-2].location+kmmap[kinfo->kmmap_size-2].size;
+        if(memory_amount==0x100000000) memory_amount = kmmap[kinfo->kmmap_length-2].location+kmmap[kinfo->kmmap_length-2].size;
     #endif
     return memory_amount;
 }
@@ -438,6 +444,39 @@ knl_size_t kmmap_mem_amount(const KernelInformation* kinfo) {
 void kmmap_update(KernelInformation* kinfo) {
     sort_memory_map(kinfo);
     merge_memory_map(kinfo);
+}
+
+KernelMMapItem* merge_free_items(KernelInformation* kinfo, bs_size_t first_free_index) {
+    /* Goal of this function : after freeing one chunk of RAM, we can be left with two to three
+       free chunks of RAM next to each other. In such a case one should merge them into one */
+       
+    bs_size_t parsed_index, merged_items;
+    KernelMMapItem* kmmap = FROM_KNL_PTR(KernelMMapItem*, kinfo->kmmap);
+       
+    //Start at the previous chunk, if any
+    parsed_index = first_free_index;
+    if(first_free_index > 0) {
+        --parsed_index;
+    }
+    
+    //Successively merge items that need merging
+    merged_items = 0;
+    while(parsed_index + merged_items + 1 < kinfo->kmmap_length) {
+        if((kmmap[parsed_index].nature == NATURE_FRE) && (kmmap[parsed_index+merged_items+1].nature == NATURE_FRE)
+          && (kmmap[parsed_index].location + kmmap[parsed_index].size == kmmap[parsed_index+merged_items+1].location)
+          && (strcmp(FROM_KNL_PTR(char*, kmmap[parsed_index].name), FROM_KNL_PTR(char*, kmmap[parsed_index+merged_items+1].name)) == 0)) {
+            kmmap[parsed_index].size+= kmmap[parsed_index+merged_items+1].size;
+            merged_items+= 1;
+        } else {
+            if(merged_items) kmmap[parsed_index+1] = kmmap[parsed_index+merged_items+1];
+            ++parsed_index;
+        }
+    }
+    
+    //Shrink mmap to its new size
+    kinfo->kmmap_length-= merged_items;
+    
+    return kmmap;
 }
 
 KernelMMapItem* merge_memory_map(KernelInformation* kinfo) {
@@ -463,7 +502,7 @@ KernelMMapItem* merge_memory_map(KernelInformation* kinfo) {
     /*  It's simpler if the free memory segments are listed before their used counterpart in
         main memory. The only case where this may not happen is when a used segment begins at the same
         address as a non-free one, so it does rarely happen. We'll take care of that. */
-    for(source_index = 0; source_index < kinfo->kmmap_size; ++source_index) {
+    for(source_index = 0; source_index < kinfo->kmmap_length; ++source_index) {
         if(kmmap[source_index].nature == NATURE_FRE && source_index != 0) {
             if(kmmap[source_index-1].location == kmmap[source_index].location)
             {
@@ -475,11 +514,11 @@ KernelMMapItem* merge_memory_map(KernelInformation* kinfo) {
     }
 
     // Now, let's begin the real stuff...
-    for(source_index = 0; source_index<kinfo->kmmap_size; ++source_index) {
+    for(source_index = 0; source_index<kinfo->kmmap_length; ++source_index) {
         //Is this a busy segment ?
         if(kmmap[source_index].nature != NATURE_FRE) {
             copy_memory_map_elt(kmmap, kmmap_transform_buffer, source_index, dest_index++);
-            if(dest_index >= MAX_KMMAP_SIZE) {
+            if(dest_index >= MAX_KMMAP_LENGTH) {
                 //Memory map overflow. Quitting...
                 die(MMAP_TOO_SMALL);
             }
@@ -488,7 +527,7 @@ KernelMMapItem* merge_memory_map(KernelInformation* kinfo) {
             free_index = source_index;
 
 
-            while((source_index < kinfo->kmmap_size) && (kmmap[source_index+1].location < kmmap[free_index].location + kmmap[free_index].size)) {
+            while((source_index < kinfo->kmmap_length) && (kmmap[source_index+1].location < kmmap[free_index].location + kmmap[free_index].size)) {
                 ++source_index;
                 //Add free space behind this new segment to memory map, if needed.
                 if(source_index != free_index+1) {
@@ -498,7 +537,7 @@ KernelMMapItem* merge_memory_map(KernelInformation* kinfo) {
                         kmmap_transform_buffer[dest_index].nature = NATURE_FRE;
                         kmmap_transform_buffer[dest_index].name = kmmap[free_index].name;
                         ++dest_index;
-                        if(dest_index >= MAX_KMMAP_SIZE) {
+                        if(dest_index >= MAX_KMMAP_LENGTH) {
                             //Memory map overflow. Quitting...
                             die(MMAP_TOO_SMALL);
                         }
@@ -512,7 +551,7 @@ KernelMMapItem* merge_memory_map(KernelInformation* kinfo) {
                         kmmap_transform_buffer[dest_index].nature = NATURE_FRE;
                         kmmap_transform_buffer[dest_index].name = kmmap[free_index].name;
                         ++dest_index;
-                        if(dest_index >= MAX_KMMAP_SIZE) {
+                        if(dest_index >= MAX_KMMAP_LENGTH) {
                             //Memory map overflow. Quitting...
                             die(MMAP_TOO_SMALL);
                         }
@@ -521,7 +560,7 @@ KernelMMapItem* merge_memory_map(KernelInformation* kinfo) {
 
                 //Then add the actual segment
                 copy_memory_map_elt(kmmap, kmmap_transform_buffer, source_index, dest_index++);
-                if(dest_index >= MAX_KMMAP_SIZE) {
+                if(dest_index >= MAX_KMMAP_LENGTH) {
                     //Memory map overflow. Quitting...
                     die(MMAP_TOO_SMALL);
                 }
@@ -537,14 +576,14 @@ KernelMMapItem* merge_memory_map(KernelInformation* kinfo) {
                     kmmap_transform_buffer[dest_index].nature = NATURE_FRE;
                     kmmap_transform_buffer[dest_index].name = kmmap[free_index].name;
                     ++dest_index;
-                    if(dest_index >= MAX_KMMAP_SIZE) {
+                    if(dest_index >= MAX_KMMAP_LENGTH) {
                         //Memory map overflow. Quitting...
                         die(MMAP_TOO_SMALL);
                     }
                 }
             } else {
                 copy_memory_map_elt(kmmap, kmmap_transform_buffer, free_index, dest_index++);
-                if(dest_index >= MAX_KMMAP_SIZE) {
+                if(dest_index >= MAX_KMMAP_LENGTH) {
                     //Memory map overflow. Quitting...
                     die(MMAP_TOO_SMALL);
                 }
@@ -553,7 +592,7 @@ KernelMMapItem* merge_memory_map(KernelInformation* kinfo) {
     }
 
     copy_memory_map_chunk(kmmap_transform_buffer, kmmap, 0, dest_index);
-    kinfo->kmmap_size = dest_index;
+    kinfo->kmmap_length = dest_index;
     return kmmap;
 }
 
@@ -570,7 +609,7 @@ KernelMMapItem* sort_memory_map(KernelInformation* kinfo) {
                          ABCDEF */
 
     if(!kinfo) return 0;
-    else if((!kinfo->kmmap) || (kinfo->kmmap_size == 0)) return 0;
+    else if((!kinfo->kmmap) || (kinfo->kmmap_length == 0)) return 0;
 
     bs_size_t granularity, left_pointer, right_pointer, dest_pointer = 0, current_pair;
 
@@ -581,10 +620,10 @@ KernelMMapItem* sort_memory_map(KernelInformation* kinfo) {
 
     /* We use a cyclic behavior : at the beginning of each cycle, we have some amount of
          sorted 2^N-elements lists that we want to merge together */
-    for(granularity = 1; granularity < kinfo->kmmap_size; granularity*=2, dest_pointer = 0) {
+    for(granularity = 1; granularity < kinfo->kmmap_length; granularity*=2, dest_pointer = 0) {
         /* First, we merge "usual" couples of lists (two elements, each one has size = granularity) */
         for(current_pair = 0, left_pointer = 0, right_pointer = granularity;
-            right_pointer + granularity < kinfo->kmmap_size;
+            right_pointer + granularity < kinfo->kmmap_length;
             ++current_pair,
             left_pointer = current_pair*2*granularity,
             right_pointer = left_pointer + granularity)
@@ -617,8 +656,8 @@ KernelMMapItem* sort_memory_map(KernelInformation* kinfo) {
         /* Then we manage the case were there is an isolated list of elements on the right (AB CD EF case)
              or when the rightmost list is smaller than current granularity (AB CD EF G case) */
         //AB CD EF-like case :
-        if(right_pointer >= kinfo->kmmap_size) {
-            while(left_pointer < kinfo->kmmap_size) {
+        if(right_pointer >= kinfo->kmmap_length) {
+            while(left_pointer < kinfo->kmmap_length) {
                 copy_memory_map_elt(source, dest, left_pointer++, dest_pointer++);
             }
         } else
@@ -627,7 +666,7 @@ KernelMMapItem* sort_memory_map(KernelInformation* kinfo) {
             /* Pick the smallest of each couple, and copy it to the destination.
                  If we have AB DC, we copy A, and B DC remains, then we copy B... */
             while((left_pointer < current_pair*2*granularity+granularity) &&
-                (right_pointer < kinfo->kmmap_size))
+                (right_pointer < kinfo->kmmap_length))
             {
                 if(source[left_pointer].location < source[right_pointer].location) {
                     copy_memory_map_elt(source, dest, left_pointer++, dest_pointer++);
@@ -639,7 +678,7 @@ KernelMMapItem* sort_memory_map(KernelInformation* kinfo) {
             /* Now, we only have one sorted list of elements left. Let's add it at the
                  end of the destination */
             if(left_pointer == current_pair*2*granularity+granularity) {
-                while(right_pointer < kinfo->kmmap_size) {
+                while(right_pointer < kinfo->kmmap_length) {
                     copy_memory_map_elt(source, dest, right_pointer++, dest_pointer++);
                 }
             } else {
@@ -656,6 +695,6 @@ KernelMMapItem* sort_memory_map(KernelInformation* kinfo) {
 
     //At this point, the resulting, sorted memory map is stocked in "source"
     //Since this function may be called multiple times, it's best to copy the result in the original buffer.
-    if(kmmap!=source) copy_memory_map_chunk(source, kmmap, 0, kinfo->kmmap_size);
+    if(kmmap!=source) copy_memory_map_chunk(source, kmmap, 0, kinfo->kmmap_length);
     return source;
 }

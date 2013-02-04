@@ -610,7 +610,7 @@ DebugOutput& DebugOutput::operator<<(const KernelInformation& input) {
     *this << "Location           | Size               | Nat  | Misc" << endl;
     *this << "-------------------+--------------------+------+------------------------------";
 
-    for(index=0; index<input.kmmap_size; ++index) {
+    for(index=0; index<input.kmmap_length; ++index) {
         *this << endl << input.kmmap[index];
     }
     *this << numberbase(tmp);
