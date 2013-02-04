@@ -29,7 +29,7 @@
 const int MEMALLOCATOR_VERSION = 2; //Increase this when deep changes require a modification of
                                      //the testing protocol
 
-class ProcessManager;
+typedef class ProcessManager ProcessManager;
 class MemAllocator {
     private:
         //Link to other kernel functionality

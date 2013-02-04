@@ -40,6 +40,7 @@ size_t strlen(const char* str) {
     return len;
 }
 
+
 //KUTF32String member functions
 
 KUTF32String::KUTF32String(const KUTF32String& source) : file_index(0) {
@@ -91,6 +92,7 @@ void KUTF32String::normalize_to_nfd() {
     //Display a warning 
     dbgout << "Error: normalize_to_nfd() is not implemented yet !" << endl;
 }
+
 
 //KUTF8String member functions
 
