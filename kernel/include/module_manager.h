@@ -21,4 +21,43 @@
 #ifndef _MODULE_MANAGER_H_
 #define _MODULE_MANAGER_H_
 
+#include <address.h>
+#include <kernel_information.h>
+#include <kstring.h>
+#include <pid.h>
+
+typedef size_t ModuleID; //Nonzero identifier used to label individual instances of a given module
+
+
+struct ModuleDescriptor { //Description of a loaded kernel module
+    size_t location;
+    size_t size;
+    ModuleDescriptor() : location(0), size(0) {}
+};
+
+
+const int MODULEMANAGER_VERSION = 1; //Increase this when deep changes require a modification of
+                                      //the testing protocol
+
+
+class ModuleManager {
+  private:
+    //TODO: Implement this !
+  public:
+    ModuleManager(KernelInformation& kinfo);
+    
+    //Request access to a module, labeled using its filename. Returns zero identifier if the module does not exist.
+    ModuleID request_module(PID requester, KUTF32String& filename);
+    
+    //Get data about a given module after having been granted access to it.
+    ModuleDescriptor get_module_data(PID requester, ModuleID module);
+    
+    //Notify the module manager that a given module is not needed anymore
+    void liberate_module(PID requester, ModuleID module);
+    
+    //Methods below that are for internal use only, and may change at any time without previous notice
+    ModuleID request_module_ascii(PID requester, char* ascii_filename);
+    //TODO: Implement void file_system_ready(<unknown params>);
+};
+
 #endif
