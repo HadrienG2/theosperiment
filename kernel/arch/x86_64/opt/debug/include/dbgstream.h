@@ -21,7 +21,7 @@
 
 #include <dbgsupport.h>
 #include <deprecated/KAsciiString.h>
-#include <kernel_information.h>
+#include <KernelInformation.h>
 #include <mallocator_support.h>
 #include <ram_support.h>
 #include <paging_support.h>
@@ -209,8 +209,8 @@ class DebugOutput {
     //Functions displaying memory management's custom types
     DebugOutput& operator<<(const KernelInformation& input); //Displays only the memory map atm
     DebugOutput& operator<<(const KernelMMapItem& input);
-    DebugOutput& operator<<(const RAMChunk& input);
-    DebugOutput& operator<<(const RAMManagerProcess& input);
+    DebugOutput& operator<<(const RamChunk& input);
+    DebugOutput& operator<<(const RamManagerProcess& input);
     DebugOutput& operator<<(const PageChunk& input);
     DebugOutput& operator<<(const PagingManagerProcess& input);
     DebugOutput& operator<<(const MemoryChunk& input);

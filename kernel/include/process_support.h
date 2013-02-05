@@ -22,7 +22,7 @@
 #define _PROCESS_SUPPORT_H_
 
 #include <deprecated/KAsciiString.h>
-#include <process_properties.h>
+#include <ProcessProperties.h>
 #include <stdint.h>
 
 //*************************************************

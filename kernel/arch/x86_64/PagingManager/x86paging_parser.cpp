@@ -18,7 +18,7 @@
 
 #include <align.h>
 #include <kmath.h>
-#include <ram_manager.h>
+#include <RamManager.h>
 #include <x86paging.h>
 #include <x86paging_parser.h>
 
@@ -176,8 +176,8 @@ namespace x86paging {
         uint64_t* next_table = (uint64_t*) (table_item & 0x000ffffffffff000);
         if(!next_table) {
             //If not, allocate paging structures
-            RAMManager* ram_manager = (RAMManager*) additional_params[0];
-            RAMChunk* allocd_page = ram_manager->alloc_chunk(PID_KERNEL);
+            RamManager* ram_manager = (RamManager*) additional_params[0];
+            RamChunk* allocd_page = ram_manager->alloc_chunk(PID_KERNEL);
             if(!allocd_page) return 0;
             next_table = (uint64_t*) allocd_page->location;
 
@@ -236,7 +236,7 @@ namespace x86paging {
             }
         }
         if(is_empty) {
-            RAMManager* ram_manager = (RAMManager*) additional_params[0];
+            RamManager* ram_manager = (RamManager*) additional_params[0];
             table_item = 0;
             ram_manager->free_chunk(PID_KERNEL, (uint64_t) next_table);
         }

@@ -20,7 +20,7 @@
 #define _NEW_H_
 
 #include <address.h>
-#include <mem_allocator.h>
+#include <MemAllocator.h>
 
 //State of the new allocator, and functions which alter it
 extern unsigned int fake_allocation; //Allocation is not actually performed, instead the number of
