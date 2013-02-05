@@ -21,7 +21,7 @@
 
 #include <address.h>
 #include <align.h>
-#include <bs_kernel_information.h>
+#include <bs_KernelInformation.h>
 #include <stdint.h>
 
 /* Sensible bits in page tables (read Intel/AMD manuals for mor details) */

@@ -19,7 +19,7 @@
 #ifndef _SGT_GENERATION_H_
 #define _SGT_GENERATION_H_
 
-#include <bs_kernel_information.h>
+#include <bs_KernelInformation.h>
 #include <stdint.h>
 
 extern const int SGT32_LIMIT_CHUNK1_SIZE;

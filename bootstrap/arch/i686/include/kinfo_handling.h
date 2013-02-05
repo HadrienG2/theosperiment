@@ -19,7 +19,7 @@
 #ifndef _GEN_KINFO_H_
 #define _GEN_KINFO_H_
 
-#include <bs_kernel_information.h>
+#include <bs_KernelInformation.h>
 #include <multiboot.h>
 #include <stdint.h>
 

@@ -21,7 +21,7 @@
 
 #include <address.h>
 #include <elf.h>
-#include <bs_kernel_information.h>
+#include <bs_KernelInformation.h>
 
 //This function reads program headers and loads all loadable program segments in memory
 void load_kernel(KernelInformation* kinfo,

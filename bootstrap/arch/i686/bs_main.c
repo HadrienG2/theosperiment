@@ -17,7 +17,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA    02110-1301    USA */
 
 #include <asm_routines.h>
-#include <bs_kernel_information.h>
+#include <bs_KernelInformation.h>
 #include <die.h>
 #include <sgt_generation.h>
 #include <stdint.h>

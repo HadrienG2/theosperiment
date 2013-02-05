@@ -19,7 +19,7 @@
 #ifndef _DISP_KINFO_H_
 #define _DISP_KINFO_H_
 
-#include <bs_kernel_information.h>
+#include <bs_KernelInformation.h>
 
 //Display contents of the kernel information structure
 void dbg_print_kinfo(const KernelInformation* kinfo);
