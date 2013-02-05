@@ -20,8 +20,8 @@
 #define _RAM_SUPPORT_H_
 
 #include <address.h>
-#include <hack_stdint.h>
 #include <pid.h>
+#include <stdint.h>
 #include <synchronization.h>
 
 //A list of PIDs

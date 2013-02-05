@@ -22,7 +22,6 @@
 #define _MODULE_MANAGER_H_
 
 #include <address.h>
-#include <containers.h>
 #include <kernel_information.h>
 #include <KUTF32String.h>
 #include <pid.h>
@@ -40,8 +39,7 @@ struct ModuleDescriptor { //"Public" description of a loaded kernel module
 struct ModulePrivateDescriptor { //Internal description of a kernel module
     ModuleDescriptor public_description;
     KUTF32String name;
-    SingleChainedList<ModuleID> allocated_to;
-    //TODO
+    //TODO: To be completed...
 };
 
 

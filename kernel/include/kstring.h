@@ -29,7 +29,7 @@ void* memcpy(void* destination, const void* source, size_t num);
 size_t strlen(const char* str);
 
 
-//These support structures are used internally by Unicode manipulation strings
+//These support structures are used internally by Unicode string routines
 //They store enough information to compute a characters' NFD decomposition
 //They are filled by the InitializeKString() function from information extracted
 //out of the Unicode database.
@@ -57,58 +57,6 @@ struct CanonicalDecompositionDB {
 
 extern CanonicalDecompositionDB* canonical_decomposition_db;
 
-void InitializeKString();
-
-
-// (!) The following code is deprecated and to be replaced or removed (!)
-typedef class KAsciiString KString;
-
-class KAsciiString {
-  private:
-    size_t len;
-    char* contents;
-    size_t current_location;
-  public:
-    //Initialization and destruction
-    KAsciiString(const char* source = "");
-    KAsciiString(const KAsciiString& source);
-    ~KAsciiString() {clear();}
-    KAsciiString& operator=(const char* source);
-    KAsciiString& operator=(const KAsciiString& source);
-    void clear(); //Resets a KAsciiString to a blank state
-
-    //Length of the string in ASCII chars
-    size_t length() const {return len;}
-    void set_length(size_t desired_length, bool keep_contents = true);
-
-    //Comparison
-    bool operator==(const char* param) const;
-    bool operator==(const KAsciiString& param) const;
-    bool operator!=(const char* param) const {return !operator==(param);}
-    bool operator!=(const KAsciiString& param) const {return !operator==(param);}
-
-    //Concatenation
-    KAsciiString& operator+=(const char* source);
-    KAsciiString& operator+=(const KAsciiString& source);
-    //No operator+ because it cannot be implemented with good performance in C++
-
-    //Extract a subset of another string into this string
-    bool extract_from(KAsciiString& source, size_t first_char, size_t length);
-
-    //Paste a string, or a portion of it, in the middle of another, erasing existing characters
-    bool paste(KAsciiString& source, size_t dest_index) {return paste(source, 0, source.length(), dest_index);}
-    bool paste(KAsciiString& source, size_t first_char, size_t length, size_t dest_index);
-
-    //Indexed character access
-    char& operator[](const uint32_t index) const {return contents[index];}
-
-    //Text file parsing
-    bool read_line(KAsciiString& dest); //Returns false if at end of file, true otherwise.
-    size_t line_index() {return current_location;}
-    void goto_index(size_t index) {current_location = index;}
-
-    //Returns the size of the heap object associated to this string
-    size_t heap_size();
-};
+void InitializeUnicodeSupport();
 
 #endif

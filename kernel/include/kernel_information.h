@@ -20,7 +20,7 @@
 #define _KERNEL_INFO_H_
 
 #include <address.h>
-#include <hack_stdint.h>
+#include <stdint.h>
 #include <arch_specific_kinfo.h>
 
 //WARNING : ANY CHANGE MADE TO THIS FILE SHOULD BE MIRRORED TO THE ARCH-SPECIFIC

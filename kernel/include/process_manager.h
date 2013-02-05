@@ -20,8 +20,8 @@
 #ifndef _PROCESS_MANAGER_H_
 #define _PROCESS_MANAGER_H_
 
+#include <deprecated/KAsciiString.h>
 #include <mem_allocator.h>
-#include <kstring.h>
 #include <pid.h>
 #include <process_support.h>
 
@@ -39,7 +39,7 @@ class ProcessManager {
     PID update_process(PID old_process, PID new_process);
 
     //Find a PID by file name
-    PID find_pid(KString filename);
+    PID find_pid(KAsciiString filename);
 
     //Add and remove insulators, system components which manage a part of the process abstraction
     InsulatorID add_insulator(PID host_process, InsulatorDescriptor insulator_descriptor);

@@ -59,7 +59,7 @@ void KUTF32String::clear() {
 void KUTF32String::normalize_to_nfd() {
     //Load the Unicode database if it hasn't been done yet (as probed by combining_class_db's value)
     if(combining_class_db == NULL) {
-        InitializeKString();
+        InitializeUnicodeSupport();
     }
     
     //Display a warning 

@@ -19,7 +19,7 @@
 #ifndef _DISPLAY_PAGING_H_
 #define _DISPLAY_PAGING_H_
 
-#include <hack_stdint.h>
+#include <stdint.h>
 
 namespace x86paging {
     void dbg_print_pd(const uint64_t location);

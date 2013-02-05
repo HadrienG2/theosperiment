@@ -20,12 +20,12 @@
 #define _DBGSTREAM_H_
 
 #include <dbgsupport.h>
-#include <hack_stdint.h>
+#include <deprecated/KAsciiString.h>
 #include <kernel_information.h>
-#include <kstring.h>
 #include <mallocator_support.h>
 #include <ram_support.h>
 #include <paging_support.h>
+#include <stdint.h>
 #include <x86paging.h>
 
 
@@ -201,7 +201,7 @@ class DebugOutput {
     DebugOutput& operator<<(const double input);
     DebugOutput& operator<<(const int input) {int64_t tmp=input; *this << tmp; return *this;}
     DebugOutput& operator<<(const int64_t input);
-    DebugOutput& operator<<(const KString& input);
+    DebugOutput& operator<<(const KAsciiString& input);
     DebugOutput& operator<<(const unsigned int input) {uint64_t tmp=input; *this << tmp; return *this;}
     DebugOutput& operator<<(const uint64_t input);
     DebugOutput& operator<<(const void* ptr); //This is just to make the compiler fail when trying

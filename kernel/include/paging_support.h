@@ -20,9 +20,9 @@
 #define _PAGING_SUPPORT_H_
 
 #include <address.h>
-#include <hack_stdint.h>
 #include <ram_support.h>
 #include <pid.h>
+#include <stdint.h>
 #include <synchronization.h>
 
 //The following flags are available when handling page access permission

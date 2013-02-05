@@ -20,8 +20,8 @@
 #define _MALLOCATOR_SUPPORT_H_
 
 #include <address.h>
-#include <hack_stdint.h>
 #include <pid.h>
+#include <stdint.h>
 #include <synchronization.h>
 #include <paging_support.h>
 

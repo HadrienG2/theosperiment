@@ -511,7 +511,7 @@ DebugOutput& DebugOutput::operator<<(const int64_t input) {
     return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(const KString& input) {
+DebugOutput& DebugOutput::operator<<(const KAsciiString& input) {
     for(uint32_t index = 0; index < input.length(); ++index) {
         *this << input[index];
     }
