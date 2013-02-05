@@ -19,7 +19,7 @@
 #ifndef _X86_PAGING_PARSER_H_
 #define _X86_PAGING_PARSER_H_
 
-#include <hack_stdint.h>
+#include <stdint.h>
 
 namespace x86paging {
     //This special integer type is used to describe at which level of the paging hierarchy we are.

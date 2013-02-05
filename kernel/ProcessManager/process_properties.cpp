@@ -21,7 +21,7 @@
 #include <dbgstream.h>
 
 bool ProcessPropertiesParser::check_brackets() {
-    KString current_line;
+    KAsciiString current_line;
     size_t previous_index = parsed_copy.line_index();
     bool data_left, in_custom_brackets = false, in_string = false;
     int struct_nesting = 0;
@@ -108,7 +108,7 @@ bool ProcessPropertiesParser::check_brackets() {
 }
 
 bool ProcessPropertiesParser::check_header() {
-    KString header;
+    KAsciiString header;
     const char* CURRENT_HEADER = "*** Process properties v1 ***";
 
     parsed_copy.goto_index(0);
@@ -122,7 +122,7 @@ bool ProcessPropertiesParser::check_header() {
 }
 
 bool ProcessPropertiesParser::check_insulator_decls() {
-    KString current_line;
+    KAsciiString current_line;
     size_t previous_index = parsed_copy.line_index();
     bool data_left;
 
@@ -157,7 +157,7 @@ bool ProcessPropertiesParser::check_insulator_decls() {
 }
 
 bool ProcessPropertiesParser::check_property_assignments() {
-    KString current_line;
+    KAsciiString current_line;
     size_t previous_index = parsed_copy.line_index();
     bool data_left;
 
@@ -208,7 +208,7 @@ bool ProcessPropertiesParser::is_valid_naming_char(char c) {
 }
 
 void ProcessPropertiesParser::remove_comments_and_spacing() {
-    KString current_line;
+    KAsciiString current_line;
     bool data_left, in_custom_value = false, in_string = false;
     size_t previous_index = parsed_copy.line_index(), writing_index = previous_index;
 

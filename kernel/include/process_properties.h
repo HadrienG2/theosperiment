@@ -19,11 +19,11 @@
 #ifndef _PROCESS_PROPERTIES_H_
 #define _PROCESS_PROPERTIES_H_
 
-#include <kstring.h>
+#include <deprecated/KAsciiString.h>
 
 //Process properties are described in a text configuration file, whose specification can currently be
 //found at http://theosperiment.wordpress.com/2012/03/25/process-properties-specification-version-1/
-typedef KString ProcessProperties;
+typedef KAsciiString ProcessProperties;
 
 //Currently supported types of process properties
 typedef int ProcessPropertyType;
@@ -60,10 +60,10 @@ class ProcessPropertiesParser {
     void reset();
     void skip_current_insulator();
     void skip_current_property();
-    bool lookup_insulator(KString insulator_name);
-    bool lookup_property(KString property_name);
-    KString current_insulator();
-    KString current_property();
+    bool lookup_insulator(KAsciiString insulator_name);
+    bool lookup_property(KAsciiString property_name);
+    KAsciiString current_insulator();
+    KAsciiString current_property();
     ProcessPropertyType current_property_type();
 
     //Value extraction : extracts a copy of something from the file, then moves to next item
@@ -71,9 +71,9 @@ class ProcessPropertiesParser {
     int extract_int_value();
     bool extract_bool_value();
     float extract_float_value();
-    KString extract_string_value();
-    KString extract_pointed_property(); //For pointers
-    KString extract_custom_value(); //For custom values (only removes brackets, content untouched)
+    KAsciiString extract_string_value();
+    KAsciiString extract_pointed_property(); //For pointers
+    KAsciiString extract_custom_value(); //For custom values (only removes brackets, content untouched)
 
     //Structure and array management
     void enter_struct(); //Enters currently selected structure, so that its contents can be parsed.

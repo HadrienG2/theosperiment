@@ -21,16 +21,16 @@
 #ifndef _PROCESS_SUPPORT_H_
 #define _PROCESS_SUPPORT_H_
 
-#include <hack_stdint.h>
-#include <kstring.h>
+#include <deprecated/KAsciiString.h>
 #include <process_properties.h>
+#include <stdint.h>
 
 //*************************************************
 //******* Process properties and descriptor *******
 //*************************************************
 
 struct ProcessDescriptor {
-    KString filename; //The filename is a string identifier which can be used to retrieve the PID of
+    KAsciiString filename; //The filename is a string identifier which can be used to retrieve the PID of
                       //a known running process. As the name suggests, process image locations are
                       //generally used for this purpose.
     bool visible_to_filename_lookup; //Set this to false if you do not want this process to be visible
@@ -48,7 +48,7 @@ typedef uint32_t InsulatorID;
 const InsulatorID INSULATORID_INVALID = 0;
 
 struct InsulatorDescriptor {
-    KString insulator_name; //Allows an insulator to get a fancy name when described in a process
+    KAsciiString insulator_name; //Allows an insulator to get a fancy name when described in a process
                             //descriptor. If this string is left blank, the filename of the host
                             //process is used instead.
     void (*add_process)(PID,ProcessProperties); //Pointer to the add_process(PID, ProcessProperties) function of the insulator.

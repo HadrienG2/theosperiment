@@ -20,7 +20,7 @@
 #ifndef _ADDRESS_H_
 #define _ADDRESS_H_
 
-#include <hack_stdint.h>
+#include <stdint.h>
 
 #define NULL 0
 #define MAX_RAM_ADDRESS 0xffffffffffffffff

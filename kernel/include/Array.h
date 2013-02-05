@@ -60,6 +60,7 @@ template <class Item> class Array {
             delete[] heap;
         }
         heap = temp_heap;
+        return true;
     }
     
     //Array contents access

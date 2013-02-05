@@ -21,16 +21,17 @@
 #define _RPCBENCH_H_
 
 #include <address.h>
-#include <hack_stdint.h>
+#include <deprecated/KAsciiString.h>
 #include <kstring.h>
 #include <pid.h>
+#include <stdint.h>
 
 namespace Tests {
     extern void* default_ptr_value;
     
     //Support structures
     struct ServerParamDescriptor {
-        KString type;
+        KAsciiString type;
         uint32_t value_size;
         void* default_value;
         
@@ -40,7 +41,7 @@ namespace Tests {
     
     struct ServerCallDescriptor {
         size_t function_ptr;
-        KString call_name;
+        KAsciiString call_name;
         uint32_t params_amount;
         ServerParamDescriptor* params;
         
@@ -49,7 +50,7 @@ namespace Tests {
     };
     
     struct ClientParamDescriptor {
-        KString type;
+        KAsciiString type;
         uint32_t value_size;
         
         size_t heap_size();
@@ -58,12 +59,12 @@ namespace Tests {
     };
     
     struct ClientCallDescriptor {
-        KString server_name;
-        KString call_name;
+        KAsciiString server_name;
+        KAsciiString call_name;
         uint32_t params_amount;
         ClientParamDescriptor* params;
         
-        ClientCallDescriptor(const KString& server_name, const ServerCallDescriptor& server_desc);
+        ClientCallDescriptor(const KAsciiString& server_name, const ServerCallDescriptor& server_desc);
         size_t heap_size();
         ClientCallDescriptor& operator=(const ClientCallDescriptor& source);
         bool compatible_with(const ServerCallDescriptor& request) const;
@@ -99,7 +100,7 @@ namespace Tests {
     
     struct ProcessDescriptor { //Used to represent elements of a future "process table"
         bool active; //If this entry is false, no process is currently associated to this PID
-        KString name;
+        KAsciiString name;
         
         ProcessDescriptor() : active(true), name("dummy_process_name_of_flaming_deaths.bin") {}
     };
@@ -122,10 +123,10 @@ namespace Tests {
     // * Fake process table generator
     ProcessDescriptor* generate_process_table(const unsigned int server_amount,
                                               const unsigned int running_pids,
-                                              const KString& server_name);
+                                              const KAsciiString& server_name);
     
     // * Emulate locating a server in a process table
-    PID find_server(const KString& server_name,
+    PID find_server(const KAsciiString& server_name,
                     const ProcessDescriptor* process_table,
                     const unsigned int server_number,
                     const unsigned int running_pids);

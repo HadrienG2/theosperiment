@@ -19,7 +19,7 @@
 #ifndef _PID_H_
 #define _PID_H_
 
-#include <hack_stdint.h>
+#include <address.h>
 
 typedef size_t PID;
 const PID PID_INVALID = 0;

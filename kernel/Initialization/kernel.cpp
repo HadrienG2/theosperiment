@@ -54,7 +54,7 @@ extern "C" int kmain(const KernelInformation& kinfo) {
 
     //Now, do something useful with that kernel ! :P
     dbgout << txtcolor(TXT_WHITE) << "* Playing with process properties..."  << txtcolor(TXT_DEFAULT) << endl;
-    KString test_file("*** Process properties v1 ***\nTest:\n toto=3< >\"\\\"\\\n \"[ ]{{\n }}");
+    KAsciiString test_file("*** Process properties v1 ***\nTest:\n toto=3< >\"\\\"\\\n \"[ ]{{\n }}");
     ProcessPropertiesParser test_parser;
     dbgout << "* Parsing process property file..." << endl << test_file << endl;
     test_parser.open_and_check(test_file);

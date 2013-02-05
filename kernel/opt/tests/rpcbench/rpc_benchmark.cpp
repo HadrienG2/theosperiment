@@ -21,7 +21,6 @@
 #include <fake_syscall.h>
 #include <kmath.h>
 #include <mem_allocator.h>
-#include <kstring.h>
 #include <new.h>
 #include <rpc_benchmark.h>
 #include <test_display.h>
@@ -101,7 +100,7 @@ namespace Tests {
         return true;
     }
 
-    ClientCallDescriptor::ClientCallDescriptor(const KString& sv_name,
+    ClientCallDescriptor::ClientCallDescriptor(const KAsciiString& sv_name,
                                                const ServerCallDescriptor& server_desc) {
         server_name = sv_name;
         call_name = server_desc.call_name;
@@ -313,7 +312,7 @@ namespace Tests {
         const unsigned int RUNNING_PIDS = 100;
         const unsigned int REGIS_CALLS_PER_SERVER = 10;
         const unsigned int TOTAL_CALLS_PER_SERVER = 20;
-        KString server_name("magic_processes_which_everyone_wants.bin");
+        KAsciiString server_name("magic_processes_which_everyone_wants.bin");
 
         ProcessDescriptor* process_table = generate_process_table(SERVERS_PER_CLIENT,
                                                                   RUNNING_PIDS,
@@ -356,7 +355,7 @@ namespace Tests {
     void rpc_threaded_bench() {
         //Define benchmark parameters here
         const unsigned int NUMBER_OF_CALLS = 100;
-        KString server_name("magic_processes_which_everyone_wants.bin");
+        KAsciiString server_name("magic_processes_which_everyone_wants.bin");
 
         ServerCallDescriptor& server_desc = generate_dummy_server_desc();
 
@@ -397,7 +396,7 @@ namespace Tests {
         //Define benchmark parameters here
         const unsigned int NUMBER_OF_CALLS = 100;
         const size_t ASYNC_QUEUE_SIZE = 1024*1024;
-        KString server_name("magic_processes_which_everyone_wants.bin");
+        KAsciiString server_name("magic_processes_which_everyone_wants.bin");
         ServerCallDescriptor& server_desc = generate_dummy_server_desc();
 
         ClientCallDescriptor client_desc(server_name, server_desc);
@@ -452,16 +451,16 @@ namespace Tests {
     ServerCallDescriptor& generate_dummy_server_desc() {
         //Define the basic "dummy_desc" server call descriptor that will be endlessly copied in
         //the server startup benchmark
-        static KString type_normal("supa_dupa_octa_longer_uint64_t");
+        static KAsciiString type_normal("supa_dupa_octa_longer_uint64_t");
         static uint32_t value_size_normal = 8;
         static uint64_t default_value_normal = 0xDEADBEEFBADB002E;
 
-        static KString type_ptr("crazy_silly_nutty_zombie_void*");
+        static KAsciiString type_ptr("crazy_silly_nutty_zombie_void*");
         static uint32_t value_size_ptr = sizeof(size_t);
         static size_t default_value_ptr = 0x10000000;
 
         static size_t function_ptr = (size_t) dummy_remote_call;
-        static KString call_name("mega_super_long_function_name_with_speedling_wings");
+        static KAsciiString call_name("mega_super_long_function_name_with_speedling_wings");
         static uint32_t params_amount = 10;
 
         static ServerParamDescriptor params_buffer[10];
@@ -490,16 +489,16 @@ namespace Tests {
     ServerCallDescriptor& generate_wanted_server_desc() {
         //Define the basic "wanted_desc" server call descriptor that all clients look for in the
         //client connexion benchmark
-        static KString type_normal("supa_dupa_octa_longer_uint64_t");
+        static KAsciiString type_normal("supa_dupa_octa_longer_uint64_t");
         static uint32_t value_size_normal = 8;
         static uint64_t default_value_normal = 0xDEADBEEFBADB002E;
 
-        static KString type_ptr("crazy_silly_nutty_zombie_void*");
+        static KAsciiString type_ptr("crazy_silly_nutty_zombie_void*");
         static uint32_t value_size_ptr = sizeof(size_t);
         static size_t default_value_ptr = 0x10000000;
 
         static size_t function_ptr_wanted = NULL;
-        static KString call_name_wanted("the_super_mega_long_function_which_even_girls_want");
+        static KAsciiString call_name_wanted("the_super_mega_long_function_which_even_girls_want");
         static uint32_t params_amount_wanted = 10;
 
         static ServerParamDescriptor params_buffer[10];
@@ -527,7 +526,7 @@ namespace Tests {
 
     ProcessDescriptor* generate_process_table(const unsigned int server_amount,
                                               const unsigned int running_pids,
-                                              const KString& server_name) {
+                                              const KAsciiString& server_name) {
         static ProcessDescriptor* process_table = new ProcessDescriptor[running_pids];
         static unsigned int space_btw_servers = running_pids/server_amount;
 
@@ -538,7 +537,7 @@ namespace Tests {
         return process_table;
     }
 
-    PID find_server(const KString& server_name,
+    PID find_server(const KAsciiString& server_name,
                     const ProcessDescriptor* process_table,
                     const unsigned int server_number,
                     const unsigned int running_pids) {

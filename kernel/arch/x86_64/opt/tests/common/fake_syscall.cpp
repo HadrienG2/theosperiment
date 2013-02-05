@@ -18,7 +18,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
  
 #include <fake_syscall.h>
-#include <hack_stdint.h>
+#include <stdint.h>
 #include <synchronization.h>
 
 void fake_syscall() {

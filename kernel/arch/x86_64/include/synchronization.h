@@ -19,7 +19,7 @@
 #ifndef _SYNCHRONIZATION_H_
 #define _SYNCHRONIZATION_H_
 
-#include <hack_stdint.h>
+#include <stdint.h>
 
 class OwnerlessSemaphore8 { //A 8-bit semaphore
   protected:
