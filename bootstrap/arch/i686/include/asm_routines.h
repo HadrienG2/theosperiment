@@ -19,7 +19,7 @@
 #ifndef _ASM_ROUTINES_H_
 #define _ASM_ROUTINES_H_
 
-#include <bs_kernel_information.h>
+#include <bs_KernelInformation.h>
 #include <stdint.h>
 
 /* Check for CPUID availability and returns a boolean value */
