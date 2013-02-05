@@ -19,7 +19,7 @@
 #ifndef _X86PAGING_H_
 #define _X86PAGING_H_
 
-#include <ram_manager.h>
+#include <RamManager.h>
 
 namespace x86paging {
     typedef uint64_t pte; //Page table entry
@@ -70,12 +70,12 @@ namespace x86paging {
     bool remove_paging(uint64_t vir_addr,  //Remove page translations in a virtual address range
                        const uint64_t size,
                        uint64_t pml4t_location,
-                       RAMManager* ram_manager);
+                       RamManager* ram_manager);
 
     uint64_t setup_4kpages(uint64_t vir_addr,          //Setup paging structures for 4KB paging in
                            const uint64_t size,        //a virtual address range.
                            uint64_t pml4t_location,
-                           RAMManager* ram_manager);
+                           RamManager* ram_manager);
 
     void set_flags(uint64_t vaddr,         //Sets a whole linear address block's paging flags to
                    const uint64_t size,    //"flags"

@@ -652,10 +652,10 @@ DebugOutput& DebugOutput::operator<<(const KernelMMapItem& input) {
     return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(const RAMChunk& input) {
+DebugOutput& DebugOutput::operator<<(const RamChunk& input) {
     bool tmp_padding = padding_on;
     unsigned int tmp_padsize = padsize;
-    RAMChunk* map = (RAMChunk*) &input;
+    RamChunk* map = (RamChunk*) &input;
     DebugNumberBase tmp = number_base;
 
     *this << pad_status(true);
@@ -689,8 +689,8 @@ DebugOutput& DebugOutput::operator<<(const RAMChunk& input) {
     return *this;
 }
 
-DebugOutput& DebugOutput::operator<<(const RAMManagerProcess& input) {
-    RAMManagerProcess* list = (RAMManagerProcess*) &input;
+DebugOutput& DebugOutput::operator<<(const RamManagerProcess& input) {
+    RamManagerProcess* list = (RamManagerProcess*) &input;
     bool tmp_padding = padding_on;
     unsigned int tmp_padsize = padsize;
     DebugNumberBase tmp = number_base;

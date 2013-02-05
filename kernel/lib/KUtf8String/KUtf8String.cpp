@@ -17,9 +17,9 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include <KUTF8String.h>
+#include <KUtf8String.h>
 
-size_t KUTF8String::codepoint_length() const {
+size_t KUtf8String::codepoint_length() const {
     size_t index = 0, result = 0;
     
     while(index < contents.length()) {
@@ -30,8 +30,8 @@ size_t KUTF8String::codepoint_length() const {
     return result;
 }
 
-KUTF8CodePoint KUTF8String::peek_codepoint(const size_t index) const {
-    KUTF8CodePoint result;
+KUtf8CodePoint KUtf8String::peek_codepoint(const size_t index) const {
+    KUtf8CodePoint result;
     size_t codepoint_index = index, remaining_bytes;
     uint32_t buffer;
     uint8_t min_second_byte = 0x80, max_second_byte = 0xBF;

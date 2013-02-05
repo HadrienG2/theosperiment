@@ -74,9 +74,9 @@ bool PIDs::operator==(const PIDs& param) const {
     return true;
 }
 
-RAMChunk* RAMChunk::find_contigchunk(const size_t requested_size) const {
-    RAMChunk* current_item = (RAMChunk*) this;
-    RAMChunk* result = NULL;
+RamChunk* RamChunk::find_contigchunk(const size_t requested_size) const {
+    RamChunk* current_item = (RamChunk*) this;
+    RamChunk* result = NULL;
     size_t current_size = 0, next_location = 0;
 
     //Explore the map, looking for contiguous chunks of free memory
@@ -108,8 +108,8 @@ RAMChunk* RAMChunk::find_contigchunk(const size_t requested_size) const {
     return result;
 }
 
-RAMChunk* RAMChunk::find_thischunk(const size_t location) const {
-    RAMChunk* current_item = (RAMChunk*) this;
+RamChunk* RamChunk::find_thischunk(const size_t location) const {
+    RamChunk* current_item = (RamChunk*) this;
     if(current_item->location > location) return NULL;
 
     while(current_item) {
@@ -120,9 +120,9 @@ RAMChunk* RAMChunk::find_thischunk(const size_t location) const {
     return current_item;
 }
 
-size_t RAMChunk::buddy_length() const {
+size_t RamChunk::buddy_length() const {
     size_t result = 0;
-    RAMChunk* current_item = (RAMChunk*) this;
+    RamChunk* current_item = (RamChunk*) this;
 
     while(current_item) {
         ++result;
@@ -132,9 +132,9 @@ size_t RAMChunk::buddy_length() const {
     return result;
 }
 
-size_t RAMChunk::length() const {
+size_t RamChunk::length() const {
     size_t result = 0;
-    RAMChunk* current_item = (RAMChunk*) this;
+    RamChunk* current_item = (RamChunk*) this;
 
     while(current_item) {
         ++result;
@@ -144,7 +144,7 @@ size_t RAMChunk::length() const {
     return result;
 }
 
-bool RAMChunk::operator==(const RAMChunk& param) const {
+bool RamChunk::operator==(const RamChunk& param) const {
     if(location != param.location) return false;
     if(size != param.size) return false;
     if(owners != param.owners) return false;

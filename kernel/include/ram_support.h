@@ -47,19 +47,19 @@ struct PIDs {
 
 
 //Represents an item in a map of RAM, managed as a chained list at the moment.
-struct RAMChunk {
+struct RamChunk {
     size_t location;
     size_t size;
     PIDs owners;
     bool allocatable; //Whether this chunk can be reserved by memory allocation.
                        //It should NOT be the case with memory-mapped I/O, as an example.
-    RAMChunk* next_buddy;
+    RamChunk* next_buddy;
 
-    //WARNING : RAMChunk properties after this point are nonstandard, subject to change without
+    //WARNING : RamChunk properties after this point are nonstandard, subject to change without
     //warnings, and should not be read or manipulated by external software.
-    RAMChunk* next_mapitem;
+    RamChunk* next_mapitem;
 
-    RAMChunk() : location(0),
+    RamChunk() : location(0),
                  size(0),
                  owners(PID_INVALID),
                  allocatable(true),
@@ -68,27 +68,27 @@ struct RAMChunk {
     //This mirrors the member functions of "owners"
     bool has_owner(const PID the_owner) const {return owners.has_pid(the_owner);}
     //Algorithms finding things in or about the map
-    RAMChunk* find_contigchunk(const size_t size) const; //The returned chunk, along with its next
+    RamChunk* find_contigchunk(const size_t size) const; //The returned chunk, along with its next
                                                           //neighbours, forms a contiguous chunk
                                                           //of free memory at least "size" large.
-    RAMChunk* find_thischunk(const size_t location) const;
+    RamChunk* find_thischunk(const size_t location) const;
     size_t buddy_length() const;
     size_t length() const;
     //Comparing map items is fairly straightforward and should be done by default
     //by the C++ compiler, but well...
-    bool operator==(const RAMChunk& param) const;
-    bool operator!=(const RAMChunk& param) const {return !(*this==param);}
+    bool operator==(const RamChunk& param) const;
+    bool operator!=(const RamChunk& param) const {return !(*this==param);}
 };
 
-//This structure is used for the process management functionality of RAMManager.
-struct RAMManagerProcess {
+//This structure is used for the process management functionality of RamManager.
+struct RamManagerProcess {
     OwnerlessMutex mutex;
     PID identifier;
     size_t memory_usage;
     size_t memory_cap;
-    RAMManagerProcess* next_item;
+    RamManagerProcess* next_item;
 
-    RAMManagerProcess() : identifier(PID_INVALID),
+    RamManagerProcess() : identifier(PID_INVALID),
                           memory_usage(0),
                           memory_cap(MAX_RAM_ADDRESS),
                           next_item(NULL) {}

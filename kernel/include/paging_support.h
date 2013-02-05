@@ -48,7 +48,7 @@ struct PageChunk {
     size_t location;
     size_t size;
     PageFlags flags;
-    RAMChunk* points_to; //RAM chunk this page chunk points to
+    RamChunk* points_to; //RAM chunk this page chunk points to
     PageChunk* next_buddy;
 
     //WARNING : PageChunk properties after this point are nonstandard, subject to change without

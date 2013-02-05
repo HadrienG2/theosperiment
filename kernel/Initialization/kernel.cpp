@@ -16,12 +16,12 @@
     along with this program; if not, write to the Free Software
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
-#include <kernel_information.h>
-#include <KUTF32String.h>
-#include <mem_allocator.h>
-#include <ram_manager.h>
-#include <process_manager.h>
-#include <paging_manager.h>
+#include <KernelInformation.h>
+#include <KUtf32String.h>
+#include <MemAllocator.h>
+#include <RamManager.h>
+#include <PagingManager.h>
+#include <ProcessManager.h>
 
 #include <dbgstream.h>
 
@@ -31,7 +31,7 @@ extern "C" int kmain(const KernelInformation& kinfo) {
 
     //Initialize memory management
     dbgout << txtcolor(TXT_WHITE) << "* Setting up memory management components: ram ";
-    RAMManager ram_manager(kinfo);
+    RamManager ram_manager(kinfo);
     dbgout << move_rel(-4,0) << "RAM page ";
     PagingManager paging_manager(ram_manager);
     dbgout << move_rel(-5,0) << "PAGE malloc ";
@@ -42,9 +42,9 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << txtcolor(TXT_WHITE) << "* Initializing kernel module management..." << txtcolor(TXT_LIGHTRED) << " /!\\ TO BE DONE /!\\" << txtcolor(TXT_DEFAULT) << endl;
     dbgout << bp();
     
-    //Test KUTF32String
+    //Test KUtf32String
     dbgout << txtcolor(TXT_WHITE) << "* Playing with Unicode strings..." << txtcolor(TXT_DEFAULT) << endl;
-    KUTF32String test("This is a test");
+    KUtf32String test("This is a test");
     dbgout << bp();
     
     //Start process manager

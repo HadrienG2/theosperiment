@@ -132,7 +132,7 @@ namespace x86paging {
     bool remove_paging(uint64_t vir_addr,
                        const uint64_t size,
                        uint64_t pml4t_location,
-                       RAMManager* ram_manager) {
+                       RamManager* ram_manager) {
         uint64_t additional_params[1] = {(uint64_t) ram_manager};
         return paging_parser(vir_addr,
                             size,
@@ -145,7 +145,7 @@ namespace x86paging {
     uint64_t setup_4kpages(uint64_t vir_addr,
                            const uint64_t size,
                            uint64_t pml4t_location,
-                           RAMManager* ram_manager) {
+                           RamManager* ram_manager) {
         uint64_t additional_params[1] = {(uint64_t) ram_manager};
         return paging_parser(vir_addr,
                             size,
