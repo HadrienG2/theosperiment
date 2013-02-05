@@ -17,7 +17,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA    02110-1301    USA */
 
 #include <align.h>
-#include <kmaths.h>
+#include <kmath.h>
 #include <new.h>
 #include <paging_manager.h>
 #include <x86paging.h>

@@ -17,7 +17,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include "dbgstream.h"
-#include <kmaths.h>
+#include <kmath.h>
 
 //A rectangle of the size of the screen
 const DebugRect screen_rect(0, 0, NUMBER_OF_COLS-1, NUMBER_OF_ROWS-1);

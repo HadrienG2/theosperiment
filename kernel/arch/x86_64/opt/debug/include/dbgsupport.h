@@ -19,7 +19,7 @@
 #ifndef _DBGSUPPORT_H_
 #define _DBGSUPPORT_H_
 
-#include <kmaths.h>
+#include <kmath.h>
 
 //*******************************************************
 //****************** CLASSES AND ENUMS ******************
