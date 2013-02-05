@@ -1,7 +1,7 @@
  /* A very simple header with one goal : create an size_t type that is an unsigned integer of the
     same size as the standard kernel pointer type, and its NULL value.
 
-      Copyright (C) 2010  Hadrien Grasland
+      Copyright (C) 2010-2013  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
