@@ -19,7 +19,7 @@
 
 #include <address.h>
 #include <fake_syscall.h>
-#include <kmaths.h>
+#include <kmath.h>
 #include <mem_allocator.h>
 #include <kstring.h>
 #include <new.h>

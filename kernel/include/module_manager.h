@@ -22,17 +22,26 @@
 #define _MODULE_MANAGER_H_
 
 #include <address.h>
+#include <containers.h>
 #include <kernel_information.h>
-#include <kstring.h>
+#include <KUTF32String.h>
 #include <pid.h>
 
 typedef size_t ModuleID; //Nonzero identifier used to label individual instances of a given module
 
 
-struct ModuleDescriptor { //Description of a loaded kernel module
+struct ModuleDescriptor { //"Public" description of a loaded kernel module
     size_t location;
     size_t size;
     ModuleDescriptor() : location(0), size(0) {}
+};
+
+
+struct ModulePrivateDescriptor { //Internal description of a kernel module
+    ModuleDescriptor public_description;
+    KUTF32String name;
+    SingleChainedList<ModuleID> allocated_to;
+    //TODO
 };
 
 
@@ -50,7 +59,7 @@ class ModuleManager {
     ModuleID request_module(PID requester, KUTF32String& filename);
     
     //Get data about a given module after having been granted access to it.
-    ModuleDescriptor get_module_data(PID requester, ModuleID module);
+    ModuleDescriptor get_module_descriptor(PID requester, ModuleID module);
     
     //Notify the module manager that a given module is not needed anymore
     void liberate_module(PID requester, ModuleID module);

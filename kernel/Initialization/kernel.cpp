@@ -17,6 +17,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include <kernel_information.h>
+#include <KUTF32String.h>
 #include <mem_allocator.h>
 #include <ram_manager.h>
 #include <process_manager.h>
