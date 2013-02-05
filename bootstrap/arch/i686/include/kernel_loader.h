@@ -1,6 +1,6 @@
  /* Routines for parsing ELF64 headers and loading the kernel where it ought to be
 
-      Copyright (C) 2010  Hadrien Grasland
+      Copyright (C) 2010-2013  Hadrien Grasland
 
     This program is free software; you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by

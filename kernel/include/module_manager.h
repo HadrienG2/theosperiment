@@ -57,7 +57,7 @@ class ModuleManager {
     
     //Methods below that are for internal use only, and may change at any time without previous notice
     ModuleID request_module_ascii(PID requester, char* ascii_filename);
-    //TODO: Implement void file_system_ready(<unknown params>);
+    //TODO: Implement void file_system_ready(<unknown parameters>), used when the filesystem is ready to take over
 };
 
 #endif
