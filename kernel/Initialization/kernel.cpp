@@ -43,7 +43,7 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << bp();
     
     //Test KUtf32String
-    dbgout << txtcolor(TXT_WHITE) << "* Playing with Unicode strings..." << txtcolor(TXT_DEFAULT) << endl;
+    dbgout << txtcolor(TXT_WHITE) << "* Playing with Unicode strings..." << txtcolor(TXT_DEFAULT) << txtcolor(TXT_YELLOW) << " /!\\ WORK IN PROGRESS /!\\" << txtcolor(TXT_DEFAULT) << endl;
     KUtf32String test("This is a test");
     dbgout << bp();
     
@@ -53,7 +53,7 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << bp();
 
     //Now, do something useful with that kernel ! :P
-    dbgout << txtcolor(TXT_WHITE) << "* Playing with process properties..."  << txtcolor(TXT_DEFAULT) << endl;
+    dbgout << txtcolor(TXT_WHITE) << "* Playing with process properties..."  << txtcolor(TXT_DEFAULT) << txtcolor(TXT_YELLOW) << " /!\\ WORK IN PROGRESS /!\\" << txtcolor(TXT_DEFAULT) << endl;
     KAsciiString test_file("*** Process properties v1 ***\nTest:\n toto=3< >\"\\\"\\\n \"[ ]{{\n }}");
     ProcessPropertiesParser test_parser;
     dbgout << "* Parsing process property file..." << endl << test_file << endl;

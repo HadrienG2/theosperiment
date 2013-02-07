@@ -57,7 +57,7 @@ bool MemoryChunk::operator==(const MemoryChunk& param) const {
     if(location != param.location) return false;
     if(size != param.size) return false;
     if(belongs_to != param.belongs_to) return false;
-    if(next_item != param.next_item) return false;
+    //if(next_item != param.next_item) return false;
     if(shareable != param.shareable) return false;
     if(share_count != param.share_count) return false;
 
