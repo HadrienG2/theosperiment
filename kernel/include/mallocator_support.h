@@ -48,7 +48,7 @@ struct MemoryChunk {
                     shareable(false),
                     share_count(0) {};
     MemoryChunk* find_contigchunk(const size_t size) const; //Try to find at least "size" contiguous
-                                                          //bytes in this map
+                                                              //bytes in this map
     MemoryChunk* find_contigchunk(const size_t size, const PageFlags flags) const;
     MemoryChunk* find_thischunk(const size_t location) const;
     //Comparing C-style structs is fairly straightforward and should be done by default

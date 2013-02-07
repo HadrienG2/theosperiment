@@ -18,9 +18,11 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include <ProcessManager.h>
+#include <dbgstream.h>
 
 ProcessManager::ProcessManager(MemAllocator& mem_allocator) {
     //TODO : Put the process manager's initialization code here.
+    dbgout << "Error: ProcessManager() is not implemented yet !" << endl;
 
     //Initialize the process-related functionality in memory management
     mem_allocator.init_process(*this);
