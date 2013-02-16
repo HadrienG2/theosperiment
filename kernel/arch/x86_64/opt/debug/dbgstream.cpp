@@ -135,21 +135,21 @@ DebugScroller scroll(unsigned int amount) {
 }
 
 DebugWindower set_window(const DebugWindow window) {
-  windower_buff.window.startx = min(max(0, min(window.startx, window.endx)), NUMBER_OF_COLS-1);
-  windower_buff.window.starty = min(max(0, min(window.starty, window.endy)), NUMBER_OF_COLS-1);
-  windower_buff.window.endx = min(max(0, max(window.startx, window.endx)), NUMBER_OF_COLS-1);
-  windower_buff.window.endy = min(max(0, max(window.starty, window.endy)), NUMBER_OF_COLS-1);
+  windower_buff.window.frame.startx = min(max(0, min(window.frame.startx, window.frame.endx)), NUMBER_OF_COLS-1);
+  windower_buff.window.frame.starty = min(max(0, min(window.frame.starty, window.frame.endy)), NUMBER_OF_COLS-1);
+  windower_buff.window.frame.endx = min(max(0, max(window.frame.startx, window.frame.endx)), NUMBER_OF_COLS-1);
+  windower_buff.window.frame.endy = min(max(0, max(window.frame.starty, window.frame.endy)), NUMBER_OF_COLS-1);
   windower_buff.window.border = window.border;
 
   return windower_buff;
 }
 
 void DebugOutput::check_boundaries() {
-    if(col>window.endx-window.startx) {
+    if(col>window.frame.endx-window.frame.startx) {
         ++row;
         col=0;
     }
-    if(row>window.endy-window.starty) scroll(row+window.starty-window.endy);
+    if(row>window.frame.endy-window.frame.starty) scroll(row+window.frame.starty-window.frame.endy);
 }
 
 
@@ -158,42 +158,42 @@ void DebugOutput::clear_border(const DebugWindow window) {
 
   if(window.border) {
     //Left border
-    if(window.startx>0) {
-      border_line.startx=window.startx-1;
-      border_line.starty=window.starty;
-      if(window.starty>0) --border_line.starty; //Remove topleft corner too
-      border_line.endx=window.startx-1;
-      border_line.endy=window.endy;
-      if(window.endy<NUMBER_OF_ROWS-1) ++border_line.endy; //Remove bottomleft corner too
+    if(window.frame.startx>0) {
+      border_line.startx=window.frame.startx-1;
+      border_line.starty=window.frame.starty;
+      if(window.frame.starty>0) --border_line.starty; //Remove topleft corner too
+      border_line.endx=window.frame.startx-1;
+      border_line.endy=window.frame.endy;
+      if(window.frame.endy<NUMBER_OF_ROWS-1) ++border_line.endy; //Remove bottomleft corner too
       clear_rect(border_line);
     }
 
     //Top border
-    if(window.starty>0) {
-      border_line.startx=window.startx;
-      border_line.starty=window.starty-1;
-      border_line.endx=window.endx;
-      if(window.endx<NUMBER_OF_COLS-1) ++border_line.endx; //Remove topright corner too
-      border_line.endy=window.starty-1;
+    if(window.frame.starty>0) {
+      border_line.startx=window.frame.startx;
+      border_line.starty=window.frame.starty-1;
+      border_line.endx=window.frame.endx;
+      if(window.frame.endx<NUMBER_OF_COLS-1) ++border_line.endx; //Remove topright corner too
+      border_line.endy=window.frame.starty-1;
       clear_rect(border_line);
     }
 
     //Right border
-    if(window.endx<NUMBER_OF_COLS-1) {
-      border_line.startx=window.endx+1;
-      border_line.starty=window.starty;
-      border_line.endx=window.endx+1;
-      border_line.endy=window.endy;
-      if(window.endy<NUMBER_OF_ROWS-1) ++border_line.endy; //Remove bottomright corner too
+    if(window.frame.endx<NUMBER_OF_COLS-1) {
+      border_line.startx=window.frame.endx+1;
+      border_line.starty=window.frame.starty;
+      border_line.endx=window.frame.endx+1;
+      border_line.endy=window.frame.endy;
+      if(window.frame.endy<NUMBER_OF_ROWS-1) ++border_line.endy; //Remove bottomright corner too
       clear_rect(border_line);
     }
 
     //Bottom border
-    if(window.endy<NUMBER_OF_ROWS-1) {
-      border_line.startx=window.startx;
-      border_line.starty=window.endy+1;
-      border_line.endx=window.endx;
-      border_line.endy=window.endy+1;
+    if(window.frame.endy<NUMBER_OF_ROWS-1) {
+      border_line.startx=window.frame.startx;
+      border_line.starty=window.frame.endy+1;
+      border_line.endx=window.frame.endx;
+      border_line.endy=window.frame.endy+1;
       clear_rect(border_line);
     }
   }
@@ -204,51 +204,51 @@ void DebugOutput::clear_oldwindow(const DebugWindow old_window, const DebugWindo
   uint8_t overlap = 0, horz_overlap = 0, vert_overlap = 0;
 
   //Detect if there is overlap between both windows
-  if((old_window.startx>new_window.startx-1 && old_window.startx<new_window.endx+1)
-      || (old_window.endx>new_window.startx-1 && old_window.endx<new_window.endx+1)) {
+  if((old_window.frame.startx>new_window.frame.startx-1 && old_window.frame.startx<new_window.frame.endx+1)
+      || (old_window.frame.endx>new_window.frame.startx-1 && old_window.frame.endx<new_window.frame.endx+1)) {
     horz_overlap=1;
   }
-  if((old_window.starty>new_window.starty-1 && old_window.starty<new_window.endy+1)
-      || (old_window.endy>new_window.starty-1 && old_window.endy<new_window.endy+1)) {
+  if((old_window.frame.starty>new_window.frame.starty-1 && old_window.frame.starty<new_window.frame.endy+1)
+      || (old_window.frame.endy>new_window.frame.starty-1 && old_window.frame.endy<new_window.frame.endy+1)) {
     vert_overlap=1;
   }
   overlap = horz_overlap && vert_overlap;
 
   if(!overlap) {
     //If there's no overlap, just fill the old window.
-    rect.startx = old_window.startx;
-    rect.starty = old_window.starty;
-    rect.endx = old_window.endx;
-    rect.endy = old_window.endy;
+    rect.startx = old_window.frame.startx;
+    rect.starty = old_window.frame.starty;
+    rect.endx = old_window.frame.endx;
+    rect.endy = old_window.frame.endy;
     clear_rect(rect);
   } else {
     //If there's overlap, erase the non-overlapping parts of the old window
     //  * Left + Topleft + Bottomleft parts
-    rect.startx = old_window.startx;
-    rect.starty = old_window.starty;
-    rect.endx = new_window.startx-1;
-    rect.endy = old_window.endy;
+    rect.startx = old_window.frame.startx;
+    rect.starty = old_window.frame.starty;
+    rect.endx = new_window.frame.startx-1;
+    rect.endy = old_window.frame.endy;
     clear_rect(rect);
 
     //  * Top + Topright parts
-    rect.startx = new_window.startx;
-    rect.starty = old_window.starty;
-    rect.endx = old_window.endx;
-    rect.endy = new_window.starty-1;
+    rect.startx = new_window.frame.startx;
+    rect.starty = old_window.frame.starty;
+    rect.endx = old_window.frame.endx;
+    rect.endy = new_window.frame.starty-1;
     clear_rect(rect);
 
     //  * Right + Bottomright parts
-    rect.startx = new_window.endx+1;
-    rect.starty = new_window.starty;
-    rect.endx = old_window.endx;
-    rect.endy = old_window.endy;
+    rect.startx = new_window.frame.endx+1;
+    rect.starty = new_window.frame.starty;
+    rect.endx = old_window.frame.endx;
+    rect.endy = old_window.frame.endy;
     clear_rect(rect);
 
     //  * Bottom part
-    rect.startx = new_window.startx;
-    rect.starty = new_window.endy+1;
-    rect.endx = new_window.endx;
-    rect.endy = old_window.endy;
+    rect.startx = new_window.frame.startx;
+    rect.starty = new_window.frame.endy+1;
+    rect.endx = new_window.frame.endx;
+    rect.endy = old_window.frame.endy;
     clear_rect(rect);
   }
 }
@@ -322,66 +322,66 @@ void DebugOutput::fill_border(const DebugWindow window) {
 
   if(window.border) {
     //Left border
-    if(window.startx>0) {
-      border_line.startx=window.startx-1;
-      border_line.starty=window.starty;
-      border_line.endx=window.startx-1;
-      border_line.endy=window.endy;
+    if(window.frame.startx>0) {
+      border_line.startx=window.frame.startx-1;
+      border_line.starty=window.frame.starty;
+      border_line.endx=window.frame.startx-1;
+      border_line.endy=window.frame.endy;
       fill_rect(border_line, border_characters[BOR_LEFT]);
 
       //Topleft corner
-      if(window.starty>0) {
-        offset = get_offset(window.startx-1, window.starty-1);
+      if(window.frame.starty>0) {
+        offset = get_offset(window.frame.startx-1, window.frame.starty-1);
         buffer[offset] = border_characters[BOR_TOPLEFT];
         buffer[offset+1] = attribute;
       }
 
       //Bottomleft corner
-      if(window.endy<NUMBER_OF_ROWS-1) {
-        offset = get_offset(window.startx-1, window.endy+1);
+      if(window.frame.endy<NUMBER_OF_ROWS-1) {
+        offset = get_offset(window.frame.startx-1, window.frame.endy+1);
         buffer[offset] = border_characters[BOR_BOTTOMLEFT];
         buffer[offset+1] = attribute;
       }
     }
 
     //Top border
-    if(window.starty>0) {
-      border_line.startx=window.startx;
-      border_line.starty=window.starty-1;
-      border_line.endx=window.endx;
-      border_line.endy=window.starty-1;
+    if(window.frame.starty>0) {
+      border_line.startx=window.frame.startx;
+      border_line.starty=window.frame.starty-1;
+      border_line.endx=window.frame.endx;
+      border_line.endy=window.frame.starty-1;
       fill_rect(border_line, border_characters[BOR_TOP]);
 
       //Topright corner
-      if(window.endx<NUMBER_OF_COLS-1) {
-        offset = get_offset(window.endx+1, window.starty-1);
+      if(window.frame.endx<NUMBER_OF_COLS-1) {
+        offset = get_offset(window.frame.endx+1, window.frame.starty-1);
         buffer[offset] = border_characters[BOR_TOPRIGHT];
         buffer[offset+1] = attribute;
       }
     }
 
     //Right border
-    if(window.endx<NUMBER_OF_COLS-1) {
-      border_line.startx=window.endx+1;
-      border_line.starty=window.starty;
-      border_line.endx=window.endx+1;
-      border_line.endy=window.endy;
+    if(window.frame.endx<NUMBER_OF_COLS-1) {
+      border_line.startx=window.frame.endx+1;
+      border_line.starty=window.frame.starty;
+      border_line.endx=window.frame.endx+1;
+      border_line.endy=window.frame.endy;
       fill_rect(border_line, border_characters[BOR_RIGHT]);
 
       //Bottomright corner
-      if(window.endy<NUMBER_OF_ROWS-1) {
-        offset = get_offset(window.endx+1, window.endy+1);
+      if(window.frame.endy<NUMBER_OF_ROWS-1) {
+        offset = get_offset(window.frame.endx+1, window.frame.endy+1);
         buffer[offset] = border_characters[BOR_BOTTOMRIGHT];
         buffer[offset+1] = attribute;
       }
     }
 
     //Bottom border
-    if(window.endy<NUMBER_OF_ROWS-1) {
-      border_line.startx=window.startx;
-      border_line.starty=window.endy+1;
-      border_line.endx=window.endx;
-      border_line.endy=window.endy+1;
+    if(window.frame.endy<NUMBER_OF_ROWS-1) {
+      border_line.startx=window.frame.startx;
+      border_line.starty=window.frame.endy+1;
+      border_line.endx=window.frame.endx;
+      border_line.endy=window.frame.endy+1;
       fill_rect(border_line, border_characters[BOR_BOTTOM]);
     }
   }
@@ -400,10 +400,10 @@ void DebugOutput::fill_rect(const DebugRect rect, const char character) {
 }
 
 void DebugOutput::scroll(const unsigned int amount) {
-    if(amount < window.endy-window.starty+1) {
-        DebugRect rect(window.startx, window.starty+amount, window.endx, window.endy);
-        copy_rect(rect, window.startx, window.starty);
-        rect.starty = window.endy-amount+1;
+    if(amount < window.frame.endy-window.frame.starty+1) {
+        DebugRect rect(window.frame.startx, window.frame.starty+amount, window.frame.endx, window.frame.endy);
+        copy_rect(rect, window.frame.startx, window.frame.starty);
+        rect.starty = window.frame.endy-amount+1;
         clear_rect(rect);
         row-=amount;
     } else {
@@ -925,32 +925,32 @@ DebugOutput& DebugOutput::operator<<(const DebugWindower& manipulator) {
     clear_border(window);
 
     //Copy contents of the old window in the new one
-    col_size = min(manipulator.window.endx-manipulator.window.startx, window.endx-window.startx);
-    row_size = min(manipulator.window.endy-manipulator.window.starty, window.endy-window.starty);
-    DebugRect rect(window.startx, window.starty, window.startx+col_size, window.starty+row_size);
-    copy_rect(rect, manipulator.window.startx, manipulator.window.starty);
+    col_size = min(manipulator.window.frame.endx-manipulator.window.frame.startx, window.frame.endx-window.frame.startx);
+    row_size = min(manipulator.window.frame.endy-manipulator.window.frame.starty, window.frame.endy-window.frame.starty);
+    DebugRect rect(window.frame.startx, window.frame.starty, window.frame.startx+col_size, window.frame.starty+row_size);
+    copy_rect(rect, manipulator.window.frame.startx, manipulator.window.frame.starty);
 
     //Clear old window and uninitialized parts of the new one
     clear_oldwindow(window, manipulator.window);
-    rect.startx = manipulator.window.startx+col_size+1;
-    rect.endx = manipulator.window.endx;
-    rect.starty = manipulator.window.starty;
-    rect.endy = manipulator.window.starty+row_size;
+    rect.startx = manipulator.window.frame.startx+col_size+1;
+    rect.endx = manipulator.window.frame.endx;
+    rect.starty = manipulator.window.frame.starty;
+    rect.endy = manipulator.window.frame.starty+row_size;
     clear_rect(rect);
-    rect.startx = manipulator.window.startx;
-    rect.starty = manipulator.window.starty+row_size+1;
-    rect.endx = manipulator.window.endx;
-    rect.endy = manipulator.window.endy;
+    rect.startx = manipulator.window.frame.startx;
+    rect.starty = manipulator.window.frame.starty+row_size+1;
+    rect.endx = manipulator.window.frame.endx;
+    rect.endy = manipulator.window.frame.endy;
     clear_rect(rect);
 
     //Draw the new border (if any)
     fill_border(manipulator.window);
 
     //Set new window
-    window.startx = manipulator.window.startx;
-    window.starty = manipulator.window.starty;
-    window.endx = manipulator.window.endx;
-    window.endy = manipulator.window.endy;
+    window.frame.startx = manipulator.window.frame.startx;
+    window.frame.starty = manipulator.window.frame.starty;
+    window.frame.endx = manipulator.window.frame.endx;
+    window.frame.endy = manipulator.window.frame.endy;
     window.border = manipulator.window.border;
 
     return *this;

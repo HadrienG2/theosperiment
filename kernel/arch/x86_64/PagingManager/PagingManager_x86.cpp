@@ -80,21 +80,24 @@ PageChunk* PagingManager::chunk_mapper_contig(PagingManagerProcess* target,
 }
 
 PageChunk* PagingManager::chunk_mapper_identity(PagingManagerProcess* target,
-                                                  const RamChunk* ram_chunk,
-                                                  const PageFlags flags,
-                                                  size_t offset) {
+                                                const RamChunk* ram_chunk,
+                                                const PageFlags flags,
+                                                size_t offset) {
     size_t tmp;
     RamChunk *chunk_parser;
-    PageChunk *result, *current_pagechunk;
+    PageChunk *result = NULL, *current_pagechunk;
 
     //For identity-mapping, we map each part of the chunk separately.
     chunk_parser = (RamChunk*) ram_chunk;
     while(chunk_parser) {
         //Allocate virtual address space for the current part of the RAM chunk
         current_pagechunk = alloc_virtual_address_space(target,
-                                                       chunk_parser->size,
-                                                       chunk_parser->location+offset);
-        if(!current_pagechunk) return NULL;
+                                                        chunk_parser->size,
+                                                        chunk_parser->location+offset);
+        if(!current_pagechunk) {
+            if(result) chunk_liberator(target, result);
+            return NULL;
+        }
         if(chunk_parser == ram_chunk) result = current_pagechunk;
 
         //Finish setting up the allocated chunk

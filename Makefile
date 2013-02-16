@@ -22,14 +22,20 @@ include */Makefile
 
 #Project-wide make rules
 .DEFAULT_GOAL:= all
-.PHONY: all run clean mrproper
+.PHONY: all hello run clean mrproper
 
-all: all_arch $(BS_BIN) $(KNL_BIN) $(MAKEFILES)
-	@echo "Reminder : remember to run git pull, git status, and git commit -a && git push frequently !"
+all: hello all_arch $(BS_BIN) $(KNL_BIN) $(MAKEFILES)
+	@echo "*                                                                          *"
+	@echo "*** Build complete! Please remember to keep in sync with the git repo... ***"
+
+hello:
+	@echo "************************* Building the OS|periment *************************"
+	@echo "*                                                                          *"
 
 run: run_arch $(MAKEFILES)
 
 clean: clean_arch $(MAKEFILES)
+	@echo "* Cleaning up arch-agnostic files"
 	@rm -rf $(BIN_OBJECTS)
 
 mrproper: mrproper_arch clean $(MAKEFILES)

@@ -32,9 +32,9 @@ KNL_CXX_FEATURES:= -fno-exceptions -fno-rtti -fno-stack-protector -fno-threadsaf
 KNL_CXX_STD:= -std=c++11 -pedantic
 KNL_CXXFLAGS:= $(KNL_CXX_WARNINGS) $(KNL_CXX_LIBS) $(KNL_CXX_FEATURES) $(KNL_CXX_STD)
 ifeq ($(Fdebug),1)
-    KNL_CXXFLAGS+= -O0 -DDEBUG
+    KNL_CXXFLAGS+= -O3 -DDEBUG
 else
-    KNL_CXXFLAGS+= -O0
+    KNL_CXXFLAGS+= -O3
 endif
 
 #Abstracting away filenames
@@ -49,12 +49,15 @@ include kernel/arch/$(ARCH)/Makefile
 
 #Make rules
 $(KNL_BIN): $(KNL_ASM_OBJ) $(KNL_CPP_OBJ) $(MAKEFILES) $(KNL_MAKEFILES)
+	@echo "* Linking a kernel binary"
 	@$(KNL_LD) -T kernel/arch/$(ARCH)/support/kernel_linker.lds -o $@ $(KNL_ASM_OBJ) $(KNL_CPP_OBJ) $(LFLAGS)
 
 %.knlasm.o: %.s $(MAKEFILES) $(KNL_MAKEFILES)
+	@echo "* Compiling "$<
 	@$(KNL_AS) $< -o $@
 
 %.knlcpp.o: %.cpp $(MAKEFILES) $(KNL_MAKEFILES)
+	@echo "* Compiling "$<
 	@$(KNL_CXX) -MD -MP -o $@ -c $< $(KNL_CXXFLAGS) $(KNL_INCLUDES)
 
 -include $(KNL_DEPEND_FILES)

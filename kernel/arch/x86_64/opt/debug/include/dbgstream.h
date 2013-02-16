@@ -188,7 +188,7 @@ class DebugOutput {
         void fill_rect(const DebugRect rect,  //Fill a rectangle with the specified character
                        const char character);
         unsigned int get_offset() const { //Returns the offset in character buffer corresponding to current col/row
-            return get_offset(col+window.startx, row+window.starty);}
+            return get_offset(col+window.frame.startx, row+window.frame.starty);}
         unsigned int get_offset(const int col, const int row) const {
             return 2*col+2*NUMBER_OF_COLS*row;}
         void scroll(const unsigned int amount);
