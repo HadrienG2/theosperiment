@@ -50,31 +50,17 @@ struct DebugRect {
 //A window is basically a rectangle with an optional border
 enum DebugWindowBorder {NONE=0, SINGLE, DOUBLE, THICK, BLOCK};
 struct DebugWindow {
-  unsigned int startx;
-  unsigned int starty;
-  unsigned int endx;
-  unsigned int endy;
-  //New things
+  DebugRect frame;
   DebugWindowBorder border;
-  DebugWindow() : startx(0),
-                  starty(0),
-                  endx(0),
-                  endy(0),
-                  border(NONE) {}
-  DebugWindow(const DebugRect rect, const DebugWindowBorder init_border) : startx(rect.startx),
-                                                                           starty(rect.starty),
-                                                                           endx(rect.endx),
-                                                                           endy(rect.endy),
-                                                                           border(init_border) {};
+  DebugWindow() : border(NONE) {}
+  DebugWindow(const DebugRect rect, const DebugWindowBorder init_border) : frame(rect),
+                                                                            border(init_border) {};
   DebugWindow(const unsigned int x1,
               const unsigned int y1,
               const unsigned int x2,
               const unsigned int y2,
-              const DebugWindowBorder init_border) : startx(min(x1,x2)),
-                                                     starty(min(y1,y2)),
-                                                     endx(max(x1,x2)),
-                                                     endy(max(y1,y2)),
-                                                     border(init_border) {};
+              const DebugWindowBorder init_border) : frame(min(x1,x2),min(y1,y2),max(x1,x2),max(y1,y2)),
+                                                      border(init_border) {};
 };
 
 //*******************************************************

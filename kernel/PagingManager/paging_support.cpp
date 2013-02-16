@@ -31,7 +31,7 @@ PageChunk* PageChunk::find_thischunk(const size_t location) const {
 }
 
 size_t PageChunk::length() const {
-    size_t result;
+    size_t result = 0;
     PageChunk* current_item = (PageChunk*) this;
 
     while(current_item) {

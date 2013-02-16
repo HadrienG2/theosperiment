@@ -25,9 +25,9 @@ BS_C_LIBS:= -nostdlib -ffreestanding
 BS_C_STD:= -std=c11 -pedantic
 BS_CFLAGS:= $(BS_C_WARNINGS) $(BS_C_LIBS) $(BS_C_STD)
 ifeq ($(Fdebug),1)
-    BS_CFLAGS+= -O0 -DDEBUG
+    BS_CFLAGS+= -O3 -DDEBUG
 else
-    BS_CFLAGS+= -O0
+    BS_CFLAGS+= -O3
 endif
 
 #Abstracting away filenames
@@ -42,12 +42,15 @@ include bootstrap/arch/$(BS_ARCH)/Makefile
 
 #Make rules
 $(BS_BIN): $(BS_ASM_OBJ) $(BS_C_OBJ) $(MAKEFILES) $(BS_MAKEFILES)
+	@echo "* Linking a bootstrap binary"
 	@$(BS_LD) -T bootstrap/arch/$(BS_ARCH)/support/bs_linker.lds -o $@ $(BS_ASM_OBJ) $(BS_C_OBJ) $(LFLAGS)
 
 %.bsasm.o: %.s $(MAKEFILES) $(BS_MAKEFILES)
+	@echo "* Compiling "$<
 	@$(BS_AS) $< -o $@
 
 %.bsc.o: %.c $(MAKEFILES) $(BS_MAKEFILES)
+	@echo "* Compiling "$<
 	@$(BS_CC) -MD -MP -o $@ -c $< $(BS_CFLAGS) $(BS_INCLUDES)
 
 -include $(BS_DEPEND_FILES)

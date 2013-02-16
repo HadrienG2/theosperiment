@@ -22,18 +22,22 @@ BIN_OBJECTS+= $(GRUB2_ELTORITO_IMG) $(GRUB2_CORE_IMG)
 
 all_arch: $(CDIMAGE) $(MAKEFILES)
 
-run_arch: all $(MAKEFILES)
+run_arch: $(CDIMAGE) $(MAKEFILES)
+	@echo "* Running the OS in an emulator"
 	@echo c > comm_test
 	@nice -n 7 bochsdbg -qf arch/$(ARCH)/support/bochsrc.txt -rc comm_test
 	@rm -f comm_test
 
 clean_arch: $(MAKEFILES)
+	@echo "* Cleaning up arch-specific files"
 	@rm -rf $(CDIMAGE_ROOT)/*
 
 mrproper_arch: clean_arch $(MAKEFILES)
+	@echo "* Deleting all programmatically generated arch-specific files"
 	@rm -f $(CDIMAGE)
 
 $(CDIMAGE): $(BS_BIN) $(KNL_BIN) $(GRUB2_ELTORITO_IMG) $(GRUB2_CONFIG) $(MAKEFILES)
+	@echo "* Generating a CD image"
 	@rm -f $(CDIMAGE)
 	@rm -rf $(CDIMAGE_ROOT)/*
 	@mkdir -p $(CDIMAGE_ROOT)/$(GRUB2_DEST_PREFIX)/i386-pc
@@ -47,9 +51,11 @@ $(CDIMAGE): $(BS_BIN) $(KNL_BIN) $(GRUB2_ELTORITO_IMG) $(GRUB2_CONFIG) $(MAKEFIL
 	@genisoimage -o $(CDIMAGE) -b $(GRUB2_DEST_PREFIX)/grub2_eltorito.img $(GENISO_PARAMS) $(CDIMAGE_ROOT)
 
 $(GRUB2_ELTORITO_IMG): $(GRUB2_CORE_IMG) $(MAKEFILES)
+	@echo "* Making a bootable GRUB 2 image"
 	@cat $(GRUB2_LOCAL_PREFIX)/i386-pc/cdboot.img $(GRUB2_CORE_IMG) > $(GRUB2_ELTORITO_IMG)
 
 $(GRUB2_CORE_IMG): $(MAKEFILES)
+	@echo "* Making a core GRUB 2 image"
 	@echo "configfile /System/boot/grub2/grub2.cfg" > grub2_tmp.cfg
 	@$(GRUB2_BIN_PREFIX)-mkimage -p '/$(GRUB2_DEST_PREFIX)/i386-pc' -c grub2_tmp.cfg -o $(GRUB2_CORE_IMG) -O i386-pc $(GRUB2_STATIC_MODULES)
 	@rm -f grub2_tmp.cfg

@@ -266,7 +266,7 @@ bool MemAllocator::liberator(MallocProcess* target, const size_t location) {
     //    in busy_map being empty, free_map is necessarily empty too : remove that PID.
     // 3b.If not, move the busy_map item in free_map, merging it with neighbors if possible.
 
-    MemoryChunk *freed_item, *previous_item = NULL;
+    MemoryChunk *freed_item = NULL, *previous_item = NULL;
 
     //Step 1 : Finding the item in busy_map and taking it out of said map.
     if(target->busy_map == NULL) return false;
