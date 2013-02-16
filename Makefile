@@ -29,7 +29,7 @@ all: hello all_arch $(BS_BIN) $(KNL_BIN) $(MAKEFILES)
 	@echo "*** Build complete! Please remember to keep in sync with the git repo... ***"
 
 hello:
-	@echo "******* Warning: Activating the OS|periment's automated build system *******"
+	@echo "********** Activating the OS|perimental automated build system... **********"
 	@echo "*                                                                          *"
 
 run: run_arch $(MAKEFILES)
