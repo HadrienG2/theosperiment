@@ -37,16 +37,16 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << move_rel(-5,0) << "PAGE malloc ";
     MemAllocator mem_allocator(ram_manager, paging_manager);
     dbgout << move_rel(-7,0) << "MALLOC" << txtcolor(TXT_DEFAULT) << endl;
-    
+
     //Initialize kernel module managment
     dbgout << txtcolor(TXT_WHITE) << "* Initializing kernel module management..." << txtcolor(TXT_LIGHTRED) << " /!\\ TO BE DONE /!\\" << txtcolor(TXT_DEFAULT) << endl;
     dbgout << bp();
-    
+
     //Test KUtf32String
     dbgout << txtcolor(TXT_WHITE) << "* Playing with Unicode strings..." << txtcolor(TXT_DEFAULT) << txtcolor(TXT_YELLOW) << " /!\\ WORK IN PROGRESS /!\\" << txtcolor(TXT_DEFAULT) << endl;
     KUtf32String test("This is a test");
     dbgout << bp();
-    
+
     //Start process manager
     dbgout << txtcolor(TXT_WHITE) << "* Setting up process management..." << txtcolor(TXT_YELLOW) << " /!\\ WORK IN PROGRESS /!\\" << txtcolor(TXT_DEFAULT) << endl;
     ProcessManager process_manager(mem_allocator);
@@ -59,13 +59,13 @@ extern "C" int kmain(const KernelInformation& kinfo) {
     dbgout << "* Parsing process property file..." << endl << test_file << endl;
     test_parser.open_and_check(test_file);
     dbgout << bp();
-    
+
     //Initialize remaining kernel components
     dbgout << txtcolor(TXT_WHITE) << "* Initializing remaining kernel components..." << txtcolor(TXT_LIGHTRED) << " /!\\ TO BE DONE /!\\" << txtcolor(TXT_DEFAULT) << endl;
-    
+
     //Once everything is done, get rid of the now-useless bootstrap component, and associated data
     dbgout << txtcolor(TXT_WHITE) << "* Freeing up bootstrap data structures..." << txtcolor(TXT_LIGHTRED) << " /!\\ TO BE DONE /!\\" << txtcolor(TXT_DEFAULT) << endl;
-    
+
     dbgout << txtcolor(TXT_WHITE) << "* Ready to roll out !" << txtcolor(TXT_DEFAULT);
 
     return 0;
