@@ -104,7 +104,7 @@ class RamManager {
                                     bool contiguous = false);
 
         //WARNING : Functions after this point are nonstandard, subject to change without
-        //warnings, and should not be read or manipulated by external software.
+        //warnings, and should not be used by third-party developers.
 
         //Dumps the memory map, used by VirMemManager() to derive the kernel's virtual address space.
         RamChunk* dump_mmap() {return ram_map;}

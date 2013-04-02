@@ -103,14 +103,12 @@ void dbg_print_mbflags(const multiboot_info_t* mbd) {
 }
 
 void dbg_print_mmap(const multiboot_info_t* mbd) {
-    int remaining_mmap;
-    memory_map_t* current_mmap;
     uint32_t hack_current_mmap;
     uint64_t data64;
 
     if(mbd->flags & 64) {
-        remaining_mmap = mbd->mmap_length;
-        current_mmap = mbd->mmap_addr;
+        int remaining_mmap = mbd->mmap_length;
+        memory_map_t* current_mmap = mbd->mmap_addr;
         print_str("Memory map :\n");
         while(remaining_mmap > 0) {
             //Display contents
