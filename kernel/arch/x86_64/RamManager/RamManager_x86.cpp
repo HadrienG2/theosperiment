@@ -127,8 +127,7 @@ RamManager::RamManager(const KernelInformation& kinfo) : process_manager(NULL),
 
     //Find the region where we have allocated our map items...
     last_free = NULL;
-    while(current_item) {
-        if(current_item->location+current_item->size > mapitems_location) break;
+    while(current_item->location+current_item->size <= mapitems_location) {
         if(current_item->has_owner(PID_INVALID) && current_item->allocatable) {
             last_free = current_item;
         }
@@ -155,7 +154,7 @@ RamManager::RamManager(const KernelInformation& kinfo) : process_manager(NULL),
     }
     current_item->owners = PID_KERNEL;
     current_item->next_buddy = NULL;
-    
+
     //Startup process management services
     initialize_process_list();
 

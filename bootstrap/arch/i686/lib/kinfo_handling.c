@@ -158,19 +158,14 @@ KernelMMapItem* add_mbdata(KernelMMapItem* kmmap_buffer, bs_size_t *index_ptr, c
 }
 
 void add_modules(KernelInformation* kinfo, const multiboot_info_t* mbd) {
-    bs_size_t current_mod = 0;
-
     //Add module information only if it is present (it should be)
     if(mbd->flags & 8) {
-        while(current_mod < mbd->mods_count) {
+        for(bs_size_t current_mod=0; current_mod < mbd->mods_count; ++current_mod) {
             kmmap_add(kinfo,
                       mbd->mods_addr[current_mod].mod_start,
                       mbd->mods_addr[current_mod].mod_end-mbd->mods_addr[current_mod].mod_start+1,
                       NATURE_MOD,
                       mbd->mods_addr[current_mod].string);
-
-            //Move to next module
-            ++current_mod;
         }
     }
     kmmap_update(kinfo);
@@ -418,7 +413,7 @@ knl_size_t kmmap_alloc_pgalign(KernelInformation* kinfo, const knl_size_t size, 
 
 void kmmap_free(KernelInformation* kinfo, const bs_size_t index) {
     KernelMMapItem* kmmap = FROM_KNL_PTR(KernelMMapItem*, kinfo->kmmap);
-    
+
     kmmap[index].nature = NATURE_FRE;
     if(kmmap[index].location>=0x100000) {
         kmmap[index].name = TO_KNL_PTR("High mem");
@@ -449,16 +444,16 @@ void kmmap_update(KernelInformation* kinfo) {
 KernelMMapItem* merge_free_items(KernelInformation* kinfo, bs_size_t first_free_index) {
     /* Goal of this function : after freeing one chunk of RAM, we can be left with two to three
        free chunks of RAM next to each other. In such a case one should merge them into one */
-       
+
     bs_size_t parsed_index, merged_items;
     KernelMMapItem* kmmap = FROM_KNL_PTR(KernelMMapItem*, kinfo->kmmap);
-       
+
     //Start at the previous chunk, if any
     parsed_index = first_free_index;
     if(first_free_index > 0) {
         --parsed_index;
     }
-    
+
     //Successively merge items that need merging
     merged_items = 0;
     while(parsed_index + merged_items + 1 < kinfo->kmmap_length) {
@@ -472,10 +467,10 @@ KernelMMapItem* merge_free_items(KernelInformation* kinfo, bs_size_t first_free_
             ++parsed_index;
         }
     }
-    
+
     //Shrink mmap to its new size
     kinfo->kmmap_length-= merged_items;
-    
+
     return kmmap;
 }
 

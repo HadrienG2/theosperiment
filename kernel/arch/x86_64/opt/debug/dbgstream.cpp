@@ -318,7 +318,6 @@ void DebugOutput::cursor_movabs(const unsigned int acol, const unsigned int arow
 void DebugOutput::fill_border(const DebugWindow window) {
   DebugRect border_line;
   const unsigned char* border_characters = border_array(window.border);
-  int offset;
 
   if(window.border) {
     //Left border
@@ -331,14 +330,14 @@ void DebugOutput::fill_border(const DebugWindow window) {
 
       //Topleft corner
       if(window.frame.starty>0) {
-        offset = get_offset(window.frame.startx-1, window.frame.starty-1);
+        int offset = get_offset(window.frame.startx-1, window.frame.starty-1);
         buffer[offset] = border_characters[BOR_TOPLEFT];
         buffer[offset+1] = attribute;
       }
 
       //Bottomleft corner
       if(window.frame.endy<NUMBER_OF_ROWS-1) {
-        offset = get_offset(window.frame.startx-1, window.frame.endy+1);
+        int offset = get_offset(window.frame.startx-1, window.frame.endy+1);
         buffer[offset] = border_characters[BOR_BOTTOMLEFT];
         buffer[offset+1] = attribute;
       }
@@ -354,7 +353,7 @@ void DebugOutput::fill_border(const DebugWindow window) {
 
       //Topright corner
       if(window.frame.endx<NUMBER_OF_COLS-1) {
-        offset = get_offset(window.frame.endx+1, window.frame.starty-1);
+        int offset = get_offset(window.frame.endx+1, window.frame.starty-1);
         buffer[offset] = border_characters[BOR_TOPRIGHT];
         buffer[offset+1] = attribute;
       }
@@ -370,7 +369,7 @@ void DebugOutput::fill_border(const DebugWindow window) {
 
       //Bottomright corner
       if(window.frame.endy<NUMBER_OF_ROWS-1) {
-        offset = get_offset(window.frame.endx+1, window.frame.endy+1);
+        int offset = get_offset(window.frame.endx+1, window.frame.endy+1);
         buffer[offset] = border_characters[BOR_BOTTOMRIGHT];
         buffer[offset+1] = attribute;
       }

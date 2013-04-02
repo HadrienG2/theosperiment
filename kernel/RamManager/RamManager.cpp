@@ -17,6 +17,7 @@
     Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301  USA */
 
 #include <new.h>
+#include <KernelInformation.h>
 #include <RamManager.h>
 
 #include <dbgstream.h>
@@ -178,7 +179,7 @@ RamChunk* RamManager::chunk_allocator(RamManagerProcess* owner,
     size_t remaining_freemem = 0, to_be_allocd = 0;
     RamChunk *previous_free_chunk = NULL, *new_free_chunk = NULL;
     RamChunk *current_chunk, *previous_chunk, *result;
-    
+
     //Check if we can allocate the requested memory without busting caps
     if(owner->memory_usage + size > owner->memory_cap) return NULL;
 
@@ -278,7 +279,7 @@ RamChunk* RamManager::chunk_allocator(RamManagerProcess* owner,
 
 bool RamManager::chunk_owneradd(RamManagerProcess* new_owner, RamChunk* chunk) {
     RamChunk* current_item = chunk;
-    
+
     //Check if we can allocate the requested memory without busting caps
     if(new_owner->memory_usage + chunk->size > new_owner->memory_cap) return false;
 
@@ -307,7 +308,7 @@ bool RamManager::chunk_owneradd(RamManagerProcess* new_owner, RamChunk* chunk) {
         chunk_ownerdel(new_owner, chunk);
         return false;
     }
-    
+
     //Update process memory usage if allocation has been successful
     new_owner->memory_usage+= chunk->size;
 
@@ -355,7 +356,7 @@ bool RamManager::chunk_ownerdel(RamManagerProcess* former_owner, RamChunk* chunk
         //Go to next item in the buddy list
         current_chunk = current_chunk->next_buddy;
     }
-    
+
     //Update process memory usage
     former_owner->memory_usage-= chunk->size;
 
@@ -538,9 +539,9 @@ RamChunk* RamManager::generate_chunk(const KernelInformation& kinfo, size_t& ind
 
 bool RamManager::initialize_process_list() {
     //This function generates the "process list", which at this point only includes a kernel entry
-    static RamManagerProcess kernel_process;    
+    static RamManagerProcess kernel_process;
     RamChunk* map_parser;
-    
+
     process_list = &kernel_process;
 
     process_list->identifier = PID_KERNEL;
@@ -549,7 +550,7 @@ bool RamManager::initialize_process_list() {
         if(map_parser->has_owner(PID_KERNEL)) process_list->memory_usage+= map_parser->size;
         map_parser = map_parser->next_mapitem;
     }
-    
+
     return true;
 }
 
@@ -775,9 +776,9 @@ void RamManager::print_mmap() {
 
 void RamManager::print_proclist() {
     proclist_mutex.grab_spin();
- 
-        dbgout << *process_list;   
-       
+
+        dbgout << *process_list;
+
     proclist_mutex.release();
 }
 

@@ -19,10 +19,8 @@
 #include "wait.h"
 
 void dbg_wait(const int factor) {
-    int j;
-
     if(factor>0) {
-        for(j=1; j<=2000*factor; ++j);
+        for(int j=1; j<=2000*factor; ++j);
     } else {
         __asm__("infinite_loop: hlt;\
                                 jmp infinite_loop;");
